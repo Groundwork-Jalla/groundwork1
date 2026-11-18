@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Communications · log</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1020px;overflow:hidden;position:relative}
+.app{height:1020px}
+
+.c-health{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.c-pill{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mid)}
+.c-pill b{color:var(--ink);font-weight:600}
+.c-pill.warn{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.c-pill.bad{border-color:#e6c9ce;background:#fbf6f7;color:var(--alert)}
+.c-tabs{margin-top:16px}
+.c-tabs span{cursor:pointer}
+.c-h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;color:var(--ink);display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
+.c-sel:after{content:'';width:6px;height:6px;border-right:1.5px solid var(--mid);border-bottom:1.5px solid var(--mid);transform:rotate(45deg);margin:-3px 0 0 4px}
+.c-in{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink)}
+.c-lab{font-size:11.5px;font-weight:600;color:var(--mid);display:block;margin-bottom:4px}
+
+.l-bar{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.l-t td{font-size:12.5px;padding:10px 14px}
+
+</style></head><body data-active="/admin/sequences">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Communications</b></div>
+  <div class="ph2"><div><h1>Communications</h1><p class="lead">Manage activation reminders, conversations and staff follow-up. Review each journey and test with selected recipients before enabling wider delivery.</p></div>
+   <div class="acts"><span class="btn o">Preview due messages</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 5l12 7-12 7z"/></svg>Run due now</span></div></div>
+  <div class="c-health">
+    <span class="c-pill warn"><span class="dotc" style="background:var(--held)"></span>Communication delivery is paused. <span class="link" style="font-size:12.5px">Settings</span></span>
+    <span class="c-pill"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last background run: <b>18/11/2026, 09:00</b> · completed</span>
+    </div>
+  <div class="tabs2 c-tabs"><span class="">Needs attention<b>7</b></span><span class="">Tracking and recovery</span><span class="">Journeys</span><span class="">Sequences</span><span class="on">Send log</span><span class="">Inbox</span><span class="">WhatsApp</span><span class="">Settings</span></div>
+  <div class="l-bar"><p class="hint">The latest 300 sends, newest first. Failed rows are retried every hour.</p></div>
+<section class="card" style="overflow:hidden;margin-top:10px"><table class="tbl l-t"><thead><tr><th>When</th><th>Who</th><th>Email</th><th>Channel</th><th>Result</th></tr></thead><tbody><tr><td class="mono" style="color:var(--mid)">18/11/2026, 09:00</td><td>m.etoundi@mail.cm</td><td>CS2 · Create your first Groundwork project</td><td>email</td><td><span class="tag ok">delivered</span></td></tr><tr><td class="mono" style="color:var(--mid)">18/11/2026, 09:00</td><td>c.mbah@mail.cm</td><td>CS2 · Create your first Groundwork project</td><td>email</td><td><span class="tag bad">failed</span> <span style=color:var(--alert)>— mailbox does not exist</span></td></tr><tr><td class="mono" style="color:var(--mid)">18/11/2026, 09:00</td><td>+237 677 50 12 88</td><td>CL1 · Your project is waiting</td><td><span style="color:#128C4A;font-weight:600">whatsapp</span></td><td><span class="tag mute">sent</span></td></tr><tr><td class="mono" style="color:var(--mid)">17/11/2026, 21:00</td><td>b.ondoa@mail.cm</td><td>CL1 · Start your project</td><td>email</td><td><span class="tag ok">delivered</span></td></tr><tr><td class="mono" style="color:var(--mid)">17/11/2026, 21:00</td><td>p.tamba@mail.cm</td><td>CL1 · Start your project</td><td>email</td><td><span class="tag bad">failed</span> <span style=color:var(--alert)>— rate limited by provider</span></td></tr><tr><td class="mono" style="color:var(--mid)">17/11/2026, 15:00</td><td>s.abena@mail.cm</td><td>IV1 · You have been invited to a project</td><td>email</td><td><span class="tag ok">delivered</span></td></tr><tr><td class="mono" style="color:var(--mid)">17/11/2026, 09:00</td><td>a.nkwenti@mail.cm</td><td>CS4 · Your homeowner has not joined yet</td><td>email</td><td><span class="tag ok">delivered</span></td></tr><tr><td class="mono" style="color:var(--mid)">16/11/2026, 09:00</td><td>y.manga@mail.cm</td><td>CS2 · Create your first Groundwork project</td><td>email</td><td><span class="tag mute">sent</span></td></tr><tr><td class="mono" style="color:var(--mid)">16/11/2026, 09:00</td><td>d.fouda@mail.cm</td><td>CL3 · Need help finding a contractor?</td><td>email</td><td><span class="tag ok">delivered</span></td></tr><tr><td class="mono" style="color:var(--mid)">15/11/2026, 21:00</td><td>j.nana@mail.cm</td><td>cs_signup</td><td>email</td><td><span class="tag bad">bounced</span></td></tr></tbody></table></section>
+<div class="empty" style="margin-top:14px;padding:16px"><b>Nothing sent yet.</b>Shown in place of the table before the first send.</div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

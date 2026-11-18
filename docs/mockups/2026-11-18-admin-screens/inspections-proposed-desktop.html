@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Inspections · proposed</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.app{height:900px}
+.a-prop{display:inline-flex;gap:8px;align-items:center;background:#eceaf4;color:#4b4370;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;margin-bottom:8px}
+.a-tb{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.field svg{width:15px;height:15px;stroke:var(--mid);fill:none;stroke-width:2}
+.a-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:500}
+.a-wrap{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-top:12px;align-items:start}
+.kanban{grid-template-columns:repeat(4,1fr)}
+.kcol h4 b{font-family:var(--mono);color:var(--mid)}
+.kcard p.t{font-weight:700;font-size:13px}
+.kcard small{display:block;color:var(--mid);font-size:11.5px;margin-top:2px}
+.kcard .m{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.kcard .who{white-space:nowrap;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--mid)}
+.kcard .av{width:22px;height:22px;font-size:9.5px}
+.kcard.sel{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.a-ck{height:4px;border-radius:9px;background:var(--pale);margin-top:8px;overflow:hidden}.a-ck i{display:block;height:100%;background:var(--green)}
+.a-det{padding:16px 18px}
+.a-det h3{font-size:17px;font-weight:800;margin-top:6px}
+.a-dl{margin-top:10px;border-top:1px solid var(--rule)}
+.a-dl div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--rule);font-size:12.5px}.a-dl dt{color:var(--mid)}
+.a-cl{margin-top:12px}
+.a-cl p{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.a-cl li{list-style:none;display:flex;gap:8px;align-items:center;font-size:12.5px;padding:5px 0}
+.a-cl li i{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--rule);display:grid;place-items:center;font-style:normal;font-size:10px;color:#fff}
+.a-cl li i.y{background:var(--green);border-color:var(--green)}
+.a-cl li i.n{background:var(--alert);border-color:var(--alert)}
+</style></head><body data-active="/admin/inspections">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <span class="a-prop">Proposed — needs a data source</span>
+  <div class="ph2"><div><h1>Inspections</h1><p class="lead">Every site visit across every project: who is going, what they checked, and the result.</p></div>
+   <div class="acts"><span class="btn o">Calendar</span><span class="btn g">+ Request a visit</span></div></div>
+  <div class="a-tb">
+   <div class="toolbar"><span class="field" style="width:280px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search project or stage</span><span class="a-sel">All verifiers ▾</span><span class="a-sel">All cities ▾</span></div>
+   <span class="hint">Today the facts behind these cards live on each stage verification</span>
+  </div>
+  <div class="a-wrap">
+   <div class="kanban">
+    <div class="kcol"><h4>Requested · no visit yet<b>3</b></h4>
+     <div class="kcard"><p class="t">Kouam house</p><small>Stage 5 · Structure &amp; walls · Yaoundé</small><div class="m"><span class="who"><span class="av c3">VG</span>Vanessa</span><span class="tag warn">4 d waiting</span></div></div>
+     <div class="kcard"><p class="t">Tabe duplex</p><small>Stage 3 · Site preparation · Buea</small><div class="m"><span class="who"><span class="av c5">EA</span>Eric</span><span class="tag mute">1 d</span></div></div>
+     <div class="kcard"><p class="t">Fon duplex</p><small>Stage 4 · Foundation · Bamenda</small><div class="m"><span class="who"><span class="av c3">VG</span>Vanessa</span><span class="tag mute">today</span></div></div>
+    </div>
+    <div class="kcol"><h4>Visited · decision pending<b>2</b></h4>
+     <div class="kcard sel"><p class="t">Mbala Residence</p><small>Stage 5 · Structure &amp; walls · Douala</small><div class="a-ck"><i style="width:78%"></i></div><div class="m"><span class="who"><span class="av c3">VG</span>17 Nov visit</span><span class="hint">7/9</span></div></div>
+     <div class="kcard"><p class="t">Ngu residence</p><small>Stage 6 · Roofing · Limbe</small><div class="a-ck"><i style="width:100%"></i></div><div class="m"><span class="who"><span class="av c5">EA</span>15 Nov visit</span><span class="hint">8/8</span></div></div>
+    </div>
+    <div class="kcol"><h4>Needs more evidence<b>1</b></h4>
+     <div class="kcard"><p class="t">Nkeng villa</p><small>Stage 2 · Design completed · Limbe</small><div class="m"><span class="who"><span class="av c5">EA</span>Eric</span><span class="tag bad">Sent back 1×</span></div></div>
+    </div>
+    <div class="kcol"><h4>Verified · last 30 days<b>6</b></h4>
+     <div class="kcard"><p class="t">Mbala Residence</p><small>Stage 4 · Foundation · Douala</small><div class="m"><span class="who"><span class="av c3">VG</span>14 Nov</span><span class="tag ok">Verified</span></div></div>
+     <div class="kcard"><p class="t">Ewane house</p><small>Stage 2 · Design completed · Buea</small><div class="m"><span class="who"><span class="av c5">EA</span>9 Nov</span><span class="tag ok">Verified</span></div></div>
+     <div class="kcard"><p class="t">Kouam house</p><small>Stage 4 · Foundation · Yaoundé</small><div class="m"><span class="who"><span class="av c3">VG</span>6 Nov</span><span class="tag ok">Verified</span></div></div>
+    </div>
+   </div>
+   <aside class="card a-det">
+    <span class="tag info">Visited · decision pending</span>
+    <h3>Mbala Residence · Stage 5</h3>
+    <p class="hint">Structure &amp; walls · Douala · Claire Mbala</p>
+    <dl class="a-dl"><div><dt>Verifier</dt><dd>Vanessa G.</dd></div><div><dt>Requested</dt><dd>12 Nov by Ruth</dd></div><div><dt>Visited</dt><dd>17 Nov</dd></div><div><dt>Photos from the visit</dt><dd>6</dd></div></dl>
+    <ul class="a-cl"><p>Checklist</p>
+     <li><i class="y">✓</i>Columns plumb and to drawing</li>
+     <li><i class="y">✓</i>Ring beam reinforcement as specified</li>
+     <li><i class="y">✓</i>Blockwork bonded, mortar joints full</li>
+     <li><i class="n">×</i>Lintel bearing at north window</li>
+     <li><i></i>Curing record</li>
+    </ul>
+    <div style="display:grid;gap:8px;margin-top:14px"><span class="btn g">Record the verifier's decision</span><span class="btn o s">Open in Reviews</span></div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data · proposed layout</p>
+<script src="sidebar.js"></script>
+</body></html>

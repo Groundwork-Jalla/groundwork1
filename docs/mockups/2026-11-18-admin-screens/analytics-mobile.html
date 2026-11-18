@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Analytics · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css">
+<style>
+.am-asof{display:inline-flex;gap:6px;align-items:center;font-size:11.5px;color:var(--mid);font-weight:600;margin-top:8px}
+.am-asof i{width:6px;height:6px;border-radius:50%;background:var(--complete)}
+.am-hero{background:var(--green);color:#fff;border-radius:14px;padding:12px 14px;margin-top:12px;display:flex;justify-content:space-between;align-items:flex-end}
+.am-hero p{font-size:12px;opacity:.75}.am-hero b{font-family:var(--mono);font-size:28px;font-weight:600;display:block}
+.am-c{background:#fff;border:1px solid var(--rule);border-radius:14px;margin-top:10px;padding:12px 14px}
+.am-c h2{font-size:14px;font-weight:700}.am-c .sb{font-size:11.5px;color:var(--mid)}
+.am-col{display:flex;align-items:flex-end;gap:5px;height:96px;margin-top:10px;border-bottom:1px solid var(--rule)}
+.am-col div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.am-col i{display:block;width:100%;background:var(--green);border-radius:3px 3px 0 0}
+.am-col b{font-family:var(--mono);font-size:10px;margin-bottom:2px}
+.am-xl{display:flex;gap:5px;margin-top:4px}.am-xl span{flex:1;text-align:center;font-size:9.5px;color:var(--mid)}
+.am-r{display:grid;grid-template-columns:96px 1fr 64px;gap:8px;align-items:center;font-size:12px;padding:4px 0}
+.am-r .t{height:8px;background:var(--pale);border-radius:0 4px 4px 0;overflow:hidden}.am-r .t i{display:block;height:100%;background:var(--green);border-radius:0 4px 4px 0}
+.am-r b{font-family:var(--mono);font-weight:600;text-align:right;font-size:12px}
+.am-l{display:block;margin-top:8px;font-size:12px}
+</style></head><body data-active="/admin/analytics">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+ <h1>Analytics</h1><p class="sub">What the operation adds up to right now.</p>
+ <span class="am-asof"><i></i>As of today · 18 Nov, 09:45</span>
+ <div class="am-hero"><div><p>Active projects</p><b>48</b></div><p style="text-align:right">42 of 48 are<br>being tracked</p></div>
+ <div class="mk"><div><p>Need a person</p><b style="color:var(--alert)">5</b></div><div><p>Needs reply</p><b style="color:var(--held)">3</b></div><div><p>Verifications pending</p><b>4</b></div><div><p>Site updates</p><b>212</b></div></div>
+ <div class="am-c"><h2>Where the work is</h2><p class="sb">Active projects by current stage</p>
+  <div class="am-col"><div><b>6</b><i style="height:60%"></i></div><div><b>8</b><i style="height:80%"></i></div><div><b>7</b><i style="height:70%"></i></div><div><b>9</b><i style="height:85%"></i></div><div><b>6</b><i style="height:60%"></i></div><div><b>4</b><i style="height:40%"></i></div><div><b>3</b><i style="height:30%"></i></div><div><b>2</b><i style="height:20%"></i></div><div><b>1</b><i style="height:10%"></i></div><div><b>0</b><i style="height:2px"></i></div><div><b>2</b><i style="height:20%;background:var(--rule)"></i></div></div>
+  <div class="am-xl"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>—</span></div>
+  <p class="hint" style="margin-top:4px">Stages 1–10 · “—” is No stage recorded</p></div>
+ <div class="am-c"><h2>Money</h2><p class="sb">Groundwork’s own record — not a provider’s</p>
+  <div style="margin-top:8px">
+   <div class="am-r"><span>Expected</span><span class="t"><i style="width:100%;background:#b9d1c2"></i></span><b>$412,500</b></div>
+   <div class="am-r"><span>Funded</span><span class="t"><i style="width:69%;background:#8fb39d"></i></span><b>$286,300</b></div>
+   <div class="am-r"><span>Authorised</span><span class="t"><i style="width:48%;background:#5d8a70"></i></span><b>$198,000</b></div>
+   <div class="am-r"><span>In transit</span><span class="t"><i style="width:6%;background:#3d6c52"></i></span><b>$24,500</b></div>
+   <div class="am-r"><span>Disbursed</span><span class="t"><i style="width:42%"></i></span><b>$171,200</b></div>
+  </div><span class="link am-l">5 projects need a person</span></div>
+ <p class="hint" style="margin-top:10px">Below, in the same order as desktop: Active projects (status, plan), verification outcomes, Communication, Coming in, From site, and the no-trend note.</p>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Application detail · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1080px;overflow:hidden;position:relative}
+.app{height:1080px}
+.d-cols{display:grid;grid-template-columns:1fr 380px;gap:16px;margin-top:16px;align-items:start}
+.d-ok{border:1px solid #c9dccf;background:#f3f8f5;color:var(--complete);border-radius:12px;padding:9px 14px;font-size:13px;margin-top:14px;display:flex;gap:8px;align-items:center}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.d-sec{padding:14px 18px}
+.d-sec h2{font-size:14px;font-weight:700;margin-bottom:6px}
+.d-dl{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+.d-dl div{padding:5px 0}
+.d-dl dt{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.d-dl dd{font-size:13px;margin-top:2px}
+.d-file{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--rule);font-size:13px}
+.d-file small{display:block;color:var(--mid);font-size:11.5px}
+.d-proj{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;font-size:13px}
+.d-proj+.d-proj{margin-top:8px}
+.d-proj p{font-size:12px;color:var(--mid);margin-top:2px}
+.d-yn{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-top:1px solid var(--rule)}
+.d-yn:first-of-type{border-top:0}
+.d-rail{display:flex;flex-direction:column;gap:12px}
+.d-card{padding:16px}
+.d-card h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}
+.d-dec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.d-dec .btn{padding:8px 4px}
+.d-dec .cur{background:var(--ink);color:#fff;border:1px solid var(--ink)}
+.d-rej{margin-top:12px;border:1px solid var(--rule);border-radius:12px;padding:12px;background:var(--canvas)}
+.d-rej .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.d-rej .chip{border-radius:9px}
+.d-ta{margin-top:6px;border:1px solid var(--rule);background:#fff;border-radius:10px;height:54px;padding:8px 10px;font-size:12.5px;color:var(--ink)}
+.d-line{display:flex;gap:10px;align-items:flex-start;font-size:12.5px}
+.d-line+.d-line{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+.d-line .t{flex:1}
+.d-line .t small{display:block;color:var(--mid);font-size:11.5px;margin-top:2px}
+</style></head><body data-active="/admin/applications">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs"><span class="link" style="font-size:12.5px;text-decoration:none">&larr; Back to applications</span> · <b>Emmanuel Tchoupo</b></div>
+  <div class="ph2">
+   <div><div style="display:flex;gap:10px;align-items:center"><span class="av c1" style="width:44px;height:44px;font-size:14px">ET</span><div><h1>Emmanuel Tchoupo</h1><p class="lead" style="margin-top:0">Tchoupo Bâtiment SARL · Douala, Cameroon</p></div></div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><span class="tag info"><i></i>Reviewing</span><span class="tag mute">General contractor</span><span class="hint">Submitted 12 Nov 2026 · in FR · Edited by an admin on 14 Nov 2026</span></div></div>
+   <div class="acts"><span class="btn" style="background:var(--ink);color:#fff"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Edit</span></div>
+  </div>
+  <div class="d-ok"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>Status updated.</div>
+
+  <div class="d-cols">
+   <div class="d-grid">
+    <section class="card d-sec"><h2>Basic information</h2><dl class="d-dl">
+     <div><dt>Email</dt><dd class="link" style="font-size:13px">e.tchoupo@mail.cm</dd></div><div><dt>Phone</dt><dd class="link" style="font-size:13px">+237 677 41 22 09</dd></div>
+     <div><dt>Business name</dt><dd>Tchoupo Bâtiment SARL</dd></div><div><dt>Location</dt><dd>Douala, Cameroon</dd></div>
+     <div><dt>Portfolio</dt><dd class="link" style="font-size:13px">tchoupo.cm/projets &#8599;</dd></div><div><dt>Submitted in</dt><dd>FR</dd></div></dl></section>
+
+    <section class="card d-sec"><h2>Professional category · Experience &amp; operations</h2><dl class="d-dl">
+     <div><dt>Role</dt><dd>General contractor</dd></div><div><dt>Role (other)</dt><dd class="muted">—</dd></div>
+     <div><dt>Years of experience</dt><dd>12</dd></div><div><dt>Operates as</dt><dd>Registered company</dd></div>
+     <div><dt>Team size</dt><dd>18</dd></div><div><dt>Project types</dt><dd>Residential, duplex, small commercial</dd></div></dl></section>
+
+    <section class="card d-sec"><h2>Credentials</h2><dl class="d-dl" style="margin-bottom:6px">
+     <div><dt>Registered business</dt><dd>Yes</dd></div><div><dt>Tax number</dt><dd>Yes</dd></div></dl>
+     <div class="d-file"><span>RCCM certificate.pdf<small>412 KB</small></span><span class="btn o s">Download</span></div>
+     <div class="d-file"><span>Attestation de non-redevance.pdf<small>188 KB</small></span><span class="btn o s">Download</span></div>
+     <div class="d-file"><span>Site photos Bonamoussadi.zip<small>3 104 KB</small></span><span class="btn o s">Download</span></div>
+     <div class="d-file"><span>Insurance certificate.jpg<small>96 KB · <span style="color:var(--alert)">Could not create a download link. The file may have been removed.</span></small></span><span class="btn o s">Download</span></div></section>
+
+    <section class="card d-sec"><h2>Project history &amp; references</h2>
+     <div class="d-proj"><span class="hint" style="font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:700">Project 1</span><br><b>Villa Kotto, R+1</b><p>Bonamoussadi, Douala · 48 000 000 XAF · Main contractor · 2025</p><p><b>Homeowner reference:</b> Mireille Kotto · +237 699 10 44 21</p></div>
+     <div class="d-proj"><span class="hint" style="font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:700">Project 2</span><br><b>Immeuble Ndjock, 4 flats</b><p>Logbessou, Douala · 120 000 000 XAF · Structure works · 2024</p><p><b>Homeowner reference:</b> Jean-Marc Ndjock · jm.ndjock@mail.cm</p></div></section>
+
+    <section class="card d-sec"><h2>Future alignment</h2>
+     <dl class="d-dl" style="grid-template-columns:1fr"><div><dt>Why they want to join</dt><dd>We build in Douala and want homeowners abroad to trust us with milestone payments and stage checks.</dd></div>
+     <div><dt>What sets them apart</dt><dd>Own concrete crew and a site engineer on every project; weekly photo reports.</dd></div></dl>
+     <dl class="d-dl"><div><dt>Ready for early projects</dt><dd>Yes</dd></div><div><dt>Video</dt><dd class="link" style="font-size:13px">youtu.be/tchoupo-site &#8599;</dd></div></dl></section>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+     <section class="card d-sec"><h2>Professional standards</h2>
+      <div class="d-yn"><span>Accepts milestone payments</span><b>Yes</b></div><div class="d-yn"><span>Accepts stage verification</span><b>Yes</b></div><div class="d-yn"><span>Accepts no side payments</span><b>Yes</b></div></section>
+     <section class="card d-sec"><h2>Regional capacity · Final agreement</h2><dl class="d-dl">
+      <div><dt>Regions covered</dt><dd>Littoral, Centre</dd></div><div><dt>Concurrent projects</dt><dd>3</dd></div></dl>
+      <p style="font-size:13px;margin-top:6px;display:flex;gap:6px;align-items:center"><svg class="ico" viewBox="0 0 24 24" style="color:var(--complete)"><path d="M5 12l4 4 10-10"/></svg>Agreed to terms: Yes</p></section>
+    </div>
+   </div>
+
+   <aside class="d-rail">
+    <section class="card d-card"><h4>Decision</h4>
+     <div class="d-dec"><span class="btn cur" style="opacity:.55">Mark reviewing</span><span class="btn g">Accept</span><span class="btn o" style="color:var(--alert);border-color:var(--alert)">Reject</span></div>
+     <div class="d-rej">
+      <b style="font-size:12.5px">Why are you rejecting this?</b>
+      <div class="chips"><span class="chip">Experience did not hold up</span><span class="chip">Project did not fit</span><span class="chip on">Concerns about the work</span><span class="chip">Could not be reached</span><span class="chip">Declined the terms</span><span class="chip">Another reason</span></div>
+      <p style="font-size:12px;font-weight:600;margin-top:10px">Anything worth recording — internal, never sent to the applicant</p>
+      <div class="d-ta">Site photos did not match the references.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><span class="btn s" style="background:var(--ink);color:#fff">Confirm rejection</span><span class="hint" style="font-weight:600">Cancel</span></div>
+     </div>
+     <p class="hint" style="margin-top:10px">Accept publishes them to the contractor directory and emails the applicant; Reject emails them too.</p>
+    </section>
+
+    <section class="card d-card"><h4>Applicant contact</h4>
+     <div class="d-line"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span class="t"><b>Acknowledgement sent 12 Nov 2026</b><small>Normally automatic.</small></span><span class="btn o s">Send it again</span></div>
+     <div class="d-line" style="opacity:.5"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span class="t"><b>Invite to create account</b><small>Re-sends the approval email with a link to set up their contractor account. Appears once accepted.</small></span><span class="btn o s">Invite</span></div>
+    </section>
+
+    <section class="card d-card"><h4>CRM</h4>
+     <div class="d-line"><svg class="ico" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></svg><span class="t"><b>In GoHighLevel</b><small>Sending again updates the contact and re-uploads its documents.</small></span></div>
+     <span class="btn o s" style="margin-top:10px;width:100%">Send to CRM again</span>
+    </section>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Contractor records · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1000px;overflow:hidden;position:relative}
+.app{height:1000px}
+.b-fun{margin-top:16px;display:grid;grid-template-columns:1fr 2.1fr 2.1fr 1.15fr .9fr 1fr;background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.b-g{border-left:1px solid var(--rule);display:flex;flex-direction:column}
+.b-g:first-child{border-left:0}
+.b-gl{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 14px 0}
+.b-gc{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;flex:1}
+.b-t{padding:6px 14px 11px;display:flex;flex-direction:column-reverse;justify-content:flex-end}
+.b-t+.b-t{border-left:1px dashed var(--rule)}
+.b-t p{font-size:12px;color:var(--mid);line-height:1.3;margin-top:2px}
+.b-t b{font-family:var(--mono);font-size:21px;font-weight:600;display:block}
+.b-t.on{background:var(--ink);color:#fff;border-radius:0}.b-t.on p{color:rgba(255,255,255,.7)}
+.b-g.on .b-gl{background:var(--ink);color:rgba(255,255,255,.6)}
+.b-fn{font-size:11.5px;color:var(--mid);margin-top:7px}
+.b-bar{display:flex;gap:8px;align-items:center;margin-top:14px}
+.b-cols{display:grid;grid-template-columns:420px 1fr;gap:14px;margin-top:12px}
+.b-l{overflow:hidden}
+.b-lh{display:flex;justify-content:space-between;padding:10px 16px;font-size:12px;color:var(--mid);background:var(--canvas);border-bottom:1px solid var(--rule)}
+.b-r{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 16px;border-top:1px solid var(--rule);font-size:13px}
+.b-r:nth-child(2){border-top:0}
+.b-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.b-r small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.b-r .nm{font-weight:700;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.b-pips{display:flex;gap:3px}.b-pips i{width:8px;height:8px;border-radius:50%;background:var(--rule)}.b-pips i.y{background:var(--complete)}
+.b-d{padding:18px 20px}
+.b-d h3{font-family:var(--sans);font-size:20px;font-weight:800}
+.b-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+.b-st{border-radius:10px;padding:8px 10px;font-size:11.5px;font-weight:600;background:var(--pale);color:var(--mid);display:flex;gap:6px;align-items:center}
+.b-st.y{background:#e9f0ec;color:var(--complete)}
+.b-st .ico{width:13px;height:13px}
+.b-warn{margin-top:12px;background:#fbf8f2;border-left:3px solid var(--held);border-radius:0 10px 10px 0;padding:9px 12px;font-size:12.5px;color:var(--held)}
+.b-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.b-s{border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
+.b-s h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.b-kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0}.b-kv span:first-child{color:var(--mid)}.b-kv span:last-child{font-weight:600;text-align:right}
+.b-kv .no{color:var(--muted);font-weight:500}
+</style></head><body data-active="/admin/contractors/records">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · <b>Contractor records</b></p>
+  <div class="ph2"><div><h1>Contractor records</h1><p class="lead">What each contractor filled in when they joined — their licence, where they live, who to call in an emergency, and the account their payments go to. Read-only: their own submission is the record.</p></div>
+   <div class="acts"><span class="btn o">Partner pipeline →</span></div></div>
+
+  <!-- Partner funnel: 8 independent filter cards, grouped as the complementary pairs they are -->
+  <div class="b-fun">
+   <div class="b-g"><p class="b-gl">&nbsp;</p><div class="b-gc"><div class="b-t"><p>All contractors</p><b>64</b></div></div></div>
+   <div class="b-g"><p class="b-gl">Onboarding</p><div class="b-gc"><div class="b-t"><p>Onboarding complete</p><b>38</b></div><div class="b-t on"><p>Onboarding not finished</p><b>26</b></div></div></div>
+   <div class="b-g"><p class="b-gl">Partner application</p><div class="b-gc"><div class="b-t"><p>Partner application filed</p><b>21</b></div><div class="b-t"><p>No application yet</p><b>43</b></div></div></div>
+   <div class="b-g"><p class="b-gl">&nbsp;</p><div class="b-gc"><div class="b-t"><p style="white-space:normal;line-height:1.25">Bringing a homeowner of their own</p><b>12</b></div></div></div>
+   <div class="b-g"><p class="b-gl">&nbsp;</p><div class="b-gc"><div class="b-t"><p>Pre-qualified</p><b>9</b></div></div></div>
+   <div class="b-g"><p class="b-gl">&nbsp;</p><div class="b-gc"><div class="b-t"><p>Shown a call slot</p><b>5</b></div></div></div>
+  </div>
+  <p class="b-fn"><span class="link" style="font-size:11.5px">Open the partner pipeline — who to chase, and by when.</span> A slot being shown is not a call booked — confirmed calls live in the team calendar, which Groundwork cannot read.</p>
+
+  <div class="b-bar">
+   <span class="field" style="width:280px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name, email or phone</span>
+   <span class="field">Joined from · dd/mm/yyyy</span><span class="field">Joined through · dd/mm/yyyy</span>
+   <span class="field">All project statuses ▾</span><span class="field">All onboarding stages ▾</span>
+   <span class="link" style="margin-left:4px">Clear filters</span>
+  </div>
+
+  <div class="b-cols">
+   <section class="card b-l">
+    <div class="b-lh"><span><b class="mono" style="color:var(--ink)">26</b> of 64 · Onboarding not finished</span><span>steps done</span></div>
+    <div class="b-r on"><div><p class="nm">Serge Fotso <span class="tag mute">Has a homeowner</span></p><small>s.fotso@mail.cm · +237 677 41 20 88</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i class="y"></i><i></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Mireille Ekane</p><small>m.ekane@mail.cm · +237 690 11 54 02</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i></i><i></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Blaise Ngu <span class="tag mute">Has a homeowner</span></p><small>blaise.ngu@mail.cm · +237 651 77 09 13</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i class="y"></i><i class="y"></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Rose Ewodo</p><small>r.ewodo@mail.cm · +237 699 30 81 45</small></div><span class="b-pips"><i class="y"></i><i></i><i></i><i></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Ibrahim Moussa</p><small>i.moussa@mail.cm</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i class="y"></i><i class="y"></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Kevin Nfor</p><small>k.nfor@mail.cm · +237 675 62 19 30</small></div><span class="b-pips"><i></i><i></i><i></i><i></i><i></i></span></div>
+    <div class="b-r"><div><p class="nm">Grace Ayuk</p><small>grace.ayuk@mail.cm · +237 681 02 44 57</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i></i><i></i><i></i></span></div>
+   </section>
+
+   <section class="card b-d">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h3>Serge Fotso</h3><p class="muted" style="font-size:12.5px;margin-top:2px">s.fotso@mail.cm · +237 677 41 20 88</p></div><span class="tag mute">Read-only</span></div>
+    <div class="b-steps">
+     <span class="b-st y"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Terms and agreement</span>
+     <span class="b-st y"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Your details</span>
+     <span class="b-st y"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Licence and business</span>
+     <span class="b-st">○ How you get paid</span>
+     <span class="b-st">○ Emergency contacts</span>
+    </div>
+    <p class="b-warn"><b>Onboarding not finished — still to do:</b> How you get paid · Emergency contacts</p>
+    <div class="b-grid">
+     <div class="b-s"><h4>Personal</h4>
+      <div class="b-kv"><span>Date of birth</span><span>14 Mar 1986</span></div>
+      <div class="b-kv"><span>Residential address</span><span>Rue 1.024, Bonamoussadi, Douala</span></div></div>
+     <div class="b-s"><h4>Licence and business</h4>
+      <div class="b-kv"><span>Professional licence number</span><span class="mono">ONIGC-LT-04412</span></div>
+      <div class="b-kv"><span>How do you trade?</span><span>Registered business</span></div>
+      <div class="b-kv"><span>Business name</span><span>Fotso Électricité SARL</span></div>
+      <div class="b-kv"><span>Business registration number</span><span class="mono">RC/DLA/2019/B/2231</span></div></div>
+     <div class="b-s"><h4>Emergency contacts</h4>
+      <div class="b-kv"><span>None given</span><span class="no">—</span></div></div>
+     <div class="b-s"><h4>Paid into</h4>
+      <div class="b-kv"><span>None given</span><span class="no">—</span></div></div>
+     <div class="b-s"><h4>Signed</h4>
+      <div class="b-kv"><span>Serge Fotso · v3</span><span>2 Nov 2026</span></div>
+      <div class="b-kv"><span>Serge Fotso · v2</span><span>2 Nov 2026</span></div></div>
+     <div class="b-s"><h4>Homeowner</h4>
+      <div class="b-kv"><span>Do they have a homeowner to onboard?</span><span>Yes</span></div>
+      <div class="b-kv"><span>Professional licence</span><span class="link" style="font-size:12.5px">licence-fotso.pdf</span></div></div>
+    </div>
+   </section>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

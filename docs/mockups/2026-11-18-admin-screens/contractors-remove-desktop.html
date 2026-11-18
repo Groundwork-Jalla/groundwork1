@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Contractors · remove dialog</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-under{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.b-dim{position:absolute;inset:0;background:rgba(10,10,10,.45);display:flex;gap:22px;align-items:center;justify-content:center;padding:0 40px 0 250px}
+.b-dlg{background:#fff;border-radius:18px;width:500px;padding:22px 24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.b-dlg h2{font-size:18px;font-weight:800}
+.b-dlg .sub{font-size:12.5px;color:var(--mid);margin-top:3px}
+.b-will{margin-top:14px;display:grid;gap:7px;font-size:12.5px;line-height:1.45}
+.b-will div{display:flex;gap:8px}
+.b-will div:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--muted);margin-top:6px;flex-shrink:0}
+.b-will .bad{color:var(--alert)}.b-will .bad:before{background:var(--alert)}
+.b-will .ok{color:var(--complete)}.b-will .ok:before{background:var(--complete)}
+.b-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.b-blk{margin-top:14px;background:var(--canvas);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;border-left:3px solid var(--held)}
+.b-lbl{position:absolute;top:-36px;left:0;color:#fff;font-size:12px;font-weight:600;background:#1a1a1a;border-radius:999px;padding:5px 12px}
+</style></head><body>
+<iframe class="b-under" src="contractors-desktop.html" scrolling="no"></iframe>
+<div class="b-dim">
+ <div class="b-dlg" style="position:relative">
+  <span class="b-lbl">From “Delete” on Blaise Ngu</span>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Remove this contractor</h2><span class="muted">✕</span></div>
+  <p class="sub">Blaise Ngu · blaise.ngu@mail.cm</p>
+  <div style="margin-top:14px"><span class="seg"><span>Remove their access</span><span class="on" style="color:var(--alert)">Delete</span></span></div>
+  <div class="b-will">
+   <div>Takes them off 2 project(s) they are currently on.</div>
+   <div>On 1 of those they are the contractor who gets paid — somebody else will need to be named before the next release.</div>
+   <div>Takes their entry out of the directory homeowners browse.</div>
+   <div class="bad">Deletes the account itself. This cannot be undone — their profile, payment details and any project they own go with it.</div>
+   <div class="bad">Also erases work on other people’s projects: 6 site update(s), 2 stage verification(s), 4 file(s) and 11 message(s). Those projects keep going — that work simply will not be there.</div>
+   <div class="bad">Deletes 1 project(s) they own outright, with every stage, payment and document on them.</div>
+  </div>
+  <div class="form" style="margin-top:14px"><label>Why (optional, recorded)<div class="in" style="color:var(--muted)">Duplicate account — works under Ngu Constructions</div></label></div>
+  <div class="b-foot"><span class="btn o">Cancel</span><span class="btn" style="background:var(--alert);color:#fff">Delete this account permanently</span></div>
+ </div>
+
+ <div class="b-dlg" style="width:400px;position:relative">
+  <span class="b-lbl">Same dialog, when a release is on its way</span>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2>Remove this contractor</h2><span class="muted">✕</span></div>
+  <p class="sub">Mireille Ekane · m.ekane@mail.cm</p>
+  <div style="margin-top:14px"><span class="seg"><span class="on">Remove their access</span><span>Delete</span></span></div>
+  <div class="b-will">
+   <div>Takes them off 1 project(s) they are currently on.</div>
+   <div class="ok">Their account and everything they have already done stays. Nothing they approved or uploaded is lost, and you can give the role back later.</div>
+  </div>
+  <div class="b-blk">1 release(s) are already on their way to this contractor. Settle or fail them first — removing the person a payment is addressed to would leave it with nobody to pay.</div>
+  <div class="b-foot"><span class="btn o">Close</span><span class="btn o" style="opacity:.4">Remove their access</span></div>
+ </div>
+</div>
+<p class="caption" style="color:#ddd;left:250px;right:auto">Design concept · illustrative data</p>
+</body></html>

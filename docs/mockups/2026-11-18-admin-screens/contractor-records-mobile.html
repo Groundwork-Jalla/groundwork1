@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Contractor records · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.b-tiles{display:flex;gap:6px;overflow:hidden;margin-top:12px}
+.b-tiles div{flex-shrink:0;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 11px;min-width:104px}
+.b-tiles b{font-family:var(--mono);font-size:18px;display:block}.b-tiles p{font-size:11px;color:var(--mid)}
+.b-tiles .on{background:var(--ink);border-color:var(--ink);color:#fff}.b-tiles .on p{color:rgba(255,255,255,.7)}
+.b-pips{display:flex;gap:3px}.b-pips i{width:7px;height:7px;border-radius:50%;background:var(--rule)}.b-pips i.y{background:var(--complete)}
+.b-r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.b-kv{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:2px 0}.b-kv span:first-child{color:var(--mid)}.b-kv span:last-child{font-weight:600;text-align:right}
+.b-h4{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:9px 0 2px}
+.b-in{font-size:11.5px;color:var(--mid);background:var(--pale);border-radius:10px;padding:8px 10px;margin-top:8px}
+</style></head><body data-active="/admin/contractors/records">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<h1>Contractor records</h1><p class="sub">What each contractor filled in when they joined. Read-only.</p>
+<p class="b-h4" style="margin-top:12px">Partner funnel</p>
+<div class="b-tiles" style="margin-top:4px"><div><b>64</b><p>All contractors</p></div><div class="on"><b>26</b><p>Onboarding not finished</p></div><div><b>38</b><p>Onboarding complete</p></div><div><b>21</b><p>Application filed</p></div></div>
+<p style="font-size:11.5px;margin-top:6px"><span class="link" style="font-size:11.5px">Open the partner pipeline</span></p>
+<div style="margin-top:10px;border:1px solid var(--rule);background:#fff;border-radius:10px;padding:9px 12px;font-size:13px;color:var(--mid)">Search by name, email or phone</div>
+<div class="scrollx"><span class="chip">Filters · 0 ▾</span><span class="chip">All onboarding stages ▾</span><span class="chip">Clear filters</span></div>
+<p class="b-in">Joined dates and project status filters are off: Apply 20261113001300_communication_tracking.sql in Supabase SQL Editor to install communication tracking.</p>
+<div class="mcard">
+ <div class="mrow"><div class="b-r"><div><b>Serge Fotso</b> <span class="tag mute">Has a homeowner</span><small>s.fotso@mail.cm · +237 677 41 20 88</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i class="y"></i><i></i><i></i></span></div>
+  <p class="note held" style="font-size:11.5px"><b>Onboarding not finished — still to do:</b> How you get paid · Emergency contacts</p>
+  <p class="b-h4">Personal</p><div class="b-kv"><span>Date of birth</span><span>14 Mar 1986</span></div><div class="b-kv"><span>Residential address</span><span>Bonamoussadi, Douala</span></div>
+  <p class="b-h4">Licence and business</p><div class="b-kv"><span>Licence number</span><span class="mono">ONIGC-LT-04412</span></div><div class="b-kv"><span>How do you trade?</span><span>Registered business</span></div>
+  <p class="b-h4">Paid into</p><div class="b-kv"><span>None given</span><span class="muted">—</span></div>
+  <p class="b-h4">Homeowner</p><div class="b-kv"><span>Has a homeowner to onboard?</span><span>Yes</span></div><div class="b-kv"><span>Professional licence</span><span class="link" style="font-size:12px">licence-fotso.pdf</span></div>
+  <p class="hint" style="margin-top:6px">+ Emergency contacts · Signed</p></div>
+ <div class="mrow"><div class="b-r"><div><b>Mireille Ekane</b><small>m.ekane@mail.cm</small></div><span class="b-pips"><i class="y"></i><i class="y"></i><i></i><i></i><i></i></span></div></div>
+ <div class="mrow"><div class="b-r"><div><b>Rose Ewodo</b><small>r.ewodo@mail.cm</small></div><span class="b-pips"><i class="y"></i><i></i><i></i><i></i><i></i></span></div></div>
+</div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

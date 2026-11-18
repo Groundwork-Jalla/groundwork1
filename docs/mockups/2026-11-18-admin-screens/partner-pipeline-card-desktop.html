@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Partner pipeline · card sheet</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1060px;overflow:hidden;position:relative}
+.b-under{position:absolute;inset:0;width:1440px;height:1060px;border:0}
+.b-dim{position:absolute;left:236px;top:54px;right:0;bottom:0;background:rgba(10,10,10,.18)}
+.sheet{position:absolute;right:0;top:54px;bottom:0;width:460px;padding:20px 22px;overflow:hidden}
+.sheet h3{font-family:var(--sans);font-size:20px;font-weight:800}
+.b-meta{font-size:12.5px;color:var(--mid);margin-top:3px}
+.b-h{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 0 7px}
+.b-marks{display:flex;gap:6px;flex-wrap:wrap}
+.b-mk{border:1px solid var(--rule);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--mid);display:inline-flex;gap:6px;align-items:center}
+.b-mk.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.b-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form label{font-size:12px}
+.form .in{font-size:12.5px;padding:8px 11px}
+.b-ph{color:var(--muted)}
+.b-foot{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)}
+.tl .e{font-size:12px}.tl .e small{display:block;color:var(--mid);font-size:11px}
+</style></head><body>
+<iframe class="b-under" src="partner-pipeline-desktop.html" scrolling="no"></iframe>
+<div class="b-dim"></div>
+<aside class="sheet">
+ <div style="display:flex;justify-content:space-between;align-items:flex-start">
+  <div><span class="tag mute">Call completed</span> <span class="tag warn">No next action</span>
+   <h3 style="margin-top:8px">Emmanuel Mbarga</h3>
+   <p class="b-meta">General contractor · owned by Ruth · 3d in stage</p></div>
+  <span class="muted" style="font-size:16px">✕</span></div>
+ <div style="display:flex;gap:6px;margin-top:12px"><span class="btn s o"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Review application</span></div>
+
+ <p class="b-h">Mark what the product cannot see</p>
+ <div class="b-marks"><span class="b-mk on">✓ Call completed</span><span class="b-mk">Committed</span><span class="b-mk">Agreement signed</span></div>
+
+ <p class="b-h">Follow-up</p>
+ <div class="form">
+  <div class="b-g2">
+   <label>What just happened<div class="in" style="color:var(--muted)">Called, no answer</div></label>
+   <label>What happens next<div class="in">Try WhatsApp</div></label>
+   <label>By when<div class="in">20/11/2026</div></label>
+   <label>Activation deadline<div class="in">01/12/2026</div><span class="hint" style="font-weight:400;display:block;margin-top:4px;font-size:11px">Fourteen days from the call unless you set another date.</span></label>
+  </div>
+  <label>Notes<div class="in" style="height:58px">Strong references from the Bonapriso job. Prefers calls after 4pm.</div></label>
+ </div>
+ <div class="b-foot"><span class="btn g">Save</span><span class="hint">Only the fields you change are saved.</span></div>
+</aside>
+<p class="caption" style="left:250px;right:auto">Design concept · illustrative data</p>
+</body></html>

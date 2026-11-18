@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Communications · journeys</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1320px;overflow:hidden;position:relative}
+.app{height:1320px}
+
+.c-health{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.c-pill{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mid)}
+.c-pill b{color:var(--ink);font-weight:600}
+.c-pill.warn{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.c-pill.bad{border-color:#e6c9ce;background:#fbf6f7;color:var(--alert)}
+.c-tabs{margin-top:16px}
+.c-tabs span{cursor:pointer}
+.c-h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;color:var(--ink);display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
+.c-sel:after{content:'';width:6px;height:6px;border-right:1.5px solid var(--mid);border-bottom:1.5px solid var(--mid);transform:rotate(45deg);margin:-3px 0 0 4px}
+.c-in{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink)}
+.c-lab{font-size:11.5px;font-weight:600;color:var(--mid);display:block;margin-bottom:4px}
+
+
+.j-wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-top:14px;align-items:start}
+.j-card{padding:14px 16px}
+.j-card+.j-card{margin-top:12px}
+.j-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.j-h h3{font-size:14.5px;font-weight:700}
+.j-flow{display:flex;align-items:stretch;gap:0;margin-top:12px}
+.j-node{flex:1;min-width:0;border:1px solid var(--rule);border-radius:12px;padding:9px 10px;background:#fff;font-size:12px;position:relative}
+.j-node.br{border-style:dashed;background:#fcfcfa}
+.j-node.off{opacity:.55}
+.j-node b{display:block;font-size:12px;line-height:1.3;min-height:31px}
+.j-node .st{font-size:10.5px;color:var(--mid);margin-top:2px}
+.j-node .bn{font-size:10.5px;color:var(--mid);margin-top:4px;line-height:1.3;font-style:italic}
+.j-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.j-chip{border:1px solid var(--rule);border-radius:8px;padding:2px 6px;font-size:10.5px;font-family:var(--mono);white-space:nowrap}
+.j-chip.on{border-color:var(--green);background:#e9f0ec;color:var(--green);font-weight:600}
+.j-arr{width:18px;flex-shrink:0;display:grid;place-items:center;color:var(--muted)}
+.j-hf{margin-top:10px;font-size:11.5px;color:var(--mid);display:flex;gap:6px;align-items:center}
+.j-prev{padding:16px;border:1.5px solid #c9dccf;position:sticky;top:0}
+.j-mail{border:1px solid var(--rule);border-radius:12px;padding:14px;margin-top:12px;background:#fff;font-size:12.5px;line-height:1.55}
+
+</style></head><body data-active="/admin/sequences">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Communications</b></div>
+  <div class="ph2"><div><h1>Communications</h1><p class="lead">Manage activation reminders, conversations and staff follow-up. Review each journey and test with selected recipients before enabling wider delivery.</p></div>
+   <div class="acts"><span class="btn o">Preview due messages</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 5l12 7-12 7z"/></svg>Run due now</span></div></div>
+  <div class="c-health">
+    <span class="c-pill warn"><span class="dotc" style="background:var(--held)"></span>Communication delivery is paused. <span class="link" style="font-size:12.5px">Settings</span></span>
+    <span class="c-pill"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last background run: <b>18/11/2026, 09:00</b> · completed</span>
+    </div>
+  <div class="tabs2 c-tabs"><span class="">Needs attention<b>7</b></span><span class="">Tracking and recovery</span><span class="on">Journeys</span><span class="">Sequences</span><span class="">Send log</span><span class="">Inbox</span><span class="">WhatsApp</span><span class="">Settings</span></div>
+  <p class="hint" style="margin-top:14px">Review the four activation paths. Each stage has its own clock, next action and reminder schedule. Select a message to preview it with example details.</p>
+<div class="j-wrap"><div><section class="card j-card"><div class="j-h"><div><h3>Contractor signs up</h3><p class="hint">Complete onboarding, create a project, invite the homeowner and connect both people.</p></div><span class="btn o s">Edit this journey</span></div>
+    <div class="j-flow"><div class="j-node"><b>Complete contractor onboarding</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CS1 · On entry</span><span class="j-chip">CS1b · Day 2</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Create the first project</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip on">CS2 · Day 1</span><span class="j-chip">CS2b · Day 4</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Invite the homeowner</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CS3 · Day 1</span><span class="j-chip">CS3b · Day 3</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Await the homeowner's acceptance</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CS4 · Day 2</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Homeowner connected</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CS5 · On entry</span></div></div></div><p class="j-hf"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>From day 7, eligible people can enter human follow-up while the required action remains incomplete.</p></section><section class="card j-card"><div class="j-h"><div><h3>Contractor invited by a homeowner</h3><p class="hint">Accept the invitation and complete any required onboarding to join the existing project.</p></div><span class="btn o s">Edit this journey</span></div>
+    <div class="j-flow"><div class="j-node"><b>Accept the project invitation</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CI1 · On entry</span><span class="j-chip">CI2 · Day 2</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node br"><b>Complete required onboarding</b><div class="st">Enabled</div><div class=bn>Applies when required contractor onboarding is incomplete.</div><div class="j-chips"><span class="j-chip">CI3 · Day 1</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node br"><b>Join with onboarding already complete</b><div class="st">Enabled</div><div class=bn>Alternative path: already onboarded.</div><div class="j-chips"><span class="j-chip">CI4 · On entry</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node br"><b>Join after completing onboarding</b><div class="st">Enabled</div><div class=bn>Alternative path: finishes onboarding after accepting.</div><div class="j-chips"><span class="j-chip">CI5 · On entry</span></div></div></div><p class="j-hf"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>From day 5, eligible people can enter human follow-up while the required action remains incomplete.</p></section><section class="card j-card"><div class="j-h"><div><h3>Homeowner signs up</h3><p class="hint">Create a project, then invite a contractor or request help connecting one.</p></div><span class="btn o s">Edit this journey</span></div>
+    <div class="j-flow"><div class="j-node"><b>Create the first project</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CL1 · Day 1</span><span class="j-chip">CL1b · Day 5</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Connect a contractor</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">CL2 · Day 1</span><span class="j-chip">CL3 · Day 4</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node br"><b>Support request received</b><div class="st">Enabled</div><div class=bn>Applies when the homeowner requests help connecting a contractor.</div><div class="j-chips"><span class="j-chip">CL4 · On entry</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node br"><b>Await the contractor's acceptance</b><div class="st">Enabled</div><div class=bn>Applies when the homeowner invites a contractor directly.</div><div class="j-chips"><span class="j-chip">CL5 · Day 2</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node off"><b>Contractor connected</b><div class="st">Paused</div><div class="j-chips"><span class="j-chip">CL6 · On entry</span></div></div></div><p class="j-hf"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>From day 7, eligible people can enter human follow-up while the required action remains incomplete.</p></section><section class="card j-card"><div class="j-h"><div><h3>Homeowner invited by a contractor</h3><p class="hint">Accept the contractor's invitation and join the existing project.</p></div><span class="btn o s">Edit this journey</span></div>
+    <div class="j-flow"><div class="j-node"><b>Accept the project invitation</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">IV1 · On entry</span><span class="j-chip">IV2 · Day 2</span><span class="j-chip">IV3 · Day 5</span></div></div><span class="j-arr"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><div class="j-node"><b>Join the existing project</b><div class="st">Enabled</div><div class="j-chips"><span class="j-chip">IV4 · On entry</span></div></div></div><p class="j-hf"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>From day 6, eligible people can enter human follow-up while the required action remains incomplete.</p></section></div><aside class="card j-prev">
+ <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-size:14.5px;font-weight:700">Message preview · CS2</h3></div>
+ <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="c-lab" style="margin:0">Message language</span><div class="seg"><span class="on">English</span><span>Français</span></div></div>
+ <p class="hint" style="margin-top:8px">Example details only. This preview does not send a message or open a real invitation.</p>
+ <div class="j-mail"><b style="font-size:13.5px">Create your first Groundwork project</b>
+  <p style="margin-top:8px">Hi Alex Kamga,</p><p style="margin-top:6px">Your contractor profile is ready. Add the project you are building now, Example project, so the homeowner can follow each stage with you.</p>
+  <span class="btn g s" style="margin-top:12px">Create my project</span>
+  <p class="hint" style="margin-top:8px;word-break:break-all">Button destination: /contractors/projects/new</p></div>
+ <p class="hint" style="margin-top:10px">Select any step chip in a journey to preview it.</p>
+</aside></div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

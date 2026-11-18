@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Tasks · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.app{height:900px}
+.a-hero{margin-top:18px;background:#fff;border:1px solid var(--rule);border-radius:18px;padding:28px 30px;display:grid;grid-template-columns:1fr 330px;gap:30px}
+.a-ico{width:46px;height:46px;border-radius:14px;background:var(--pale);display:grid;place-items:center}
+.a-ico svg{width:22px;height:22px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.a-hero h2{font-size:20px;font-weight:800;margin-top:14px;letter-spacing:-.3px}
+.a-hero .p{font-size:13.5px;color:var(--mid);margin-top:6px;line-height:1.55;max-width:620px}
+.a-will{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.a-will div{border:1px dashed var(--rule);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--mid);line-height:1.45}
+.a-will b{display:block;color:var(--ink);font-size:13px;margin-bottom:3px}
+.a-why{background:var(--canvas);border-radius:14px;padding:16px 18px;font-size:12.5px;line-height:1.55;color:var(--mid)}
+.a-why h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.a-why code{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--rule);border-radius:5px;padding:0 4px;color:var(--ink)}
+.a-sh{font-size:15px;font-weight:700;margin:22px 0 10px}
+.a-go{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.a-go .card{padding:16px 18px;display:grid;gap:6px;align-content:start}
+.a-go .card .t{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:700}
+.a-go .card .t span{width:30px;height:30px;border-radius:9px;background:#e9f0ec;display:grid;place-items:center}
+.a-go .card .t svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:1.8}
+.a-go .card p{font-size:12.5px;color:var(--mid);line-height:1.5}
+.a-go .card .link{margin-top:4px;font-size:12.5px}
+</style></head><body data-active="/admin/tasks">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">Work · <b>Tasks</b></p>
+  <div class="ph2"><div><h1>Tasks</h1><p class="lead">This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.</p></div><span class="tag mute" style="margin-bottom:4px">Not built yet</span></div>
+
+  <div class="a-hero">
+   <div>
+    <span class="a-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M13 7h8M13 17h8M3 17l2 2 4-4"/></svg></span>
+    <h2>No tasks to show</h2>
+    <p class="p">Tasks are not part of Groundwork yet — there is nothing to show, and nothing is invented here. When they ship, this page is the team's shared to-do list: the follow-ups a person promised, each with an owner and a date.</p>
+    <div class="a-will">
+     <div><b>A to-do with an owner</b>What to do, who it is assigned to, its priority and due date.</div>
+     <div><b>Tied to the work</b>The project, stage or conversation it came from, or a verifier's visit.</div>
+     <div><b>Open until done</b>Open, done or cancelled. An overdue task comes back to the Action Center.</div>
+    </div>
+   </div>
+   <div class="a-why"><h3>Why it is not built yet</h3>The Action Center already lists what needs a person, worked out from each project's state and never stored, so it cannot go stale. Tasks are for what state cannot see: a promise made on a call, a check asked for after a visit. They are planned together with Issues, now that the project workspace exists to hang them on.</div>
+  </div>
+
+  <h3 class="a-sh">Until then, see</h3>
+  <div class="a-go">
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><path d="M3 6l2 2 3-3M3 13l2 2 3-3M11 7h10M11 14h10M11 20h10"/></svg></span>Action Center</p><p>What needs a person right now — budgets to confirm, stages to review, releases to record — by priority.</p><span class="link">Open Action Center →</span></div>
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><path d="M4 10a4 4 0 0 1 8 0v10H4zM12 10h8v10h-8M7 13h2"/></svg></span>Communications</p><p>Follow-ups with an owner and a next contact date. An overdue follow-up returns to attention.</p><span class="link">Open Communications →</span></div>
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 2h6l1-2h5"/></svg></span>Inbox</p><p>Assign a conversation to a teammate and resolve it when it has been answered.</p><span class="link">Open Inbox →</span></div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

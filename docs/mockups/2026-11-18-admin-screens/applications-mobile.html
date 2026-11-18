@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Applications · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.m-al{display:flex;gap:8px;align-items:center;border-radius:12px;padding:9px 12px;font-size:12px;margin-top:8px;border:1px solid var(--rule);background:#fff}
+.m-al.held{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.m-ap{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center}
+.m-ap .w{color:var(--held);font-weight:600}
+</style></head><body data-active="/admin/applications">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<h1>Contractor Applications</h1><p class="sub">Founding-network applications · 47 in total</p>
+<div class="m-al held"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span style="flex:1"><b>3 applicant(s)</b> have not been told we received their application.</span><span class="btn o s">Show</span></div>
+<div class="m-al"><svg class="ico" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9zM3 3l18 18"/></svg><span class="muted"><b style="color:var(--ink)">2 application(s)</b> never reached the CRM.</span></div>
+<div class="field" style="width:100%;margin-top:10px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name, email, business…</div>
+<div class="scrollx"><span class="chip on">All <b>47</b></span><span class="chip">Pending <b>14</b></span><span class="chip">Reviewing <b>6</b></span><span class="chip">Accepted <b>19</b></span><span class="chip">Rejected <b>5</b></span></div>
+<p class="hint" style="margin-top:10px">47 of 47</p>
+<div class="mcard" style="margin-top:6px">
+ <div class="mrow m-ap"><span class="av sm c1">ET</span><span><b>Emmanuel Tchoupo</b><small>General contractor · Douala, CM · 12 Nov</small><small><span class="tag warn"><i></i>Pending</span> <span class="w">Not acknowledged</span></small></span><span class="btn o s">Edit</span></div>
+ <div class="mrow m-ap"><span class="av sm c2">HN</span><span><b>Henriette Ngo Bassa</b><small>Electrician · Douala, CM · 11 Nov</small><small><span class="tag warn"><i></i>Pending</span> <span class="w">Not forwarded</span></small></span><span class="btn o s">Edit</span></div>
+ <div class="mrow m-ap"><span class="av sm c5">CA</span><span><b>Collins Achu</b><small>General contractor · Bamenda, CM · 9 Nov</small><small><span class="tag info"><i></i>Reviewing</span> In GoHighLevel</small></span><span class="btn o s">Edit</span></div>
+ <div class="mrow m-ap"><span class="av sm c6">DT</span><span><b>Divine Tanyi</b><small>Roofer · Buea, CM · 4 Nov</small><small><span class="tag ok"><i></i>Accepted</span> In GoHighLevel</small></span><span class="btn o s">Edit</span></div>
+</div>
+<div class="mcard"><div class="mrow"><b>Send everyone to the CRM</b><small>Creates or updates each contact in Go High Level. Anyone already contacted is never emailed again.</small><span class="btn o s" style="margin-top:8px">Preview</span></div></div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

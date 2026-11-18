@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Users · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.b-ok{display:flex;gap:8px;align-items:center;margin-top:14px;border:1px solid #cfe0d6;background:#f3f8f5;color:var(--complete);border-radius:12px;padding:8px 14px;font-size:13px}
+.b-ok .x{margin-left:auto;color:var(--mid)}
+.b-bar{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:12px}
+.b-cols{display:grid;grid-template-columns:1fr 370px;gap:14px;margin-top:12px}
+.b-t{overflow:hidden}
+.b-h,.b-r{display:grid;grid-template-columns:1fr 128px 108px 66px 96px 34px;gap:12px;align-items:center;padding:10px 16px}
+.b-h{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;background:var(--canvas);border-bottom:1px solid var(--rule)}
+.b-r{border-top:1px solid var(--rule);font-size:13px}
+.b-r:nth-child(2){border-top:0}
+.b-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.b-r small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.b-r .nm{font-weight:700;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.b-r .m{color:var(--mid);font-size:12.5px}
+.b-r .n{font-family:var(--mono);text-align:right}
+.b-who{display:flex;gap:10px;align-items:center;min-width:0}
+.b-role{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.b-role a{font-size:11.5px;color:var(--green);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.b-ib{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--mid)}
+.b-aw{font-size:10.5px;font-weight:600;color:var(--held);display:inline-flex;gap:4px;align-items:center}
+.b-crm{margin-top:12px;display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:12.5px}
+.b-crm b{font-size:13px}
+.b-s{overflow:hidden;height:fit-content}
+.b-sh{padding:16px 18px}
+.b-sh h3{font-family:var(--sans);font-size:19px;font-weight:800}
+.b-sec{padding:11px 18px;border-top:1px solid var(--rule)}
+.b-sec h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0}.kv span:first-child{color:var(--mid)}.kv span:last-child{text-align:right}
+</style></head><body data-active="/admin/users">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · <b>Users</b></p>
+  <div class="ph2"><div><h1>All Users</h1><p class="lead"><b class="mono" style="color:var(--ink)">148</b> registered — every account, whatever its role.</p></div>
+   <div class="acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 21c1-4 4-6 7-6M18 15v6M15 18h6"/></svg>Create an account</span></div></div>
+
+  <p class="b-ok"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Role updated. Open dashboards refresh automatically.<span class="x">✕</span></p>
+
+  <div class="b-bar">
+   <span class="seg"><span class="on">All · 148</span><span>Homeowner · 112</span><span>Contractor · 27</span><span>Verifier · 7</span><span>Admin · 2</span><span>Awaiting first sign-in · 4</span></span>
+   <span class="field" style="width:260px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search users…</span>
+  </div>
+
+  <div class="b-cols">
+   <div>
+   <section class="card b-t">
+    <div class="b-h"><span>Name · Email</span><span>Role</span><span>Plan</span><span style="text-align:right">Projects</span><span>Joined</span><span></span></div>
+    <div class="b-r on"><div class="b-who"><div class="av c1 sm">CM</div><div style="min-width:0"><p class="nm">Claire Mbala</p><small>claire.mbala@mail.cm</small></div></div><div class="b-role"><span class="tag ok">Homeowner</span><a>Change user role</a></div><span class="m">Jalla Verify</span><span class="n">1</span><span class="m">30 Oct 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av c2 sm">EM</div><div style="min-width:0"><p class="nm">Emmanuel Mbarga</p><small>e.mbarga@mail.cm</small></div></div><div class="b-role"><span class="tag warn">Contractor</span></div><span class="m">—</span><span class="n">0</span><span class="m">12 Oct 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av c5 sm">JT</div><div style="min-width:0"><p class="nm">Joseph Tabe</p><small>j.tabe@mail.cm</small></div></div><div class="b-role"><span class="tag ok">Homeowner</span></div><span class="m">Management</span><span class="n">2</span><span class="m">28 Sep 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av c3 sm">AN</div><div style="min-width:0"><p class="nm">Eng. Alain Nkwenti</p><small>a.nkwenti@mail.cm</small></div></div><div class="b-role"><span class="tag vio">Verifier</span></div><span class="m">—</span><span class="n">0</span><span class="m">4 Sep 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av c6 sm">BE</div><div style="min-width:0"><p class="nm">Bernadette Eyong</p><small>b.eyong@mail.cm</small><span class="tag warn" style="margin-top:3px;font-size:10.5px"><svg class="ico" viewBox="0 0 24 24" style="width:11px;height:11px"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Awaiting first sign-in</span><small style="display:none"></small></div></div><div class="b-role"><span class="tag ok">Homeowner</span></div><span class="m">Management</span><span class="n">1</span><span class="m">17 Nov 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av c1 sm">RU</div><div style="min-width:0"><p class="nm">Ruth Ufot</p><small>ruth@tryjalla.com</small></div></div><div class="b-role"><span class="tag info">Admin</span></div><span class="m">—</span><span class="n">0</span><span class="m">2 Jun 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <div class="b-r"><div class="b-who"><div class="av sm">AN</div><div style="min-width:0"><p class="nm">Amina Ndi</p><small>amina.ndi@mail.cm</small></div></div><div class="b-role"><span class="tag ok">Homeowner</span></div><span class="m">—</span><span class="n">0</span><span class="m">2 Nov 2026</span><span class="b-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+   </section>
+   <section class="card b-crm"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></svg><div><b>Send everyone to the CRM</b><p class="hint">Creates or updates each contact in Go High Level. Anyone already contacted is only backfilled — never emailed again.</p></div><span class="btn s o" style="margin-left:auto">Preview</span></section>
+   </div>
+
+   <aside class="card b-s">
+    <div class="b-sh"><div style="display:flex;justify-content:space-between"><span class="muted" style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700">Signup details</span><span class="muted">✕</span></div>
+     <h3 style="margin-top:4px">Claire Mbala</h3>
+     <div style="display:flex;gap:6px;margin-top:10px"><span class="btn s o">Call</span><span class="btn s o"><span style="color:#25D366">●</span> Open in WhatsApp</span><span class="btn s o">Change user role</span></div></div>
+    <div class="b-sec"><h4>Contact</h4>
+     <div class="kv"><span>Email</span><span class="mono" style="font-size:12px">claire.mbala@mail.cm</span></div>
+     <div class="kv"><span>Phone</span><span class="mono" style="font-size:12px">+237 699 12 34 56</span></div>
+     <div class="kv"><span>Language</span><span>English</span></div></div>
+    <div class="b-sec"><h4>Account</h4>
+     <div class="kv"><span>Signed up from</span><span>Cameroon</span></div>
+     <div class="kv"><span>Joined</span><span>30 Oct 2026 · 3 weeks ago</span></div>
+     <div class="kv"><span>Plan</span><span>Jalla Verify</span></div>
+     <div class="kv"><span>CRM</span><span style="color:var(--complete);font-weight:600">Synced</span></div>
+     <div class="kv"><span>User ID</span><span class="mono" style="font-size:11px">8f2c41d0-…-a91e</span></div></div>
+    <div class="b-sec"><h4>Projects</h4><div class="kv"><span class="link" style="color:var(--green)">Mbala Residence</span><span>Jalla Verify · stage 5 · Douala</span></div></div>
+    <div class="b-sec" style="display:flex;justify-content:flex-end"><span class="btn s o" style="color:var(--alert)"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Delete account</span></div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

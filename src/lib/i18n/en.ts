@@ -793,6 +793,11 @@ export const en = {
       eveningPlain:   'Good evening.',
       sub:       "Here's what's happening across Groundwork today.",
       today:     'Today',
+      openActionCenter: 'Open Action Center',
+      nothingWaiting:   'Nothing is waiting on you.',
+      priorityCount:    '{n} {level}',
+      bandBuilding:     'Building',
+      bandPeople:       'People & growth',
     },
     kpi: {
       projects:      'Projects',
@@ -900,6 +905,9 @@ export const en = {
       lastOutbound: 'Last queued message',
       never:        'Never',
       openSettings: 'Open CRM',
+      summary:      '{ok} of {total} configured',
+      outboxTag:    'Outbox {n}',
+      failuresTag:  '{n} sync failures',
     },
     kpiRow: {
       needsReply:        'Needs reply',

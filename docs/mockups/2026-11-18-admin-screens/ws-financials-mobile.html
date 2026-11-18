@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin &middot; workspace &middot; Financials &middot; mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-m6{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+.f-m6 div{padding:9px 12px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.f-m6 div:nth-child(3n){border-right:0}
+.f-m6 p{font-size:10.5px;color:var(--mid)}.f-m6 b{display:block;font-family:var(--mono);font-size:14px;margin-top:2px}
+.f-m6 .em{background:#f3f6f4}.f-m6 .em b{color:var(--green)}
+.f-mb{display:flex;height:10px;border-radius:9px;overflow:hidden;background:var(--pale);margin:4px 14px 10px}
+.f-mj{display:flex;align-items:center;gap:0;margin-top:6px}
+.f-mj i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--rule);background:#fff;flex-shrink:0}
+.f-mj i.d{background:var(--green);border-color:var(--green)}.f-mj i.p{border:2px solid var(--held);background:conic-gradient(var(--held) 0 70%,#fff 70% 100%)}.f-mj i.n{border:1.5px dashed var(--muted);background:var(--pale)}
+.f-mj s{flex:1;height:2px;background:var(--rule);text-decoration:none}.f-mj s.d{background:var(--green)}
+.f-macc{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-top:1px solid var(--rule);font-size:13px;font-weight:600}
+.f-macc small{font-weight:500;color:var(--mid);font-size:11.5px}
+
+.f-mtabs{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin:10px -16px 0;padding:0 16px 10px;border-bottom:1px solid var(--rule)}
+.f-mtabs .more{color:var(--muted);font-size:12px;align-self:center}
+</style></head><body data-active="/admin/projects">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<span class="link" style="font-size:13px">&larr; Back to projects</span>
+<h1 style="margin-top:6px">Mbala Residence</h1><p class="sub">Claire Mbala &middot; Jalla Verify &middot; Douala</p>
+<p style="font-size:12.5px;margin-top:6px"><i class="dotc" style="background:var(--complete)"></i> Active &middot; Stage 5 of 10 &middot; <span style="color:var(--held);font-weight:600">Under review</span></p>
+<div class="scrollx"><span class="btn o s">Assign verifier</span><span class="btn o s">Jalla message</span><span class="btn o s"><span style="color:#25D366">&#9679;</span> WhatsApp &#9662;</span><span class="btn o s">Homeowner view</span></div>
+<div class="f-mtabs"><span class="chip">Stages</span><span class="chip on">Financials</span><span class="chip">Site updates</span><span class="chip">Documents</span><span class="chip">Conversations</span><span class="chip">Activity</span><span class="chip">Team</span></div>
+<div class="mcard">
+ <div class="mh"><h2>Where the money stands</h2></div>
+ <div class="f-mb"><i style="width:27.7%;background:var(--green)"></i><i style="width:11.7%;background:#7fa08c"></i></div>
+ <div class="f-m6"><div><p>Budget</p><b>$100,000</b></div><div><p>Funded</p><b>$39,333</b></div><div class="em"><p>Available</p><b>$11,667</b></div><div><p>Authorised</p><b>$27,667</b></div><div><p>In transit</p><b>$0</b></div><div><p>Disbursed</p><b>$0</b></div></div>
+</div>
+<div class="f-ban" style="display:flex;gap:8px;background:#fbf8f2;border:1px solid #eadfc8;border-radius:12px;padding:10px 12px;font-size:12px;margin-top:12px"><svg class="ico" viewBox="0 0 24 24" style="color:var(--held)"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><span>No payment provider has ever written to this ledger, so an authorised release cannot move. Releases will sit at &ldquo;Approved&rdquo; until one is connected. <span class="link" style="font-size:12px">Open Integrations</span></span></div>
+<div class="mcard">
+ <div class="mh"><h2>Where each stage&rsquo;s money is</h2><span>All 10</span></div>
+ <p class="f-xs f-mut" style="padding:0 14px 8px">In &middot; authorised &middot; to provider &middot; to contractor</p>
+ <div class="mrow"><div style="display:flex;justify-content:space-between"><b>4 &middot; Foundation</b><span class="f-num">$12,667</span></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="f-mj" style="width:150px"><i class="d"></i><s class="d"></s><i class="d"></i><s class=""></s><i class="n"></i><s class=""></s><i class="n"></i></div><span class="tag ok">Release authorised</span></div></div><div class="mrow"><div style="display:flex;justify-content:space-between"><b>5 &middot; Structure &amp; walls</b><span class="f-num">$16,667</span></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="f-mj" style="width:150px"><i class="p"></i><s class=""></s><i class="w"></i><s class=""></s><i class="w"></i><s class=""></s><i class="w"></i></div><span class="tag warn">Verification pending</span></div><span class="btn o s" style="margin-top:8px">Confirm received &middot; Part 4</span></div><div class="mrow"><div style="display:flex;justify-content:space-between"><b>6 &middot; Roofing</b><span class="f-num">$14,000</span></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="f-mj" style="width:150px"><i class="w"></i><s class=""></s><i class="w"></i><s class=""></s><i class="w"></i><s class=""></s><i class="w"></i></div><span class="tag mute">Locked</span></div></div>
+</div>
+<div class="mcard">
+ <div class="f-macc" style="border-top:0">Funding<small>13 &middot; 2 expected &rsaquo;</small></div>
+ <div class="f-macc">Disbursements<small>4 &rsaquo;</small></div>
+ <div class="f-macc">Reconciliation<small>none &rsaquo;</small></div>
+ <div class="f-macc">Fees<small>none &rsaquo;</small></div>
+ <div class="f-macc">Compensation<small>not modelled &rsaquo;</small></div>
+ <div class="f-macc">Costing<small>60,000,000 XAF &rsaquo;</small></div>
+</div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script></body></html>

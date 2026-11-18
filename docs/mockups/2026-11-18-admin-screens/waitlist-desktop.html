@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Waitlist · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.w-cols{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:18px;align-items:start}
+.w-f{display:flex;flex-direction:column;gap:10px}
+.w-f .stat{cursor:pointer}
+.w-f .stat.sel{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.w-lang{font-family:var(--mono);font-size:11px;font-weight:600;background:var(--pale);border-radius:6px;padding:2px 7px}
+.w-ib{width:30px;height:30px;border-radius:9px;display:inline-grid;place-items:center;color:var(--mid);vertical-align:middle}
+.w-del td{background:#fbf6f7 !important}
+.w-scrim{position:absolute;inset:0;background:rgba(10,10,10,.28)}
+.w-dlg{position:absolute;left:calc(236px + (100% - 236px)/2 - 220px);top:300px;width:440px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.w-dlg h2{font-size:18px;font-weight:800}
+</style></head><body data-active="/admin/waitlist">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Waitlist</b></div>
+  <div class="ph2"><div><h1>Waitlist</h1><p class="lead">Everyone who asked to be told when Groundwork opens.</p></div></div>
+  <div class="w-cols">
+   <div class="w-f">
+    <div class="stat sel"><div class="l">All</div><div class="v">214</div><div class="d">214 on the waitlist</div></div>
+    <div class="stat"><div class="l"><span class="dotc" style="background:var(--held)"></span>Not forwarded</div><div class="v" style="color:var(--held)">3</div><div class="d">3 not forwarded to GoHighLevel</div></div>
+    <p class="hint" style="padding:0 4px;line-height:1.5">Pick a figure to filter the list. A row that never reached GoHighLevel gets no CRM follow-up.</p>
+   </div>
+   <section class="card" style="overflow:hidden">
+    <div class="sec-h"><h2>214 on the waitlist <span class="muted" style="font-weight:500;font-size:13px">· 3 not forwarded to GoHighLevel</span></h2><span class="field" style="width:280px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by email…</span></div>
+    <table class="tbl"><thead><tr><th>Email</th><th>Lang</th><th>CRM</th><th>Joined</th><th></th></tr></thead><tbody>
+<tr><td><span class="link" style="font-size:13px">nadege.eyenga@mail.cm</span></td><td><span class="w-lang">FR</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">17 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">kwame.ndifor@mail.cm</span></td><td><span class="w-lang">EN</span></td><td><span class="tag warn"><i></i>Not forwarded</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">17 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">christelle.mvondo@mail.cm</span></td><td><span class="w-lang">FR</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">16 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">arnaud.tchinda@mail.fr</span></td><td><span class="w-lang">FR</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">15 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr class="w-del"><td><span class="link" style="font-size:13px">blessing.akwa@mail.co.uk</span></td><td><span class="w-lang">EN</span></td><td><span class="tag warn"><i></i>Not forwarded</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">14 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">serge.owona@mail.cm</span></td><td><span class="w-lang">FR</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">12 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">lydia.fon@mail.us</span></td><td><span class="w-lang">EN</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">11 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">hamadou.bello@mail.cm</span></td><td><span class="w-lang">FR</span></td><td><span class="tag warn"><i></i>Not forwarded</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">9 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">patience.ngum@mail.ca</span></td><td><span class="w-lang">EN</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">8 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+<tr><td><span class="link" style="font-size:13px">didier.essomba@mail.be</span></td><td><span class="w-lang">FR</span></td><td><span class="tag mute">In GoHighLevel</span></td><td class="mono" style="color:var(--mid);font-size:12.5px">6 Nov 2026</td><td style="text-align:right"><span class="btn o s">Email</span> <span class="w-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></td></tr>
+</tbody></table>
+   </section>
+  </div>
+ </div>
+</div>
+</div>
+<div class="w-scrim"></div>
+<div class="w-dlg">
+ <div style="display:flex;justify-content:space-between"><h2>Delete permanently</h2><span class="muted">&#10005;</span></div>
+ <p style="font-size:13.5px;color:var(--mid);margin-top:8px;line-height:1.5">This cannot be undone. You are about to delete <b style="color:var(--ink)">blessing.akwa@mail.co.uk</b></p>
+ <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><span class="btn o">Cancel</span><span class="btn" style="background:var(--alert);color:#fff">Delete</span></div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto;color:#eee">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

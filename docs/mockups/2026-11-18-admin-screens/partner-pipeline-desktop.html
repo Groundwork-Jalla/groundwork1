@@ -1,0 +1,123 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Partner pipeline · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1060px;overflow:hidden;position:relative}
+.app{height:1060px}
+.b-map{display:grid;grid-template-columns:2fr 2fr 3fr 3fr 4fr;gap:8px;margin-top:16px}
+.b-ph{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:7px 6px 6px;min-width:0}
+.b-ph>p{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 4px 5px}
+.b-ph .cs{display:flex;gap:4px}
+.b-c{border-radius:9px;padding:5px 7px;background:var(--canvas);flex:1;min-width:0}
+.b-c b{font-family:var(--mono);font-size:16px;display:block}
+.b-c span{font-size:10.5px;color:var(--mid);display:block;line-height:1.2;min-height:25px}
+.b-c.z{opacity:.45}
+.b-c.on{background:var(--ink);color:#fff}.b-c.on span{color:rgba(255,255,255,.7)}
+.b-bar{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.b-scope{font-size:12px;color:var(--mid)}
+.b-scope a{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.kanban{grid-template-columns:1fr 1fr 1fr 230px;margin-top:12px;align-items:start}
+.kcol h4 small{font-family:var(--mono);color:var(--mid);font-weight:600}
+.kcol .sub{font-size:11px;color:var(--mid);padding:0 4px;margin-top:-4px}
+.kcard .t{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
+.kcard .nm{font-weight:700;font-size:13px}
+.kcard .meta{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.4}
+.kcard .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.kcard .ft{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--mid)}
+.kcard .nx{margin-top:6px;font-size:11.5px;background:var(--canvas);border-radius:8px;padding:5px 8px}
+.kcard .nx b{font-weight:600}
+.kcard.sel{border-color:var(--green);box-shadow:0 0 0 2px #e9f0ec}
+.b-rv{font-size:11px;font-weight:600;border:1px solid var(--rule);border-radius:7px;padding:2px 7px;color:var(--ink);background:#fff;white-space:nowrap}
+.tag{font-size:10.5px}
+</style></head><body data-active="/admin/partners">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · <b>Partner pipeline</b></p>
+  <div class="ph2"><div><h1>Partner pipeline</h1><p class="lead">Everyone who has entered the partner funnel, at the furthest stage they have reached. Sorted by what needs doing, not by who joined last.</p></div>
+   <div class="acts"><span class="seg"><span class="on">Board</span><span>Work list</span></span></div></div>
+
+  <!-- How many sit at each stage: every stage, grouped. Click filters; zero is shown, not hidden. -->
+  <div class="b-map">
+   <div class="b-ph" style="background:#f4f3f0"><p>Ended</p><div class="cs"><div class="b-c"><b>2</b><span>Answer ended the application</span></div><div class="b-c"><b>1</b><span>Rejected</span></div></div></div>
+   <div class="b-ph"><p>Joining</p><div class="cs"><div class="b-c z"><b>0</b><span>Account created</span></div><div class="b-c z"><b>0</b><span>Onboarded</span></div></div></div>
+   <div class="b-ph"><p>Applying</p><div class="cs"><div class="b-c"><b>6</b><span>Applied</span></div><div class="b-c"><b>4</b><span>Pre-qualified</span></div><div class="b-c"><b>3</b><span>Sent to booking</span></div></div></div>
+   <div class="b-ph"><p>Deciding</p><div class="cs"><div class="b-c"><b>2</b><span>Call completed</span></div><div class="b-c"><b>1</b><span>In review</span></div><div class="b-c"><b>2</b><span>Accepted</span></div></div></div>
+   <div class="b-ph"><p>Activating</p><div class="cs"><div class="b-c"><b>1</b><span>Committed</span></div><div class="b-c"><b>1</b><span>Agreement signed</span></div><div class="b-c z"><b>0</b><span>Homeowner introduced</span></div><div class="b-c"><b>1</b><span>Project activated</span></div></div></div>
+  </div>
+
+  <div class="b-bar">
+   <span class="field" style="width:350px;white-space:nowrap"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search a name, specialty, owner or next action</span>
+   <span class="tag bad" style="font-size:12px;padding:5px 11px">⚠ 5 need attention</span>
+   <span class="b-scope" style="flex-basis:100%;margin-top:-4px">Showing 21 partner applicants. 43 contractor accounts have never applied. <a>Show those too</a></span>
+   <span class="b-scope" style="flex-basis:100%">3 of our own accounts are not counted. <a>Include them</a></span>
+  </div>
+
+  <div class="kanban">
+   <div class="kcol"><h4>Applying <small>13</small></h4>
+    <div class="kcard"><div class="t"><span class="nm">Henriette Ngo Bassa</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Applied</span><span class="tag bad">No owner</span></div>
+     <div class="meta">Electrician</div>
+     <div class="ft"><span>Nothing next recorded</span><span>◷ 6d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Collins Achu</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Pre-qualified</span><span class="tag bad">Overdue</span></div>
+     <div class="nx"><b>Call to book a slot</b> · 15 Nov</div>
+     <div class="ft"><span>owned by Ruth</span><span>◷ 4d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Grace Ayuk</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Sent to booking</span></div>
+     <div class="nx"><b>Try WhatsApp</b> · 20 Nov</div>
+     <div class="ft"><span>Plumber · owned by Joel</span><span>◷ 2d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Kevin Nfor</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Applied</span></div>
+     <div class="nx"><b>Read the answers</b> · 21 Nov</div>
+     <div class="ft"><span>Mason · owned by Ruth</span><span>◷ 1d in stage</span></div></div>
+    <p class="hint" style="padding:8px 4px 0">+ 9 more</p>
+   </div>
+   <div class="kcol"><h4>Deciding <small>5</small></h4>
+    <div class="kcard sel"><div class="t"><span class="nm">Emmanuel Mbarga</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Call completed</span><span class="tag warn">No next action</span></div>
+     <div class="meta">General contractor · owned by Ruth</div>
+     <div class="ft"><span>Called, no answer</span><span>◷ 3d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Divine Tanyi</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Accepted</span><span class="tag bad">Not in the directory</span></div>
+     <div class="nx"><b>Publish to directory</b> · 19 Nov</div>
+     <div class="ft"><span>Mason · owned by Joel</span><span>◷ 2d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Pascal Ebode</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Accepted</span></div>
+     <div class="meta">Mason · in the directory · owned by Ruth</div>
+     <div class="nx"><b>Send agreement</b> · 22 Nov</div>
+     <div class="ft"><span></span><span>◷ 1d in stage</span></div></div>
+    <p class="hint" style="padding:8px 4px 0">+ 2 more</p>
+   </div>
+   <div class="kcol"><h4>Activating <small>3</small></h4>
+    <div class="kcard"><div class="t"><span class="nm">Serge Fotso</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Agreement signed</span><span class="tag bad">Deadline passed</span></div>
+     <div class="nx"><b>Introduce the Mbala homeowner</b> · 12 Nov</div>
+     <div class="ft"><span>Electrician · owned by Ruth</span><span>◷ 16d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Blaise Ngu</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag mute">Committed</span></div>
+     <div class="nx"><b>Agreement call</b> · 24 Nov</div>
+     <div class="ft"><span>General contractor · owned by Joel</span><span>◷ 5d in stage</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Ama Fon</span><span class="b-rv">Review application</span></div>
+     <div class="tags"><span class="tag ok">Project activated</span></div>
+     <div class="meta">Mason · in the directory · owned by Ruth</div>
+     <div class="ft"><span></span><span>◷ 9d in stage</span></div></div>
+   </div>
+   <div class="kcol" style="background:#f4f3f0"><h4>Ended <small>3</small></h4>
+    <div class="kcard"><div class="t"><span class="nm">Rose Ewodo</span></div>
+     <div class="tags"><span class="tag mute">Rejected</span><span class="tag mute" style="background:#fff;border:1px solid var(--rule)">Concerns about the work</span></div>
+     <div class="meta">Tiler · Two references did not check out</div>
+     <div class="ft"><span></span><span>◷ 12d</span></div></div>
+    <div class="kcard"><div class="t"><span class="nm">Brice Nana</span></div>
+     <div class="tags"><span class="tag mute">Answer ended the application</span><span class="tag mute" style="background:#fff;border:1px solid var(--rule)">No project yet</span></div>
+     <div class="ft"><span></span><span>◷ 20d</span></div></div>
+    <p class="hint" style="padding:8px 4px 0">+ 1 more</p>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

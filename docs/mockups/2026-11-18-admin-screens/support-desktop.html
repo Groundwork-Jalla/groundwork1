@@ -1,0 +1,104 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Support · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.s-alert{display:flex;gap:10px;align-items:center;margin-top:14px;border:1px solid #e8c9ce;background:#fdf8f9;border-radius:12px;padding:10px 14px;font-size:13px}
+.s-alert svg{color:var(--alert)}
+.s-grid{display:grid;grid-template-columns:420px 1fr;gap:16px;margin-top:14px;height:680px}
+.s-q{display:flex;flex-direction:column;overflow:hidden}
+.s-qh{padding:12px 14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--rule)}
+.s-r{padding:12px 14px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.s-r.del{background:#fdf8f9}
+.s-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.s-r.del.on{box-shadow:inset 3px 0 0 var(--alert)}
+.s-r .sj{font-size:13.5px;font-weight:600;display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden}
+.s-r .who{font-size:12px;color:var(--mid);grid-column:1}
+.s-r .dt{font-size:11.5px;color:var(--muted);text-align:right}
+.s-r .ti{grid-column:2;grid-row:2;justify-self:end}
+.s-del{display:inline-flex;align-items:center;gap:4px;background:var(--alert);color:#fff;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;flex-shrink:0}
+.s-d{display:flex;flex-direction:column;overflow:hidden}
+.s-dh{padding:18px 22px 14px;border-bottom:1px solid var(--rule)}
+.s-dh h2{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-top:6px}
+.s-dh .m{font-size:12.5px;color:var(--mid);margin-top:4px}
+.s-flow{display:flex;align-items:center;gap:0;margin-top:14px}
+.s-flow span{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mid);border:1px solid var(--rule);padding:7px 13px;background:#fff}
+.s-flow span:first-child{border-radius:10px 0 0 10px}.s-flow span:last-child{border-radius:0 10px 10px 0}
+.s-flow span+span{border-left:0}
+.s-flow span.done{color:var(--green)}
+.s-flow span.cur{background:var(--green);color:#fff;border-color:var(--green)}
+.s-flow i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.s-body{display:grid;grid-template-columns:1fr 330px;flex:1;overflow:hidden}
+.s-msg{padding:16px 22px;overflow:hidden}
+.s-msg h4,.s-conv h4{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;gap:6px;align-items:center}
+.s-msg .tx{margin-top:8px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;background:var(--canvas);border:1px solid var(--rule);border-radius:12px;padding:14px 16px}
+.s-conv{border-left:1px solid var(--rule);padding:16px 18px;background:#fbfbfa;overflow:hidden}
+.s-th{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:12.5px}
+.s-th .h{display:flex;justify-content:space-between}
+.s-th small{display:block;color:var(--mid);font-size:11.5px;margin-top:2px}
+.s-th .lm{margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-th:hover{border-color:var(--green)}
+</style></head><body data-active="/admin/support">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Support</h1><p class="lead">Messages from the help form, and account-deletion requests. Every ticket also emails the team inbox when it arrives.</p></div>
+  </div>
+  <div class="s-alert"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></svg><span><b>2 account-deletion requests awaiting action</b> — senders were told 48 hours.</span></div>
+
+  <div class="s-grid">
+   <div class="card s-q">
+    <div class="s-qh">
+     <div style="display:flex;justify-content:space-between;align-items:center"><div class="seg"><span class="on">Open · 4</span><span>All · 23</span></div><span class="hint">Deletion requests first</span></div>
+     <span class="field" style="width:100%"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name, email or message</span>
+    </div>
+    <div class="s-r del on"><div class="sj"><span class="s-del">Deletion</span>Delete my account</div><span class="dt">18 Nov 2026</span><div class="who">Brigitte Ngo · brigitte.ngo@mail.cm</div><span class="ti"><span class="tag warn">2 threads</span></span></div>
+    <div class="s-r del"><div class="sj"><span class="s-del">Deletion</span>Please remove my data</div><span class="dt">16 Nov 2026</span><div class="who">h.tchoumi@yahoo.fr · account closed</div><span class="ti"><span class="tag mute">No conversation</span></span></div>
+    <div class="s-r"><div class="sj">Cannot upload my receipt</div><span class="dt">17 Nov 2026</span><div class="who">Ama Kouam · ama.kouam@mail.cm</div><span class="ti"><span class="tag ok">Linked</span></span></div>
+    <div class="s-r"><div class="sj">Sign-in code never arrives</div><span class="dt">15 Nov 2026</span><div class="who">Paul Etame · p.etame@mail.cm</div><span class="ti"><span class="tag info">1 thread</span></span></div>
+    <p class="hint" style="padding:12px 14px;line-height:1.5">Empty queue: “No tickets yet.” · Search finds nothing: “No tickets match that.” · Read error: “Could not load the support queue.”</p>
+   </div>
+
+   <div class="card s-d">
+    <div class="s-dh">
+     <div style="display:flex;justify-content:space-between;align-items:center"><span class="s-del">Deletion</span></div>
+     <h2>Delete my account</h2>
+     <p class="m">Brigitte Ngo · brigitte.ngo@mail.cm · 18 Nov 2026</p>
+     <div class="s-flow" aria-label="Status"><span class="cur"><i></i>Open</span><span>In progress</span><span>Resolved</span><span>Closed</span></div>
+    </div>
+    <div class="s-body">
+     <div class="s-msg">
+      <h4><svg class="ico" style="width:12px;height:12px" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>The sender’s own words · cannot be edited</h4>
+      <div class="tx">Good evening,
+
+I no longer want to use Groundwork. Please delete my account and everything you hold about me. My project with the contractor in Bafoussam did not start, so there is nothing to keep.
+
+Thank you,
+Brigitte</div>
+      <p role="alert" style="margin-top:12px;font-size:12.5px;color:var(--alert);border:1px solid #e8c9ce;background:#fdf8f9;border-radius:10px;padding:8px 12px">That change did not save. Try again.</p>
+      <p class="hint" style="margin-top:6px">Shown only when a status change fails.</p>
+     </div>
+     <div class="s-conv">
+      <h4>Which conversation is this about?</h4>
+      <p class="hint" style="margin-top:4px;line-height:1.45">This person has more than one thread. Groundwork will not guess — pick the one this ticket belongs to.</p>
+      <div class="s-th"><div class="h"><b>WhatsApp</b><span class="muted" style="font-size:11.5px">2 h ago</span></div><small>Account holder on Ngo house</small><div class="lm">Hello, I sent the deletion form yesterday…</div></div>
+      <div class="s-th"><div class="h"><b>Groundwork</b><span class="muted" style="font-size:11.5px">No messages yet</span></div><small>Ngo house</small></div>
+      <p class="hint" style="margin-top:10px;line-height:1.45">Choosing links this ticket to that conversation: “Delete my account”</p>
+      <div style="border-top:1px solid var(--rule);margin-top:14px;padding-top:12px">
+       <h4>Other tickets show</h4>
+       <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px;align-items:flex-start">
+        <span class="btn o s"><svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M3 5h12v8H7l-4 3z"/></svg>Open conversation</span>
+        <span class="btn s" style="border:1px dashed var(--rule);color:var(--mid)" title="This person has no conversation in Groundwork yet.">No conversation</span>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

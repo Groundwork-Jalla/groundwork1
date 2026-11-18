@@ -1,0 +1,126 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin &middot; Project workspace &middot; Site updates &middot; desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1290px;overflow:hidden;position:relative}
+.app{height:1290px}
+
+.wh{background:#fff;border-bottom:1px solid var(--rule);padding:16px 28px 0}
+.back{font-size:13px;color:var(--green);font-weight:600}
+.wh h1{font-family:var(--sans);font-size:26px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+.facts{display:flex;gap:22px;font-size:12.5px;color:var(--mid);margin-top:6px}.facts b{color:var(--ink);font-weight:600}
+.status{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--mid);margin-top:8px;flex-wrap:wrap}
+.lc{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#f4eee2;color:var(--held)}
+.wacts{display:flex;gap:6px;flex-shrink:0}
+.wa{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:7px 11px;font-weight:600;font-size:13px;border:1px solid var(--rule);background:#fff}
+.wtabs{display:flex;gap:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.wtabs span{padding:10px 0}.wtabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-two{display:grid;grid-template-columns:1fr 290px;gap:18px;align-items:start}
+.f-day{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:4px 0 8px}
+.f-up{background:#fff;border:1px solid var(--rule);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.f-up .uh{display:flex;align-items:center;gap:10px;padding:12px 16px}
+.f-up .uh b{font-size:13.5px}
+.f-up .ub{padding:0 16px 14px;font-size:13.5px;line-height:1.5}
+.f-up .stg{margin-left:auto;font-size:12px;color:var(--mid);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.f-up .stg .ico{width:12px;height:12px}
+.f-ph{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.f-ph .f-thumb{height:112px}
+.f-ph .f-thumb.un{display:grid;place-items:center;font-size:11px;color:var(--mid);text-align:center;padding:10px}
+.f-ph .f-thumb.un .ico{position:static}
+.f-fl{padding:14px 16px}
+.f-fl h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:2px 0 8px}
+.f-fi{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:9px;font-size:13px}
+.f-fi.on{background:#e9f0ec;color:var(--green);font-weight:600}
+.f-fi span:last-child{font-family:var(--mono);font-size:11.5px;color:var(--mid)}
+
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="wh">
+  <span class="back">&larr; Back to projects</span>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+   <div>
+    <h1>Mbala Residence</h1>
+    <div class="facts"><span>Homeowner <b>Claire Mbala</b></span><span>Plan <b>Jalla Verify</b></span><span>Location <b>Douala, Cameroon</b></span></div>
+    <div class="status"><span style="display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-weight:600"><i class="dotc" style="background:var(--complete)"></i>Active</span><span>Stage 5 of 10 &middot; Structure &amp; walls</span><span>Tracking since 30 Oct 2026</span><span>Last activity 2 h ago</span><span class="lc">Under review</span></div>
+   </div>
+   <div class="wacts">
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Assign verifier</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Jalla message</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24" style="color:#25D366"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg>WhatsApp &#9662;</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open homeowner view</span>
+   </div>
+  </div>
+  <div class="wtabs"><span>Overview</span><span>Stages</span><span>Financials</span><span class="on">Site updates</span><span>Documents</span><span>Conversations</span><span>Activity</span><span>Team</span></div>
+ </div>
+ <div class="f-body">
+<div class="f-two"><div><p class="f-day">Today</p><article class="f-up"><div class="uh"><span class="av sm c2">BO</span><span><b>Bob Ousmane</b> <span class="f-mut f-sm" title="18 Nov 2026, 11:42">&middot; 3 h ago</span></span>
+<span class="stg">Stage 5 &middot; Structure &amp; walls &middot; Lintel and upper blockwork <svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div><div class="ub">Upper blockwork started on the north side. Lintels over the living-room windows are cast and curing.<div class="f-ph"><div class="f-thumb "><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t2"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div></div></div></article><p class="f-day">16 Nov</p><article class="f-up"><div class="uh"><span class="av sm c2">BO</span><span><b>Bob Ousmane</b> <span class="f-mut f-sm" title="16 Nov 2026, 16:05">&middot; 2 d ago</span></span>
+<span class="stg">Stage 5 &middot; Structure &amp; walls &middot; Columns and ring beam <svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div><div class="ub">Ring beam cast, curing under wet sacks.<div class="f-ph"><div class="f-thumb t3"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t4"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t5"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb un" title="This file could not be opened"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg><span>Could not be opened</span></div></div></div></article><p class="f-day">12 Nov</p><article class="f-up"><div class="uh"><span class="av sm c1">CM</span><span><b>Claire Mbala</b> <span class="f-mut f-sm" title="12 Nov 2026, 09:10">&middot; 6 d ago</span></span>
+<span class="stg">Stage 4 &middot; Foundation <svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div><div class="ub"><p class="f-sm f-mut">No description &mdash; files only.</p><div class="f-ph"><div class="f-thumb t6"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t2"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div></div></div></article><p class="f-day">9 Nov</p><article class="f-up"><div class="uh"><span class="av sm c2">BO</span><span><b>Bob Ousmane</b> <span class="f-mut f-sm" title="9 Nov 2026, 17:31">&middot; 9 d ago</span></span>
+<span class="stg">Stage 4 &middot; Foundation &middot; Strip footings <svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div><div class="ub">Strip footings poured on all four sides; blinding done yesterday.<div class="f-ph"><div class="f-thumb t4"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb "><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t3"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div></div></div></article></div><aside class="card f-fl">
+ <h4>Stage</h4>
+ <div class="f-fi on"><span>All stages</span><span>4</span></div>
+ <div class="f-fi"><span>5 &middot; Structure &amp; walls</span><span>2</span></div>
+ <div class="f-fi"><span>4 &middot; Foundation</span><span>2</span></div>
+ <h4 style="margin-top:14px">Reported by</h4>
+ <div class="f-fi on"><span>Everyone</span><span>4</span></div>
+ <div class="f-fi"><span>Bob Ousmane &middot; contractor</span><span>3</span></div>
+ <div class="f-fi"><span>Claire Mbala &middot; homeowner</span><span>1</span></div>
+ <p class="f-xs f-mut" style="margin-top:14px;line-height:1.5">Updates appear here when the owner or contractor reports work on a stage from the project page. Nothing is submitted on their behalf from here.</p>
+ <p class="f-xs f-mut" style="margin-top:8px;line-height:1.5">The stage pill opens that stage on Overview. A photo opens full size in a new tab.</p>
+</aside></div>
+ </div>
+</div>
+</div>
+
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

@@ -1,0 +1,46 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Account created · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-w{max-width:760px;margin:22px auto 0}
+.b-ok{width:44px;height:44px;border-radius:50%;background:#e9f0ec;color:var(--green);display:grid;place-items:center}
+.b-cred{margin-top:18px;overflow:hidden}
+.b-c{display:flex;align-items:center;gap:14px;padding:14px 18px;border-top:1px solid var(--rule)}
+.b-c:first-child{border-top:0}
+.b-c p{font-size:12px;color:var(--mid);width:150px}
+.b-c b{font-size:16px;flex:1}
+.b-warn{display:flex;gap:10px;background:#fbf8f2;border-top:1px solid #e5d6b8;padding:12px 18px;font-size:12.5px;color:var(--held);line-height:1.45}
+.b-next{margin-top:14px;padding:16px 18px}
+.b-next h3{font-size:14px;font-weight:700}
+.b-next ol{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.b-next li{display:flex;gap:10px;font-size:12.5px;color:var(--mid)}
+.b-next li span{width:20px;height:20px;border-radius:50%;background:var(--pale);color:var(--ink);font-weight:700;font-size:11px;display:grid;place-items:center;flex-shrink:0}
+.b-acts{display:flex;gap:12px;align-items:center;margin-top:18px}
+</style></head><body data-active="/admin/users">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · Users · <b>Create an account</b></p>
+  <div class="b-w">
+   <div style="display:flex;gap:14px;align-items:center"><div class="b-ok"><svg class="ico" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M5 12l5 5 9-10"/></svg></div>
+    <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.4px">Account created for Bernadette Eyong</h1><p class="muted" style="font-size:13px;margin-top:2px">Give them these two things. Read them out, or copy them into a message you will delete afterwards.</p></div></div>
+   <section class="card b-cred">
+    <div class="b-c"><p>Username (email)</p><b>b.eyong@mail.cm</b><span class="btn s o">Copy</span></div>
+    <div class="b-c"><p>Temporary password</p><b class="mono" style="letter-spacing:1px">kT4-wq9R-2mZx</b><span class="btn s o" style="color:var(--complete)">✓ Copied</span></div>
+    <div class="b-warn"><svg class="ico" viewBox="0 0 24 24" style="margin-top:1px"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></svg><span>This password is shown once and is not stored anywhere. If it is lost, do not create another account — they can use "Forgot password?" on the sign-in page, which works because the email is already confirmed.</span></div>
+   </section>
+   <section class="card b-next"><h3>What happens at their first sign-in</h3>
+    <ol><li><span>1</span>They sign in at Groundwork with the username and temporary password above.</li>
+     <li><span>2</span>A six-digit code is sent to their email. Entering it proves the inbox is theirs.</li>
+     <li><span>3</span>They are asked to choose a password of their own before seeing anything else. The temporary one stops working at that moment.</li></ol></section>
+   <div class="b-acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3zM12 12v5M9.5 14.5h5"/></svg>Create their project</span><span class="link" style="color:var(--mid)">Create another account</span></div>
+   <p class="hint" style="margin-top:10px">For a contractor or verifier the project button is replaced by: “They can sign in now. A contractor sees a project only once you have invited them to it.” (verifier: “…once they are assigned to verify it.”)</p>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

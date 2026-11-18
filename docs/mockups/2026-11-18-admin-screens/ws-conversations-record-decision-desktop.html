@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Conversations &middot; record a decision</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1000px;overflow:hidden;position:relative;background:url(ws-conversations-desktop.png) top left/1440px auto no-repeat}
+
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-q{border:1px solid var(--rule);background:var(--canvas);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--mid)}
+.f-q b{color:var(--ink);font-weight:600}
+.f-seg{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.f-seg span{border:1px solid var(--rule);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--mid)}
+.f-seg span.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.f-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.f-stage{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;gap:22px;padding-top:110px}
+</style></head><body>
+<div class="f-ov"></div>
+<div class="f-stage"><p class="f-cap">Conversations &middot; Record decision (from a message chosen as its source)</p><div class="f-dlg" style="width:560px">
+ <div class="dh" style="border-bottom:1px solid var(--rule);padding-bottom:14px"><div><h3>Record a decision</h3><p>A decision is what the project will now do &mdash; dated, attributed, and immutable. A reversal is a new decision that names this one.</p></div><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+ <div class="db" style="padding-top:14px">
+  <div class="f-q"><b>Claire Mbala</b>: Bonjour &mdash; can the boys&rsquo; quarters window move to the east wall? Bob says it is still possible before the lintels go in.</div>
+  <span class="f-lbl">Subject</span><div class="f-in">Boys&rsquo; quarters window moved to the east wall</div>
+  <span class="f-lbl">Decision</span><div class="f-in ta">Window opening moves from the north to the east wall before the lintel pour. Same price.</div>
+  <div class="f-2"><div><span class="f-lbl">Relates to</span><div class="f-seg"><span>Budget</span><span class="on">Stage</span><span>Design</span><span>Payment</span><span>Other</span></div></div>
+   <div><span class="f-lbl">Which stage</span><div class="f-in">5 &middot; Structure &amp; walls <svg class="ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><p class="f-help">Shown only when it relates to a stage.</p></div></div>
+  <div class="f-2"><div><span class="f-lbl">Cost impact (USD)</span><div class="f-in f-num">0</div></div><div><span class="f-lbl">Schedule impact (days)</span><div class="f-in f-num">1</div></div></div>
+  <div class="f-chk"><span class="f-box on"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span>Approved by the homeowner<span class="f-help" style="display:block">Tick only when the owner gave this approval themselves &mdash; on WhatsApp, by phone, in person. It records them as the approver.</span></span></div>
+  <p class="f-help" style="margin-top:10px">A subject and the decision itself are required.</p>
+ </div>
+ <div class="df"><span class="btn o">Cancel</span><span class="btn g">Record decision</span></div>
+</div></div>
+<p class="caption" style="color:#eee">Design concept &middot; illustrative data</p>
+</body></html>

@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Inspections · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.app{height:900px}
+.a-hero{margin-top:18px;background:#fff;border:1px solid var(--rule);border-radius:18px;padding:28px 30px;display:grid;grid-template-columns:1fr 330px;gap:30px}
+.a-ico{width:46px;height:46px;border-radius:14px;background:var(--pale);display:grid;place-items:center}
+.a-ico svg{width:22px;height:22px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.a-hero h2{font-size:20px;font-weight:800;margin-top:14px;letter-spacing:-.3px}
+.a-hero .p{font-size:13.5px;color:var(--mid);margin-top:6px;line-height:1.55;max-width:620px}
+.a-will{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.a-will div{border:1px dashed var(--rule);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--mid);line-height:1.45}
+.a-will b{display:block;color:var(--ink);font-size:13px;margin-bottom:3px}
+.a-why{background:var(--canvas);border-radius:14px;padding:16px 18px;font-size:12.5px;line-height:1.55;color:var(--mid)}
+.a-why h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.a-why code{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--rule);border-radius:5px;padding:0 4px;color:var(--ink)}
+.a-sh{font-size:15px;font-weight:700;margin:22px 0 10px}
+.a-go{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.a-go .card{padding:16px 18px;display:grid;gap:6px;align-content:start}
+.a-go .card .t{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:700}
+.a-go .card .t span{width:30px;height:30px;border-radius:9px;background:#e9f0ec;display:grid;place-items:center}
+.a-go .card .t svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:1.8}
+.a-go .card p{font-size:12.5px;color:var(--mid);line-height:1.5}
+.a-go .card .link{margin-top:4px;font-size:12.5px}
+</style></head><body data-active="/admin/inspections">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">Work · <b>Inspections</b></p>
+  <div class="ph2"><div><h1>Inspections</h1><p class="lead">This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.</p></div><span class="tag mute" style="margin-bottom:4px">Not built yet</span></div>
+
+  <div class="a-hero">
+   <div>
+    <span class="a-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4M9 11l1.5 1.5L13 10"/></svg></span>
+    <h2>No inspections to show</h2>
+    <p class="p">Inspections are not part of Groundwork yet — there is nothing to show, and nothing is invented here. When they ship, this page is where every site visit across every project is planned and its result is read.</p>
+    <div class="a-will">
+     <div><b>Every site visit</b>Which project and stage, who is going, and when.</div>
+     <div><b>What was checked</b>The checklist and the findings, with photos from the visit.</div>
+     <div><b>The result</b>Pass or fail, who inspected, and anything raised for follow-up.</div>
+    </div>
+   </div>
+   <div class="a-why"><h3>Why it is not built yet</h3>The verification standard decides whether an inspection is something different from a verification. Until it lands, a verifier's visit is already recorded on the stage: the visit date and the checklist on each stage verification. A separate inspections table would hold the same facts twice.</div>
+  </div>
+
+  <h3 class="a-sh">Until then, see</h3>
+  <div class="a-go">
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 13l2 2 4-4"/></svg></span>Reviews &amp; Approvals</p><p>Stages waiting on a verifier's decision, the visit, and Record the verifier's decision.</p><span class="link">Open Reviews &amp; Approvals →</span></div>
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>Verifiers</p><p>Who can visit a site, where they work, and which projects they are assigned to.</p><span class="link">Open Verifiers →</span></div>
+   <div class="card"><p class="t"><span><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg></span>A project's Stages tab</p><p>The verification record for each stage: requested, visited, verified, rejected or needs more evidence.</p><span class="link">Open Projects →</span></div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

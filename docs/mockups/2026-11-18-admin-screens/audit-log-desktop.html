@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Audit Log · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.a-bar{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.a-wrap{display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:12px;align-items:start}
+.a-day{padding:10px 20px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;border-top:1px solid var(--rule);background:var(--canvas)}
+.a-day:first-child{border-top:0}
+.a-e{display:grid;grid-template-columns:52px 30px 1fr auto;gap:12px;align-items:center;padding:9px 20px;position:relative}
+.a-e .tm{font-family:var(--mono);font-size:11.5px;color:var(--mid)}
+.a-e .s{font-size:13px;line-height:1.4}.a-e .s b{font-weight:600}
+.a-e .x{font-size:12px;color:var(--mid);margin-top:2px;display:flex;gap:6px;align-items:center}
+.a-e .x .pj{color:var(--ink);text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--rule)}
+.a-e .rel{font-size:11.5px;color:var(--muted);text-align:right}
+.a-e:before{content:'';position:absolute;left:92px;top:0;bottom:0;width:1.5px;background:var(--rule)}
+.a-k{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;position:relative;z-index:1;border:2px solid #fff}
+.a-k svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9}
+.k-m{background:#e9f0ec;color:var(--green)}.k-s{background:#e8f1f8;color:#2a6f9e}.k-p{background:#eceaf4;color:#4b4370}.k-a{background:#f4eee2;color:var(--held)}.k-r{background:#f3e6e8;color:var(--alert)}
+.a-side .card{padding:16px}
+.a-side h3{font-size:14px;font-weight:700}
+.a-lg{display:flex;gap:9px;align-items:center;font-size:12.5px;padding:6px 0}
+.a-lg .a-k{width:24px;height:24px;border:0}.a-lg .a-k svg{width:12px;height:12px}
+.a-lg b{margin-left:auto;font-family:var(--mono);font-weight:600;font-size:12px}
+</style></head><body data-active="/admin/audit-log">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">System · <b>Audit Log</b></div>
+  <div class="ph2"><div><h1>Audit log</h1><p class="lead">Everything Groundwork recorded, newest first. Written by the database itself — nothing here can be edited from a browser.</p></div>
+   <div class="acts"><span class="tag mute" style="padding:6px 12px;font-size:12px"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Read-only</span></div></div>
+
+  <div class="a-bar">
+   <span class="field" style="width:280px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search person or project</span>
+   <div class="seg"><span class="on">Everything</span><span>Money</span><span>Stages</span><span>People &amp; access</span><span>Accounts</span></div>
+   <span class="field">Any person ▾</span><span class="field">Last 7 days ▾</span>
+  </div>
+
+  <div class="a-wrap">
+   <section class="card" style="overflow:hidden">
+    <div class="a-day">Today · Wed 18 Nov</div>
+    <div class="a-e"><span class="tm">14:32</span><span class="a-k k-m"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4zM8 12h.01M16 12h.01"/></svg></span><div><div class="s"><b>Ruth Ebai</b> confirmed a receipt and authorized work on its stage</div><div class="x">Claire Mbala · <span class="pj">Mbala Residence</span></div></div><span class="rel">12 min ago</span></div>
+    <div class="a-e"><span class="tm">13:05</span><span class="a-k k-s"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><div class="s"><b>Kevin Tabi</b> recorded a verification decision</div><div class="x"><span class="pj">Kouam house</span></div></div><span class="rel">1 hour ago</span></div>
+    <div class="a-e"><span class="tm">11:47</span><span class="a-k k-s"><svg viewBox="0 0 24 24"><path d="M4 19h16M7 15l3-3 3 3 5-6"/></svg></span><div><div class="s"><b>Benoit Nkeng</b> submitted a stage for review</div><div class="x"><span class="pj">Nkeng villa</span></div></div><span class="rel">3 hours ago</span></div>
+    <div class="a-e"><span class="tm">09:20</span><span class="a-k k-p"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c1-4 4-6 7-6M17 11v6M14 14h6"/></svg></span><div><div class="s"><b>Emmanuel Fon</b> assigned a verifier</div><div class="x">Marie-Claire Essomba · <span class="pj">Tabe duplex</span></div></div><span class="rel">5 hours ago</span></div>
+    <div class="a-day">Yesterday · Tue 17 Nov</div>
+    <div class="a-e"><span class="tm">18:12</span><span class="a-k k-a"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></span><div><div class="s"><b>Ruth Ebai</b> changed the account role</div><div class="x">Brice Atangana · No project</div></div><span class="rel">yesterday</span></div>
+    <div class="a-e"><span class="tm">16:40</span><span class="a-k k-m"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4zM8 12h.01M16 12h.01"/></svg></span><div><div class="s"><b>Ama Kouam</b> uploaded a payment receipt</div><div class="x"><span class="pj">Kouam house</span></div></div><span class="rel">yesterday</span></div>
+    <div class="a-e"><span class="tm">10:03</span><span class="a-k k-r"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></span><div><div class="s"><b>Brenda Ngwa</b> flagged a receipt for review</div><div class="x">Joseph Tabe · <span class="pj">Tabe duplex</span></div></div><span class="rel">yesterday</span></div>
+    <div class="a-day">Mon 16 Nov</div>
+    <div class="a-e"><span class="tm">15:28</span><span class="a-k k-s"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span><div><div class="s"><b>Unknown account</b> repriced from the bill of quantities</div><div class="x"><span class="pj">Ndi bungalow</span></div></div><span class="rel">2 days ago</span></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center"><span class="hint">Showing 50 · older entries load in pages of 50</span><span class="btn o s">Load older</span></div>
+   </section>
+
+   <aside class="a-side"><div class="card">
+    <h3>This week</h3>
+    <p class="hint" style="margin-top:2px">Entries by kind, last 7 days</p>
+    <div style="margin-top:8px">
+     <div class="a-lg"><span class="a-k k-m"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/></svg></span>Money<b>41</b></div>
+     <div class="a-lg"><span class="a-k k-s"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>Stages<b>67</b></div>
+     <div class="a-lg"><span class="a-k k-p"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/></svg></span>People &amp; access<b>18</b></div>
+     <div class="a-lg"><span class="a-k k-a"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/></svg></span>Accounts<b>9</b></div>
+     <div class="a-lg"><span class="a-k k-r"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg></span>Flags &amp; failures<b>3</b></div>
+    </div>
+    <p class="hint" style="margin-top:12px;line-height:1.5;border-top:1px solid var(--rule);padding-top:12px">Each row was written by a database function in the same transaction as the change it describes. A project name opens that project in a new tab; hover a time for the full date.</p>
+   </div></aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

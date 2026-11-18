@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Bill of Quantities · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.k-top{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:12px;margin-top:16px}
+.k-top .stat .n{font-size:12px;color:var(--mid);margin-top:6px;line-height:1.45}
+.k-tbl td{padding:13px 16px}
+.k-tbl .ic{width:34px;height:34px;border-radius:9px;background:var(--pale);display:grid;place-items:center;color:var(--mid)}
+.k-tbl .ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
+.k-lock{display:inline-flex;gap:4px;align-items:center;font-size:11.5px;color:var(--mid)}
+.k-lock svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+.k-sup td{color:var(--muted)}.k-sup .tag{text-decoration:line-through}
+.k-var{font-family:var(--mono);font-size:12px;font-weight:600}
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Projects · <span>← Mbala Residence</span> · <b>Bill of Quantities</b></div>
+  <div class="ph2"><div><h1>Bill of Quantities</h1><p class="lead">Every line is pre-priced from the Groundwork model. Change only what differs from your own supplier.</p></div>
+   <div class="acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Edit bill of quantities</span></div></div>
+
+  <div class="k-top">
+   <div class="stat"><div class="l">Homeowner construction budget</div><div class="v">XAF 54,900,000</div><div class="n">Construction only — design, permit and professional fees are charged separately and are not part of what you quote.</div></div>
+   <div class="stat"><div class="l">Accepted quotation</div><div class="v">XAF 57,240,000</div><div class="d" style="color:var(--held)">+4.3% vs homeowner budget</div></div>
+   <div class="stat"><div class="l">Open draft</div><div class="v">XAF 56,410,000</div><div class="d">Private to its author and project admins</div></div>
+  </div>
+
+  <section class="card" style="margin-top:14px;overflow:hidden">
+   <div class="sec-h"><h2>Versions</h2><span class="hint">3 · newest first</span></div>
+   <table class="tbl k-tbl">
+    <thead><tr><th style="width:56px"></th><th>Status</th><th>Created</th><th>Note</th><th style="text-align:right">Total</th><th style="text-align:right">Vs homeowner budget</th><th style="width:40px"></th></tr></thead>
+    <tbody>
+     <tr><td><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span></td><td><span class="tag mute">Draft</span></td><td>18 Nov 2026</td><td>Roof re-priced on Bamenda steel prices</td><td class="num"><b>XAF 56,410,000</b></td><td class="num"><span class="k-var" style="color:var(--held)">+2.7%</span></td><td class="muted">›</td></tr>
+     <tr><td><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span></td><td><span class="tag ok">Accepted</span> <span class="k-lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>frozen</span></td><td>14 Nov 2026</td><td>Contractor revision after site visit</td><td class="num"><b>XAF 57,240,000</b></td><td class="num"><span class="k-var" style="color:var(--held)">+4.3%</span></td><td class="muted">›</td></tr>
+     <tr class="k-sup"><td><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span></td><td><span class="tag mute">Superseded</span> <span class="k-lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>frozen</span></td><td>2 Nov 2026</td><td>First quotation</td><td class="num">XAF 61,180,000</td><td class="num"><span class="k-var">+11.4%</span></td><td>›</td></tr>
+    </tbody>
+   </table>
+  </section>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+   <div class="empty" style="text-align:left;padding:16px 18px"><b>When there is nothing yet</b>No bill of quantities draft yet. The <span class="mono">Edit bill of quantities</span> button starts one from the project’s own answers (area, floors, rooms, roof, finish) and opens it.</div>
+   <div class="empty" style="text-align:left;padding:16px 18px"><b>Other states this page can show</b>Could not start a draft · would not load (refresh) · not found or no access · only the project’s BoQ editors can open it · access check failed, with Retry.</div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

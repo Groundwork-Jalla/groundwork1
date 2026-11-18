@@ -1,0 +1,99 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Notifications · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.n-grid{display:grid;grid-template-columns:1fr 330px;gap:18px;margin-top:18px}
+.n-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.n-day{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 18px 6px;background:var(--canvas);border-bottom:1px solid var(--rule)}
+.n-it{display:grid;grid-template-columns:10px 34px 1fr auto;gap:12px;align-items:start;padding:12px 18px;border-bottom:1px solid var(--rule)}
+.n-it.un{background:#f7faf8}
+.n-it .dt{width:8px;height:8px;border-radius:50%;margin-top:13px;background:transparent}
+.n-it.un .dt{background:var(--green)}
+.n-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--pale);color:var(--mid)}
+.n-ic.g{background:#e9f0ec;color:var(--green)}.n-ic.a{background:#f4eee2;color:var(--held)}.n-ic.r{background:#f3e6e8;color:var(--alert)}.n-ic.b{background:#e8f1f8;color:#2a6f9e}
+.n-it b{font-size:13.5px;font-weight:600}.n-it:not(.un) b{font-weight:500}
+.n-it p{font-size:12.5px;color:var(--mid);margin-top:2px;line-height:1.45}
+.n-it .when{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.n-it .go{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--green);margin-top:6px}
+.n-it .none{font-size:11.5px;color:var(--muted);font-style:italic;margin-top:6px;display:block}
+.n-foot{padding:11px 18px;font-size:12px;color:var(--mid);display:flex;justify-content:space-between}
+.n-side h3{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px 2px}
+.n-bell{border:1px solid var(--rule);border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden}
+.n-bell .hd{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--rule);font-size:12.5px;font-weight:600}
+.n-bell .hd span{font-weight:500;color:var(--mid);font-size:11.5px}
+.n-bell .r{padding:9px 14px;border-bottom:1px solid var(--rule);font-size:12px;display:grid;grid-template-columns:8px 1fr;gap:8px}
+.n-bell .r i{width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:5px}
+.n-bell .r small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.n-bell .ft{display:flex;justify-content:space-between;padding:9px 14px;font-size:11.5px;color:var(--mid)}
+.n-st{border:1px solid var(--rule);border-radius:12px;background:#fff;padding:11px 13px;font-size:12px;color:var(--mid);margin-top:8px}
+.n-st b{display:block;color:var(--ink);font-size:12.5px;margin-bottom:2px}
+.n-st.err{border-color:#e8c9ce;background:#fdf8f9;color:var(--alert)}
+.n-st.err b{color:var(--alert)}
+.n-badge{position:absolute;top:11px;right:62px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:9px;font-weight:700;border-radius:99px;width:15px;height:15px;display:grid;place-items:center}
+</style></head><body data-active="/admin/notifications">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main" style="position:relative">
+ <div class="top" data-topbar></div>
+ <span class="n-badge">7</span>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Notifications</h1><p class="lead">Everything Groundwork has told you, newest first.</p></div>
+   <div class="acts" style="align-items:center">
+    <div class="seg"><span class="on">All <b class="mono" style="font-weight:600;opacity:.6">100</b></span><span>Unread <b class="mono" style="font-weight:600;opacity:.6">7</b></span></div>
+    <span class="btn o"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>Mark all read</span>
+   </div>
+  </div>
+
+  <div class="n-grid">
+   <div class="card" style="overflow:hidden">
+    <div class="n-day">Today</div>
+    <div class="n-it un"><i class="dt"></i><div class="n-ic a"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg></div>
+     <div><b>New contractor application</b><p>Emmanuel Fon (Fon Bâtiment, Bamenda) finished his application and is waiting for review.</p><span class="go">Open applications <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when" title="18 Nov 2026, 09:42">12 min ago</span></div>
+    <div class="n-it un"><i class="dt"></i><div class="n-ic r"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+     <div><b>New support ticket</b><p>Delete my account — Brigitte Ngo, brigitte.ngo@mail.cm</p><span class="go">Open ticket <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when">48 min ago</span></div>
+    <div class="n-it un"><i class="dt"></i><div class="n-ic g"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h12v8H7l-4 3zM9 15v2h8l4 3V9h-4"/></svg></div>
+     <div><b>New message about Mbala Residence</b><p>Claire Mbala sent a message</p><span class="go">Open conversation <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when">2 h ago</span></div>
+    <div class="n-it un"><i class="dt"></i><div class="n-ic b"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M10 11a2 2 0 1 1 3 1.7c-.6.4-1 .8-1 1.3M12 17h.01"/></svg></div>
+     <div><b>New quote request</b><p>Ama Kouam, Buea — wants to be put in touch with Tchoua Construction.</p><span class="go">Open quote request <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when">4 h ago</span></div>
+    <div class="n-day">Yesterday</div>
+    <div class="n-it un"><i class="dt"></i><div class="n-ic g"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 13l2 2 4-4"/></svg></div>
+     <div><b>Receipt uploaded — Kouam house, stage 3</b><p>Ama Kouam uploaded a receipt for part 3. It needs a check before the release.</p><span class="go">Open project <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when">Yesterday, 17:05</span></div>
+    <div class="n-it"><i class="dt"></i><div class="n-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></div>
+     <div><b>Verification submitted — Tabe duplex, stage 2</b><p>Verifier Paul Etame recorded a decision: More updates needed.</p><span class="go">Open project <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <span class="when">Yesterday, 11:20</span></div>
+    <div class="n-it"><i class="dt"></i><div class="n-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg></div>
+     <div><b>Weekly reminder sent</b><p>The Monday reminder went to 14 homeowners.</p><span class="none">nothing to open</span></div>
+     <span class="when">Yesterday, 08:00</span></div>
+    <div class="n-foot"><span>Showing the latest 100 — the same rows as the bell.</span><span class="muted">Hover a time for the full date</span></div>
+   </div>
+
+   <div class="n-side">
+    <h3>The bell, same rows</h3>
+    <div class="n-bell">
+     <div class="hd">Notifications <span>Mark all read</span></div>
+     <div class="r"><i></i><div>New contractor application<small>12 min ago</small></div></div>
+     <div class="r"><i></i><div>New support ticket<small>48 min ago</small></div></div>
+     <div class="r"><i></i><div>New message about Mbala Residence<small>2 h ago</small></div></div>
+     <div class="r"><i style="background:transparent"></i><div style="color:var(--mid)">Weekly reminder sent<small>Yesterday</small></div></div>
+     <div class="ft"><span>Load older notifications</span><span class="link" style="font-size:11.5px">View all notifications</span></div>
+    </div>
+    <p class="hint" style="margin:8px 2px 0">Most recent 20, 20 more per "Load older". Badge shows 9+ above nine.</p>
+
+    <h3 style="margin-top:22px">Other states</h3>
+    <div class="n-st"><b>Nothing unread</b>You have read everything. Clear the filter to see the rest.</div>
+    <div class="n-st"><b>No notifications yet</b>Groundwork tells you here when something needs you — an application, a ticket, a quote request.</div>
+    <div class="n-st err"><b>Notifications could not load. Try again.</b><span class="link" style="color:var(--alert);font-size:12px">Retry</span></div>
+    <div class="n-st err" style="margin-top:6px">We could not save the read status. Try again.</div>
+   </div>
+  </div>
+ </div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

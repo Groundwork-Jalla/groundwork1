@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Site Managers · proposed</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.a-prop{display:inline-flex;background:#eceaf4;color:#4b4370;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;margin-bottom:8px}
+.b-k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.b-cols{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
+.b-h,.b-r{display:grid;grid-template-columns:1.3fr 1.5fr 90px 110px 120px;gap:12px;align-items:center;padding:11px 16px}
+.b-h{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;background:var(--canvas);border-bottom:1px solid var(--rule)}
+.b-r{border-top:1px solid var(--rule);font-size:13px}.b-r:nth-child(2){border-top:0}
+.b-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.b-r small{display:block;color:var(--mid);font-size:11.5px}
+.b-r .m{color:var(--mid);font-size:12.5px}
+.b-who{display:flex;gap:10px;align-items:center}
+.b-s{padding:16px 18px}
+.b-s h3{font-family:var(--sans);font-size:18px;font-weight:800}
+.b-sec{border-top:1px solid var(--rule);margin-top:12px;padding-top:12px;font-size:12.5px}
+.b-sec h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.kv{display:flex;justify-content:space-between;padding:3px 0}.kv span:first-child{color:var(--mid)}
+</style></head><body data-active="/admin/site-managers">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <span class="a-prop">Proposed — needs a data source</span>
+  <div class="ph2"><div><h1>Site Managers</h1><p class="lead">Who is on site for each build, how often they visit, and the budget line that pays for them.</p></div>
+   <div class="acts"><span class="btn g">+ Assign to a project</span></div></div>
+  <div class="b-k">
+   <div class="stat"><p class="l">Site managers</p><p class="v">5</p><p class="d">4 on an active build</p></div>
+   <div class="stat"><p class="l">Builds without one</p><p class="v" style="color:var(--held)">6</p><p class="d">active projects with the fee budgeted</p></div>
+   <div class="stat"><p class="l">Visits this week</p><p class="v">23</p><p class="d">from site updates they filed</p></div>
+   <div class="stat"><p class="l">No visit in 7 days</p><p class="v" style="color:var(--alert)">2</p><p class="d">builds to follow up</p></div>
+  </div>
+  <div class="b-cols">
+   <section class="card" style="overflow:hidden">
+    <div class="b-h"><span>Site manager</span><span>On site for</span><span>Visits / wk</span><span>Last visit</span><span>Status</span></div>
+    <div class="b-r on"><div class="b-who"><div class="av c1 sm">FA</div><div><b>Félix Awono</b><small>Douala</small></div></div><span class="m">Mbala Residence · Kouam house</span><span class="mono">6</span><span class="m">today</span><span class="tag ok"><i></i>On site</span></div>
+    <div class="b-r"><div class="b-who"><div class="av c2 sm">LN</div><div><b>Linda Nchang</b><small>Bamenda</small></div></div><span class="m">Ndi bungalow</span><span class="mono">4</span><span class="m">yesterday</span><span class="tag ok"><i></i>On site</span></div>
+    <div class="b-r"><div class="b-who"><div class="av c3 sm">OB</div><div><b>Olivier Biya</b><small>Yaoundé</small></div></div><span class="m">Nkeng villa</span><span class="mono">1</span><span class="m">9 days ago</span><span class="tag bad"><i></i>No visit in 7 days</span></div>
+    <div class="b-r"><div class="b-who"><div class="av c5 sm">MT</div><div><b>Marthe Tchouta</b><small>Buea</small></div></div><span class="m">Tabe shop</span><span class="mono">3</span><span class="m">2 days ago</span><span class="tag ok"><i></i>On site</span></div>
+    <div class="b-r"><div class="b-who"><div class="av c6 sm">GE</div><div><b>Godlove Ebai</b><small>Limbe</small></div></div><span class="m">—</span><span class="mono">0</span><span class="m">—</span><span class="tag mute"><i></i>Not assigned</span></div>
+   </section>
+   <aside class="card b-s">
+    <h3>Félix Awono</h3><p class="hint">Douala · +237 699 40 22 18</p>
+    <div style="display:flex;gap:6px;margin-top:10px"><span class="btn s o">Call</span><span class="btn s o"><span style="color:#25D366">●</span> Open in WhatsApp</span></div>
+    <div class="b-sec"><h4>Builds</h4><div class="kv"><span class="link">Mbala Residence</span><span>since 4 Oct · stage 5</span></div><div class="kv"><span class="link">Kouam house</span><span>since 20 Oct · stage 5</span></div></div>
+    <div class="b-sec"><h4>Budgeted site manager fee</h4><div class="kv"><span>Mbala Residence</span><span class="mono">450,000 XAF / month</span></div><div class="kv"><span>Kouam house</span><span class="mono">400,000 XAF / month</span></div><p class="hint" style="margin-top:4px">Recorded on the budget; paid through the payment provider like any other line.</p></div>
+    <div class="b-sec"><h4>Recent visits</h4><div class="kv"><span>Today · Mbala Residence</span><span>3 photos</span></div><div class="kv"><span>Yesterday · Kouam house</span><span>5 photos</span></div></div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

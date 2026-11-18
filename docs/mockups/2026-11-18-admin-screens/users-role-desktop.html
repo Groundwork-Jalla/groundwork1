@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Users · role and delete dialogs</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-under{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.b-dim{position:absolute;inset:0;background:rgba(10,10,10,.45);display:flex;gap:18px;align-items:center;justify-content:center;padding:0 24px 0 250px}
+.b-dlg{background:#fff;border-radius:18px;width:370px;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.25);position:relative;font-size:12.5px}
+.b-dlg h2{font-size:17px;font-weight:800}
+.b-sub{color:var(--mid);margin-top:3px}
+.b-p{color:var(--mid);margin-top:10px;line-height:1.5}
+.b-opt{border:1px solid var(--rule);border-radius:10px;margin-top:6px;overflow:hidden}
+.b-opt div{padding:8px 12px;display:flex;justify-content:space-between;border-top:1px solid var(--rule)}
+.b-opt div:first-child{border-top:0}
+.b-opt .on{background:#f3f6f4;font-weight:600;color:var(--green)}
+.b-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.b-lbl{position:absolute;top:-36px;left:0;color:#fff;font-size:12px;font-weight:600;background:#1a1a1a;border-radius:999px;padding:5px 12px;white-space:nowrap}
+.b-ack{display:flex;gap:9px;align-items:flex-start;margin-top:12px;background:#fbf6f7;border-radius:10px;padding:10px 12px;line-height:1.45}
+.b-box{width:16px;height:16px;border:1.5px solid var(--alert);border-radius:4px;flex-shrink:0;margin-top:1px;background:var(--alert);display:grid;place-items:center;color:#fff;font-size:11px}
+</style></head><body>
+<iframe class="b-under" src="users-desktop.html" scrolling="no"></iframe>
+<div class="b-dim">
+ <div class="b-dlg"><span class="b-lbl">Change user role</span>
+  <div style="display:flex;justify-content:space-between"><h2>Change user role</h2><span class="muted">✕</span></div>
+  <p class="b-sub">ruth.ngo@mail.cm</p>
+  <p class="b-p">Choose the user’s dashboard and account permissions. Role changes queue an email with their next step. Existing budgets, payments and completed work are preserved.</p>
+  <p style="font-weight:600;margin-top:12px">Account role</p>
+  <div class="b-opt"><div>Homeowner <span class="muted">current</span></div><div>Contractor</div><div>Verifier</div><div class="on">Admin <span>✓</span></div></div>
+  <p class="hint" style="margin-top:8px">An admin can manage users, projects and platform settings.</p>
+  <div class="b-foot"><span class="btn o">Cancel</span><span class="btn g">Save role</span></div>
+ </div>
+
+ <div class="b-dlg"><span class="b-lbl">After save — projects to review</span>
+  <div style="display:flex;justify-content:space-between"><h2>Change user role</h2><span class="muted">✕</span></div>
+  <p class="b-sub">j.tabe@mail.cm · now Contractor</p>
+  <p class="b-p" style="color:var(--ink)">The account was saved. 2 projects need an assignment review; their existing contractors remain assigned.</p>
+  <div style="display:grid;gap:6px;margin-top:10px"><span class="link">Review project 1</span><span class="link">Review project 2</span></div>
+  <p class="hint" style="margin-top:12px;line-height:1.45">Picking Contractor again for an owner of projects offers <b>Repair contractor project access</b>: owned projects without another contractor are corrected; the rest are flagged like these.</p>
+  <div class="b-foot"><span class="btn g">Close</span></div>
+ </div>
+
+ <div class="b-dlg"><span class="b-lbl">Delete (trash icon / Delete account)</span>
+  <div style="display:flex;justify-content:space-between"><h2>Delete permanently</h2><span class="muted">✕</span></div>
+  <p class="b-p" style="color:var(--ink)">This cannot be undone. You are about to delete <b>j.tabe@mail.cm</b></p>
+  <div class="b-ack"><span class="b-box">✓</span><span>This account owns 2 project(s). Deleting it destroys them and all their stages, budgets, documents, messages and history. I understand.</span></div>
+  <p class="hint" style="margin-top:10px">Refused for your own account, or for the only administrator left.</p>
+  <div class="b-foot"><span class="btn o">Cancel</span><span class="btn" style="background:var(--alert);color:#fff">Delete</span></div>
+ </div>
+</div>
+<p class="caption" style="color:#ddd;left:250px;right:auto">Design concept · illustrative data</p>
+</body></html>

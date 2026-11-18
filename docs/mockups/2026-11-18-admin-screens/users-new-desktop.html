@@ -1,0 +1,72 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Create an account · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.b-cols{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px;align-items:start}
+.b-f{padding:22px 24px}
+.b-sec+.b-sec{border-top:1px solid var(--rule);margin-top:18px;padding-top:18px}
+.b-sec h3{font-size:14px;font-weight:700}
+.b-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.b-role{border:1.5px solid var(--rule);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--mid);line-height:1.45;position:relative}
+.b-role b{display:block;font-size:14px;color:var(--ink);margin-bottom:3px}
+.b-role.on{border-color:var(--green);background:#f3f6f4}
+.b-role.on:after{content:'✓';position:absolute;right:12px;top:10px;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;display:grid;place-items:center}
+.b-g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form label{font-size:12.5px}
+.b-err{border-color:var(--alert)!important}
+.b-act{display:flex;align-items:center;gap:12px;margin-top:20px}
+.b-n{padding:18px 20px}
+.b-n h3{font-size:14px;font-weight:700}
+.b-n ol{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:12px}
+.b-n li{display:flex;gap:10px;font-size:12.5px;color:var(--mid);line-height:1.45}
+.b-n li span{width:22px;height:22px;border-radius:50%;background:var(--pale);color:var(--ink);font-weight:700;font-size:11.5px;display:grid;place-items:center;flex-shrink:0}
+</style></head><body data-active="/admin/users">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · Users · <b>Create an account</b></p>
+  <div class="ph2"><div><h1>Create an account</h1><p class="lead">For people whose details have been collected in person. You will be shown a temporary password once, to give to them.</p></div>
+   <div class="acts"><span class="btn o">← Back to users</span></div></div>
+
+  <div class="b-cols">
+   <section class="card b-f">
+    <div class="b-sec"><h3>What are they?</h3>
+     <div class="b-roles">
+      <div class="b-role on"><b>Homeowner</b>A Jalla Management homeowner. They get a managed plan and you create their project next.</div>
+      <div class="b-role"><b>Contractor</b>A construction partner. They see a project only after they are invited to it.</div>
+      <div class="b-role"><b>Verifier</b>An engineer who signs off stages. They see a stage only after they are assigned to verify it.</div>
+     </div>
+     <p class="hint" style="margin-top:8px">Admins can change this later under Users → Change user role. Role changes are recorded in the audit log.</p></div>
+
+    <div class="b-sec form">
+     <div class="b-g2">
+      <label>Full name<div class="in">Bernadette Eyong</div></label>
+      <label>Email address<div class="in b-err">b.eyong@mail.cm</div><span class="hint" style="font-weight:400;display:block;margin-top:5px">This is their username. A sign-in code goes here the first time they log in.</span></label>
+      <label>Phone (optional)<div class="in">+237 677 20 14 66</div></label>
+      <label>Country<div class="in">🇨🇲 Cameroon ▾</div></label>
+     </div>
+     <label>Language for emails<div style="margin-top:6px"><span class="seg"><span>English</span><span class="on">Français</span></span></div><span class="hint" style="font-weight:400;display:block;margin-top:5px">Every message Groundwork sends them will be in this language. They can change it later.</span></label>
+    </div>
+    <p class="note" style="margin-top:16px">An account with that email already exists. Find them on the users page instead — a new password cannot be issued for an account someone already owns.</p>
+    <div class="b-act"><span class="btn g">Create account</span><span class="hint">No email is sent. You hand over the details yourself.</span></div>
+   </section>
+
+   <aside class="card b-n">
+    <h3>What happens at their first sign-in</h3>
+    <ol>
+     <li><span>1</span>They sign in at Groundwork with the username and temporary password you are given next.</li>
+     <li><span>2</span>A six-digit code is sent to their email. Entering it proves the inbox is theirs.</li>
+     <li><span>3</span>They are asked to choose a password of their own before seeing anything else. The temporary one stops working at that moment.</li>
+    </ol>
+    <p class="hint" style="margin-top:16px;border-top:1px solid var(--rule);padding-top:12px">Until then the account shows <span class="tag warn" style="font-size:10.5px">Awaiting first sign-in</span> in Users.</p>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

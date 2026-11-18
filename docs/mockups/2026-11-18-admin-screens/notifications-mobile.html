@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Notifications · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css">
+<style>
+.nm-top{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.nm-day{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 14px 5px;background:var(--canvas);border-top:1px solid var(--rule)}
+.nm-day:first-child{border-top:0}
+.nm-it{display:grid;grid-template-columns:8px 1fr;gap:10px;padding:11px 14px;border-top:1px solid var(--rule);font-size:13px}
+.nm-it.un{background:#f7faf8}
+.nm-it i{width:7px;height:7px;border-radius:50%;margin-top:6px}
+.nm-it.un i{background:var(--green)}
+.nm-it b{font-weight:600}.nm-it:not(.un) b{font-weight:500}
+.nm-it small{display:block;color:var(--mid);font-size:12px;margin-top:2px;line-height:1.4}
+.nm-it em{display:flex;justify-content:space-between;font-style:normal;font-size:11px;color:var(--muted);margin-top:5px}
+.nm-it em span{color:var(--green);font-weight:600}
+</style></head><body data-active="/admin/notifications">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+ <h1>Notifications</h1><p class="sub">Everything Groundwork has told you, newest first.</p>
+ <div class="nm-top"><div class="seg"><span>All 100</span><span class="on">Unread 7</span></div><span class="btn o s">Mark all read</span></div>
+ <div class="mcard">
+  <div class="nm-day">Today</div>
+  <div class="nm-it un"><i></i><div><b>New contractor application</b><small>Emmanuel Fon (Fon Bâtiment, Bamenda) is waiting for review.</small><em>12 min ago<span>Open ›</span></em></div></div>
+  <div class="nm-it un"><i></i><div><b>New support ticket</b><small>Delete my account — Brigitte Ngo</small><em>48 min ago<span>Open ›</span></em></div></div>
+  <div class="nm-it un"><i></i><div><b>New message about Mbala Residence</b><small>Claire Mbala sent a message</small><em>2 h ago<span>Open ›</span></em></div></div>
+  <div class="nm-it un"><i></i><div><b>New quote request</b><small>Ama Kouam, Buea — wants Tchoua Construction.</small><em>4 h ago<span>Open ›</span></em></div></div>
+  <div class="nm-day">Yesterday</div>
+  <div class="nm-it un"><i></i><div><b>Receipt uploaded — Kouam house, stage 3</b><small>Needs a check before the release.</small><em>Yesterday, 17:05<span>Open ›</span></em></div></div>
+  <div class="nm-it un"><i></i><div><b>Weekly reminder failed for 2 homeowners</b><small>No phone number on file.</small><em>Yesterday, 08:00 · nothing to open</em></div></div>
+ </div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

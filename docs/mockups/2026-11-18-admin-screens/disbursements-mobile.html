@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Disbursements · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.mk b{font-size:17px}
+.a-att{margin-top:10px;border:1px solid #e6d9bf;background:#fbf8f2;border-radius:12px;padding:10px 12px;font-size:12.5px}
+.chip b{font-family:var(--mono)}
+.a-s{margin-top:10px;border:1px solid var(--rule);background:#fff;border-radius:10px;padding:9px 12px;font-size:13px;color:var(--mid)}
+.a-r{display:flex;justify-content:space-between;gap:10px}
+.a-r .amt{text-align:right;flex-shrink:0}.a-r .amt b{font-family:var(--mono)}
+.a-x{background:#fafaf8;border-top:1px solid var(--rule);padding:8px 14px 12px;font-size:12px}
+.a-x dl div{display:flex;justify-content:space-between;gap:12px;padding:4px 0}.a-x dt{color:var(--mid);flex-shrink:0}.a-x dd{text-align:right}
+.a-f{margin-top:8px;border:1.5px solid var(--green);border-radius:10px;padding:10px;background:#f6f9f7}
+.a-f b{font-size:12.5px}.a-f p{color:var(--mid);font-size:11.5px;margin-top:3px;line-height:1.45}
+.a-f .r{display:flex;gap:6px;margin-top:8px}.a-f .in{flex:1;border:1px solid var(--rule);border-radius:9px;background:#fff;padding:7px 10px;color:var(--muted);font-size:12.5px}
+</style></head><body data-active="/admin/finance/disbursements">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<p class="sub" style="margin:0 0 2px">Finance</p>
+<h1>Disbursements</h1><p class="sub">Money leaving to contractors, against the work it pays for.</p>
+<div class="mk"><div><p>Release approved</p><b style="color:var(--held)">$12,000</b></div><div><p>Processing</p><b style="color:var(--held)">$6,500</b></div><div><p>Paid</p><b style="color:var(--complete)">$161,900</b></div><div><p>Payment issue</p><b style="color:var(--alert)">$4,200</b></div></div>
+<div class="a-att"><b>3 approved releases need their SwyChr transaction ID</b> · <span class="link" style="font-size:12.5px">Show them</span></div>
+<div class="scrollx"><span class="chip on">All<b>33</b></span><span class="chip">Release approved<b>3</b></span><span class="chip">Processing<b>1</b></span><span class="chip">Paid<b>27</b></span></div>
+<div class="a-s">Search by project, person, stage or reference</div>
+<div class="mcard">
+ <div class="mrow a-r"><span><b>Grace Fon</b><small>Fon duplex · Stage 3 · Site preparation</small></span><span class="amt"><b>$2,000</b><small style="color:var(--held)">Release approved</small><small>Approved 17 Nov</small></span></div>
+ <div class="a-x"><dl><div><dt>Authorised by</dt><dd>Ruth Achu</dd></div></dl>
+  <div class="a-f"><b>Record the SwyChr transaction</b><p>SwyChr moved this money, so Groundwork needs the transaction ID to follow it.</p><div class="r"><span class="in">SwyChr transaction ID</span><span class="btn g s" style="opacity:.45">Record</span></div></div>
+  <span class="link" style="font-size:12.5px;display:inline-block;margin-top:8px">Open project financials ↗</span></div>
+ <div class="mrow a-r"><span><b>Benoit Nkeng</b><small>Nkeng villa · Stage 2 · Design</small></span><span class="amt"><b>$4,200</b><small style="color:var(--alert)">Payment issue</small><small>Approved 13 Nov</small></span></div>
+</div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

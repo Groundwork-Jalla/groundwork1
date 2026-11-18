@@ -1,0 +1,145 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Analytics · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1280px;overflow:hidden;position:relative}
+.app{height:1280px}
+.a-asof{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--mid);font-weight:600}
+.a-asof i{width:7px;height:7px;border-radius:50%;background:var(--complete)}
+.a-k{display:grid;grid-template-columns:1.3fr repeat(5,1fr);gap:12px;margin-top:18px}
+.a-k .stat .v{font-size:26px}
+.a-k a.stat{display:block}
+.a-k .go{position:absolute;right:14px;top:14px;color:var(--muted)}
+.a-row{display:grid;gap:14px;margin-top:14px}
+.a-c{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:16px 18px}
+.a-c h2{font-size:14.5px;font-weight:700}
+.a-c .sb{font-size:12px;color:var(--mid);margin-top:2px}
+.a-c .ft{border-top:1px solid var(--rule);margin:14px -18px -16px;padding:10px 18px;font-size:12px;color:var(--mid);display:flex;justify-content:space-between}
+.a-col{display:flex;align-items:flex-end;gap:10px;height:236px;margin-top:18px;border-bottom:1px solid var(--rule);padding:0 4px;position:relative}
+.a-col .c{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.a-col .c i{display:block;width:100%;max-width:38px;background:var(--green);border-radius:4px 4px 0 0}
+.a-col .c i.nil{background:var(--rule)}
+.a-col .c b{font-family:var(--mono);font-size:11.5px;font-weight:600;margin-bottom:4px}
+.a-col .gl{position:absolute;left:0;right:0;border-top:1px dashed #ecebe7}
+.a-xl{display:flex;gap:10px;padding:6px 4px 0}.a-xl span{flex:1;text-align:center;font-size:11px;color:var(--mid)}
+.a-hb{margin-top:12px}
+.a-hb .r{display:grid;grid-template-columns:120px 1fr 54px;gap:10px;align-items:center;font-size:12.5px;padding:5px 0}
+.a-hb .r .t{height:10px;border-radius:0 4px 4px 0;background:var(--pale);overflow:hidden}
+.a-hb .r .t i{display:block;height:100%;background:var(--green);border-radius:0 4px 4px 0}
+.a-hb .r .t i.l{background:#8fb39d}
+.a-hb .r .t i.a{background:var(--held)}
+.a-hb .r .t i.x{background:var(--alert)}
+.a-hb .r b{font-family:var(--mono);font-weight:600;text-align:right}
+.a-hb .r small{color:var(--muted);font-family:var(--mono);font-size:11px}
+.a-sec{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:14px}
+.a-fn .r{display:grid;grid-template-columns:96px 1fr 104px;gap:10px;align-items:center;font-size:12.5px;padding:6px 0}
+.a-fn .r .t{height:22px;background:var(--pale);border-radius:0 5px 5px 0;overflow:hidden}
+.a-fn .r .t i{display:block;height:100%;background:var(--green);border-radius:0 5px 5px 0}
+.a-fn .r b{font-family:var(--mono);font-weight:600;text-align:right;font-size:12.5px}
+.a-stack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin-top:14px}
+.a-stack i{display:block;height:100%}
+.a-num{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.a-num div{border:1px solid var(--rule);border-radius:12px;padding:10px 12px}
+.a-num p{font-size:11.5px;color:var(--mid)}.a-num b{display:block;font-family:var(--mono);font-size:22px;font-weight:600;margin-top:3px}
+</style></head><body data-active="/admin/analytics">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Analytics</h1><p class="lead">What the operation adds up to right now.</p></div>
+   <div class="acts"><span class="a-asof"><i></i>As of today · 18 Nov, 09:45</span></div>
+  </div>
+
+  <div class="a-k">
+   <div class="stat hero"><div class="l">Active projects</div><div class="v">48</div><div class="d">42 of 48 are being tracked</div></div>
+   <a class="stat"><div class="l">Need a person</div><div class="v" style="color:var(--alert)">5</div><div class="d">Budgets &amp; fees</div><svg class="ico go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+   <a class="stat"><div class="l">Needs reply</div><div class="v" style="color:var(--held)">3</div><div class="d">of 61 conversations</div><svg class="ico go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+   <div class="stat"><div class="l">Verifications pending</div><div class="v">4</div><div class="d">83 requested, all time</div></div>
+   <div class="stat"><div class="l">Applications</div><div class="v">6</div><div class="d">waiting for a decision</div></div>
+   <div class="stat"><div class="l">Site updates</div><div class="v">212</div><div class="d">from 19 people reporting</div></div>
+  </div>
+
+  <div class="a-row" style="grid-template-columns:1.45fr 1fr">
+   <div class="a-c">
+    <h2>Where the work is</h2><p class="sb">Active projects by the stage they are currently on</p>
+    <div class="a-col">
+     <span class="gl" style="bottom:33%"></span><span class="gl" style="bottom:66%"></span>
+     <div class="c"><b>6</b><i style="height:62%"></i></div><div class="c"><b>8</b><i style="height:83%"></i></div><div class="c"><b>7</b><i style="height:73%"></i></div><div class="c"><b>9</b><i style="height:93%"></i></div><div class="c"><b>6</b><i style="height:62%"></i></div><div class="c"><b>4</b><i style="height:42%"></i></div><div class="c"><b>3</b><i style="height:31%"></i></div><div class="c"><b>2</b><i style="height:21%"></i></div><div class="c"><b>1</b><i style="height:10%"></i></div><div class="c"><b>0</b><i style="height:2px"></i></div><div class="c"><b>2</b><i class="nil" style="height:21%"></i></div>
+    </div>
+    <div class="a-xl"><span>Stage 1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>No stage</span></div>
+   </div>
+   <div class="a-c">
+    <h2>Active projects</h2><p class="sb">48 projects that are not archived, by status and plan</p>
+    <div class="a-sec">Status</div>
+    <div class="a-hb">
+     <div class="r"><span>Active</span><span class="t"><i style="width:81%"></i></span><b>39</b></div>
+     <div class="r"><span>On hold</span><span class="t"><i style="width:13%"></i></span><b>6</b></div>
+     <div class="r"><span>Completed</span><span class="t"><i style="width:6%"></i></span><b>3</b></div>
+    </div>
+    <div class="a-sec">Plan</div>
+    <div class="a-hb">
+     <div class="r"><span>Self Verify</span><span class="t"><i style="width:44%"></i></span><b>21</b></div>
+     <div class="r"><span>Jalla Verify</span><span class="t"><i style="width:38%"></i></span><b>18</b></div>
+     <div class="r"><span>Jalla Management</span><span class="t"><i style="width:19%"></i></span><b>9</b></div>
+    </div>
+    <div class="ft"><span>42 of 48 are being tracked</span><span class="mono">88%</span></div>
+   </div>
+  </div>
+
+  <div class="a-row" style="grid-template-columns:1.45fr 1fr">
+   <div class="a-c">
+    <h2>Money</h2><p class="sb">Groundwork’s own record — not a provider’s. Each state against the largest.</p>
+    <div class="a-fn" style="margin-top:12px">
+     <div class="r"><span>Expected</span><span class="t"><i style="width:100%;background:#b9d1c2"></i></span><b>$412,500</b></div>
+     <div class="r"><span>Funded</span><span class="t"><i style="width:69%;background:#8fb39d"></i></span><b>$286,300</b></div>
+     <div class="r"><span>Authorised</span><span class="t"><i style="width:48%;background:#5d8a70"></i></span><b>$198,000</b></div>
+     <div class="r"><span>In transit</span><span class="t"><i style="width:6%;background:#3d6c52"></i></span><b>$24,500</b></div>
+     <div class="r"><span>Disbursed</span><span class="t"><i style="width:42%"></i></span><b>$171,200</b></div>
+    </div>
+    <div class="ft"><span class="link" style="font-size:12px">5 projects need a person</span><span>Opens Budgets &amp; fees</span></div>
+   </div>
+   <div class="a-c">
+    <h2>All-time verification outcomes</h2><p class="sb">Every verification ever requested — lifetime, not a current backlog</p>
+    <div class="a-hb" style="margin-top:14px">
+     <div class="r"><span>Pending</span><span class="t"><i class="a" style="width:6%"></i></span><b>4</b></div>
+     <div class="r"><span>Verified</span><span class="t"><i style="width:100%"></i></span><b>63</b></div>
+     <div class="r"><span>Rejected</span><span class="t"><i class="x" style="width:8%"></i></span><b>5</b></div>
+     <div class="r"><span>Needs more evidence</span><span class="t"><i class="a" style="width:17%"></i></span><b>11</b></div>
+    </div>
+    <p class="hint" style="margin-top:10px">A category at zero still shows, at zero.</p>
+   </div>
+  </div>
+
+  <div class="a-row" style="grid-template-columns:1fr 1.1fr 1fr">
+   <div class="a-c">
+    <h2>Communication</h2><p class="sb">Conversations and what is waiting on us</p>
+    <div class="a-hb" style="margin-top:12px">
+     <div class="r"><span>Conversations</span><span class="t"><i style="width:100%"></i></span><b>61</b></div>
+     <div class="r"><span>Needs reply</span><span class="t"><i class="a" style="width:5%"></i></span><b>3</b></div>
+     <div class="r"><span>Resolved</span><span class="t"><i class="l" style="width:72%"></i></span><b>44</b></div>
+    </div>
+    <div class="ft"><span class="link" style="font-size:12px">Open the Inbox</span><span>Needs reply</span></div>
+   </div>
+   <div class="a-c">
+    <h2>Coming in</h2><p class="sb">What is waiting to be decided</p>
+    <div class="a-hb" style="margin-top:12px">
+     <div class="r"><span>Applications</span><span class="t"><i style="width:21%"></i></span><b>6</b></div>
+     <div class="r"><span>Started Applications</span><span class="t"><i style="width:48%"></i></span><b>14</b></div>
+     <div class="r"><span>Waitlist</span><span class="t"><i style="width:100%"></i></span><b>29</b></div>
+     <div class="r"><span>Quote Requests</span><span class="t"><i style="width:17%"></i></span><b>5</b></div>
+     <div class="r"><span>Support</span><span class="t"><i style="width:14%"></i></span><b>4</b></div>
+    </div>
+   </div>
+   <div class="a-c">
+    <h2>From site</h2><p class="sb">Updates reported from the field</p>
+    <div class="a-num"><div><p>Site updates</p><b>212</b></div><div><p>People reporting</p><b>19</b></div></div>
+    <div class="ft" style="margin-top:58px"><span class="link" style="font-size:12px">Open the feed</span><span>Site Updates</span></div>
+   </div>
+  </div>
+
+  <p class="hint" style="margin-top:14px">Counts as they stand today. Groundwork keeps no historical series yet, so nothing here shows a trend — a direction drawn from one reading would be a guess. A section whose table cannot be read says “Not available” instead of showing zero.</p>
+ </div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

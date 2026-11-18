@@ -1,0 +1,164 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin &middot; Project workspace &middot; Team &middot; desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1180px;overflow:hidden;position:relative}
+.app{height:1180px}
+
+.wh{background:#fff;border-bottom:1px solid var(--rule);padding:16px 28px 0}
+.back{font-size:13px;color:var(--green);font-weight:600}
+.wh h1{font-family:var(--sans);font-size:26px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+.facts{display:flex;gap:22px;font-size:12.5px;color:var(--mid);margin-top:6px}.facts b{color:var(--ink);font-weight:600}
+.status{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--mid);margin-top:8px;flex-wrap:wrap}
+.lc{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#f4eee2;color:var(--held)}
+.wacts{display:flex;gap:6px;flex-shrink:0}
+.wa{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:7px 11px;font-weight:600;font-size:13px;border:1px solid var(--rule);background:#fff}
+.wtabs{display:flex;gap:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.wtabs span{padding:10px 0}.wtabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-tm{display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start}
+.f-rg{padding:14px 18px;border-top:1px solid var(--rule)}
+.f-rg>h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.f-rg>h3 .ico{width:14px;height:14px}
+.f-pp{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:8px 0}
+.f-pp+.f-pp{border-top:1px dashed var(--rule)}
+.f-pp b{font-size:13.5px;font-weight:600}
+.f-pp small{display:block;font-size:12px;color:var(--mid);margin-top:1px}
+.f-star{display:inline-flex;gap:4px;align-items:center;font-size:11px;font-weight:700;color:var(--green);background:#e9f0ec;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.f-star .ico{width:11px;height:11px;fill:currentColor}
+.f-pay{margin:6px 0 4px 48px;border:1px solid var(--rule);border-radius:12px;background:var(--canvas);padding:10px 12px}
+.f-pay h4{font-size:12px;font-weight:700;display:flex;gap:6px;align-items:center}
+.f-pay h4 .ico{width:14px;height:14px;color:var(--mid)}
+.f-pd{display:grid;grid-template-columns:215px 1fr auto;gap:10px;align-items:center;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.f-pd:first-of-type{border-top:0}
+.f-x{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--mid);border:1px solid var(--rule);background:#fff}
+.f-asg{margin:0 18px 14px;border:1.5px solid var(--green);border-radius:12px;padding:12px 14px;background:#f3f6f4}
+.f-hist .f-hi{display:grid;grid-template-columns:16px 1fr;gap:10px;padding:8px 18px;position:relative;font-size:12.5px}
+.f-hist .f-hi:before{content:'';position:absolute;left:25px;top:22px;bottom:-8px;width:2px;background:var(--pale)}
+.f-hist .f-hi:last-child:before{display:none}
+.f-hist .f-hi i{width:10px;height:10px;border-radius:50%;margin-top:4px;border:2px solid var(--green);background:#fff;position:relative;z-index:1}
+.f-hist .f-hi i.rm{border-color:var(--muted)}
+.f-hist small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.f-vw{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);font-size:12.5px}
+
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="wh">
+  <span class="back">&larr; Back to projects</span>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+   <div>
+    <h1>Mbala Residence</h1>
+    <div class="facts"><span>Homeowner <b>Claire Mbala</b></span><span>Plan <b>Jalla Verify</b></span><span>Location <b>Douala, Cameroon</b></span></div>
+    <div class="status"><span style="display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-weight:600"><i class="dotc" style="background:var(--complete)"></i>Active</span><span>Stage 5 of 10 &middot; Structure &amp; walls</span><span>Tracking since 30 Oct 2026</span><span>Last activity 2 h ago</span><span class="lc">Under review</span></div>
+   </div>
+   <div class="wacts">
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Assign verifier</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Jalla message</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24" style="color:#25D366"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg>WhatsApp &#9662;</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open homeowner view</span>
+   </div>
+  </div>
+  <div class="wtabs"><span>Overview</span><span>Stages</span><span>Financials</span><span>Site updates</span><span>Documents</span><span>Conversations</span><span>Activity</span><span class="on">Team</span></div>
+ </div>
+ <div class="f-body">
+<div class="f-tm"><section class="card">
+ <div class="f-h"><div><h2>Team</h2><p class="f-xs f-mut" style="margin-top:2px">Who is on this project, and who may act on it</p></div>
+  <div class="r"><span class="btn o s"><svg class="ico" viewBox="0 0 24 24"><path d="M3 17h18M5 17a7 7 0 0 1 14 0M10 10V6h4v4"/></svg> Assign contractor</span><span class="btn o s"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Assign verifier</span></div></div>
+ <div style="height:12px"></div>
+ <div class="f-asg">
+  <label class="f-xs f-mut" style="font-weight:600">Contractor email</label>
+  <div class="f-row" style="margin-top:5px"><div class="f-in ph" style="flex:1;margin:0">name@example.com</div><span class="btn g f-btn-dis">Assign</span></div>
+  <p class="f-help">The contractor must already have a Groundwork account. They are invited to this project and can accept it themselves.</p>
+ </div>
+ <div class="f-rg"><h3><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg> Homeowner &middot; Project creator</h3>
+  <div class="f-pp"><span class="av c1">CM</span><span><b>Claire Mbala</b><small>claire.mbala@gmail.com</small></span><span class="tag ok">Primary homeowner</span></div>
+ </div>
+ <div class="f-rg"><h3><svg class="ico" viewBox="0 0 24 24"><path d="M3 17h18M5 17a7 7 0 0 1 14 0M10 10V6h4v4"/></svg> Contractors</h3>
+  <div class="f-pp"><span class="av c2">BO</span><span><b>Bob Ousmane</b><span class="f-star"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6 7.1 19.2 8 13.7 4 9.8l5.5-.8z"/></svg> Paid for this project</span><small>bob@ousmane-btp.cm &middot; Accepted &middot; 19 d ago</small></span><span></span></div>
+  <div class="f-pay"><h4><svg class="ico" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg> Payment details on file</h4>
+   <div class="f-pd"><span class="f-mut">Mobile money</span><span><span class="f-num">&bull;&bull;&bull;&bull; 4821</span> <span class="f-mut">&middot; Bob Ousmane</span></span><span class="tag ok"><svg class="ico" viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M5 12l5 5L20 7"/></svg> Checked</span></div>
+   <div class="f-pd"><span class="f-mut">Bank account &middot; Afriland First Bank</span><span><span class="f-num">&bull;&bull;&bull;&bull; 0912</span> <span class="f-mut">&middot; Ousmane BTP SARL</span></span><span class="f-row"><span class="tag warn">Awaiting check</span><span class="link f-xs">Mark as checked</span></span></div>
+   <p class="f-help" style="margin-top:6px">Check the name and number against what the contractor confirmed before marking them. Only checked details can receive a release.</p>
+  </div>
+  <div class="f-pp"><span class="av c6">SN</span><span><b>Samuel Ndjock</b><small>s.ndjock@yahoo.fr &middot; Accepted &middot; 3 d ago</small></span><span class="btn o s">Pay this contractor</span></div>
+  <div class="f-pp"><span class="av">ET</span><span><b>Eric Tchoua</b><small>eric.tchoua@gmail.com &middot; Invited</small></span><span class="f-xs f-mut">Can be paid once accepted</span></div>
+ </div>
+ <div class="f-rg"><h3><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Verifiers</h3>
+  <div class="f-pp"><span class="av c3">VG</span><span><b>Vanessa G.</b><small>civil &middot; active</small></span><span class="f-x" title="Remove Vanessa G. from this project"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+  <div class="f-pp" style="opacity:.6"><span class="av">PE</span><span><b>Paul Eyenga</b><small>electrical &middot; removed</small></span><span></span></div>
+ </div>
+</section><div style="display:flex;flex-direction:column;gap:14px">
+<section class="card" style="padding:14px 18px">
+ <h2 style="font-size:15px;font-weight:700">Homeowner role</h2>
+ <p class="f-xs f-mut" style="margin-top:3px;line-height:1.5">The primary homeowner approves work and can invite observers. Only Groundwork can change an established primary role.</p>
+ <div style="margin-top:8px">
+  <div class="f-vw"><span class="f-sp">claire.mbala@gmail.com<small class="f-xs f-mut" style="display:block">Primary homeowner</small></span></div>
+  <div class="f-vw"><span class="f-sp">jean.mbala@gmail.com<small class="f-xs f-mut" style="display:block">Observer</small></span><span class="btn o s">Make primary homeowner</span></div>
+  <div class="f-vw"><span class="f-sp">amina.n@outlook.com<small class="f-xs f-mut" style="display:block">Observer &middot; Pending</small></span></div>
+ </div>
+</section>
+<section class="card f-hist">
+ <div class="f-h"><h2>Assignment history</h2></div>
+ <p class="f-sub">When each person joined this project</p>
+ <div class="f-hi"><i></i><span><b>Samuel Ndjock</b> &middot; Contractors<small>invited 5 d ago &middot; accepted 3 d ago</small></span></div>
+ <div class="f-hi"><i></i><span><b>Eric Tchoua</b> &middot; Contractors<small>invited 6 d ago</small></span></div>
+ <div class="f-hi"><i class="rm"></i><span><b>Paul Eyenga</b> &middot; Verifiers &middot; electrical<small>assigned 12 d ago &middot; Declined</small></span></div>
+ <div class="f-hi"><i></i><span><b>Vanessa G.</b> &middot; Verifiers &middot; civil<small>assigned 18 d ago</small></span></div>
+ <div class="f-hi"><i></i><span><b>Bob Ousmane</b> &middot; Contractors<small>invited 19 d ago &middot; accepted 19 d ago</small></span></div>
+ <div style="height:10px"></div>
+</section>
+</div></div>
+ </div>
+</div>
+</div>
+
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

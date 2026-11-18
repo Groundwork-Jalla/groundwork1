@@ -60,33 +60,50 @@ export function CardEmpty({ messageKey }: { messageKey: TKey }) {
  * pasted, a function that failed) — shown as "not available", never as 0, because a
  * zero that means "we could not look" is a lie.
  */
-export function Kpi({ labelKey, value, subtitle, to, accent }: {
+export function Kpi({ labelKey, value, subtitle, to, accent, layout = 'tile' }: {
   labelKey: TKey;
   value: number | null;
   subtitle?: string;
   to?: string;
   /** Status accent, used only when the number means something is wrong. */
   accent?: 'held' | 'alert';
+  /** `row` puts the number beside its label — the Overview's grouped bands (18 Nov). */
+  layout?: 'tile' | 'row';
 }) {
   const t = useT();
-  const body = (
+  const tone = value === null ? 'text-brand-muted-grey'
+    : accent === 'alert' && value > 0 ? 'text-state-alert'
+    : accent === 'held' && value > 0 ? 'text-state-held'
+    : 'text-brand-near-black dark:text-white';
+  const note = value === null ? t('admin.kpi.unavailable') : subtitle;
+  const alerting = accent === 'alert' && value !== null && value > 0;
+
+  const body = layout === 'row' ? (
+    <>
+      <span className="min-w-0">
+        <span className="block text-xs font-medium text-brand-mid-grey">{t(labelKey)}</span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-brand-muted-grey">{note}</span>
+      </span>
+      <span className={cn('shrink-0 text-2xl font-semibold tabular-nums tracking-tight', tone)}>
+        {value === null ? '—' : value}
+      </span>
+    </>
+  ) : (
     <>
       <p className="text-xs font-medium text-brand-mid-grey">{t(labelKey)}</p>
-      <p className={cn(
-        'mt-2 text-3xl font-bold tabular-nums tracking-tight',
-        value === null ? 'text-brand-muted-grey'
-          : accent === 'alert' && value > 0 ? 'text-state-alert'
-          : accent === 'held' && value > 0 ? 'text-state-held'
-          : 'text-brand-near-black dark:text-white',
-      )}>
+      <p className={cn('mt-2 text-3xl font-bold tabular-nums tracking-tight', tone)}>
         {value === null ? '—' : value}
       </p>
-      <p className="mt-1.5 text-[11px] leading-snug text-brand-mid-grey">
-        {value === null ? t('admin.kpi.unavailable') : subtitle}
-      </p>
+      <p className="mt-1.5 text-[11px] leading-snug text-brand-mid-grey">{note}</p>
     </>
   );
-  const shell = 'flex min-w-0 flex-col rounded-2xl border border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]';
+  const shell = cn(
+    'flex min-w-0 rounded-2xl border bg-white dark:bg-[#1e1e1e]',
+    layout === 'row' ? 'items-center justify-between gap-3 rounded-[14px] px-4 py-3' : 'flex-col px-5 py-4',
+    alerting && layout === 'row'
+      ? 'border-state-alert/25 bg-[#fdf8f9] dark:border-state-alert/40 dark:bg-[#231a1c]'
+      : 'border-brand-border-grey dark:border-[#2c2c2c]',
+  );
   return to
     ? <Link to={to} className={cn(shell, 'transition-colors hover:border-brand-near-black dark:hover:border-white/40')}>{body}</Link>
     : <div className={shell}>{body}</div>;

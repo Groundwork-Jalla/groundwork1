@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Automation Requests · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.r-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.r-wrap{display:grid;grid-template-columns:440px 1fr;gap:14px;margin-top:12px}
+.r-list{background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.r-it{padding:12px 16px;border-top:1px solid var(--rule);position:relative}
+.r-it:first-child{border-top:0}
+.r-it.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.r-it .t{font-size:13.5px;font-weight:600;margin-top:5px}
+.r-it .m{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.r-it .h{font-size:11.5px;color:var(--mid);margin-top:3px;line-height:1.4}
+.r-it .dd{position:absolute;right:16px;top:12px;font-size:11.5px;color:var(--mid)}
+.r-det{background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.r-dh{padding:18px 22px 14px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.r-dh h2{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-top:8px}
+.r-act{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.r-sel{border:1px solid var(--rule);border-radius:10px;padding:7px 10px;font-size:12.5px;font-weight:600;display:inline-flex;gap:8px;align-items:center}
+.r-ib{width:34px;height:34px;border:1px solid var(--rule);border-radius:10px;display:grid;place-items:center;color:var(--mid)}
+.r-sec{padding:14px 22px;border-top:1px solid var(--rule)}
+.r-sec h3{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;margin-bottom:10px}
+.r-dl{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px;font-size:13px}
+.r-dl dt{font-size:11.5px;color:var(--mid)}.r-dl dd{margin-top:2px}
+.r-out{display:flex;gap:12px;align-items:center;border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
+.r-th{width:92px;height:56px;border-radius:8px;background:linear-gradient(135deg,#1f4d36,#3b7a5a);display:grid;place-items:center;color:#fff}
+.ico2{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.9}
+</style></head><body data-active="/admin/requests">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">System · <b>Automation Requests</b></div>
+  <div class="ph2"><div><h1>Agent requests</h1><p class="lead">Ask for a video, a deck or a set of screenshots. Say who it is for and what it must achieve; someone on the team builds it.</p></div>
+   <div class="acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New request</span></div></div>
+
+  <div class="r-bar">
+   <div class="seg"><span class="on">All · 5</span><span>Waiting · 1</span><span>In progress · 1</span><span>Delivered · 2</span><span>Declined · 1</span></div>
+   <span class="hint mono">2 open · 5 in total</span>
+  </div>
+
+  <div class="r-wrap">
+   <div class="r-list">
+    <div class="r-it"><div class="m"><span class="tag" style="background:var(--ink);color:#fff">Waiting</span><span class="tag mute">Deck</span></div><span class="dd">needed by 25 Nov 2026</span>
+     <div class="t">Homeowner explainer for the Houston diaspora</div><div class="h">Not started yet. These are produced by hand, so allow a working day unless you have flagged it as urgent.</div></div>
+    <div class="r-it"><div class="m"><span class="tag warn">In progress</span><span class="tag mute">Video</span></div><span class="dd">needed by 21 Nov 2026</span>
+     <div class="t">Investor demo, end to end</div><div class="h">Someone is working on this now.</div></div>
+    <div class="r-it on"><div class="m"><span class="tag ok">Delivered</span><span class="tag mute">Both</span></div><span class="dd">needed by 14 Nov 2026</span>
+     <div class="t">Contractor onboarding, Douala builders</div><div class="h">Result attached</div></div>
+    <div class="r-it"><div class="m"><span class="tag ok">Delivered</span><span class="tag mute">Video</span></div><span class="dd">needed by 6 Nov 2026</span>
+     <div class="t">Test instructions: uploading a payment receipt</div></div>
+    <div class="r-it"><div class="m"><span class="tag mute">Declined</span><span class="tag mute">Video</span></div>
+     <div class="t">Short social clip of stage photos</div></div>
+   </div>
+
+   <div class="r-det">
+    <div class="r-dh">
+     <div><div style="display:flex;gap:6px"><span class="tag ok">Delivered</span><span class="tag mute">Video producer</span><span class="tag mute">Both</span><span class="hint" style="align-self:center">needed by 14 Nov 2026</span></div>
+      <h2>Contractor onboarding, Douala builders</h2></div>
+     <div class="r-act">
+      <span class="btn g s"><svg class="ico2" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>Copy brief</span>
+      <span class="r-sel">Delivered <span class="muted">▾</span></span>
+      <span class="r-ib" title="Delete"><svg class="ico2" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span>
+     </div>
+    </div>
+    <div class="r-sec"><h3>The brief</h3>
+     <dl class="r-dl">
+      <div><dt>Who watches it</dt><dd>Contractors in Douala joining the network</dd></div>
+      <div><dt>Where you will show it</dt><dd>WhatsApp, after the first call</dd></div>
+      <div><dt>What they should be able to do afterwards</dt><dd>Apply, get verified, and know how a stage gets paid</dd></div>
+      <div><dt>Language</dt><dd>Both</dd></div>
+     </dl>
+     <p style="font-size:12.5px;color:var(--mid);margin-top:12px;line-height:1.5;background:var(--canvas);border-radius:10px;padding:10px 12px">Show the receipt upload and the stage approval. Do not show the partner pipeline yet. Keep it under three minutes.</p>
+    </div>
+    <div class="r-sec"><h3>The result</h3>
+     <div class="r-out"><div class="r-th"><svg class="ico" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M8 5l11 7-11 7z"/></svg></div>
+      <div style="flex:1"><b style="font-size:13.5px">contractor-onboarding-douala-builders.mp4</b><div class="hint" style="margin-top:3px">2 min 40 s, English and French tracks. The deck uses the same screenshots.</div></div>
+      <span class="btn o s"><svg class="ico2" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open the result</span>
+      <span class="btn o s"><svg class="ico2" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download</span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

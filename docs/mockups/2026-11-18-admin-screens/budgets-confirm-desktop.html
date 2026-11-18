@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Budgets · confirm budget dialog</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+iframe{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.a-ov{position:absolute;inset:0;background:rgba(10,10,10,.45);display:grid;place-items:center}
+.a-dlg{width:460px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.a-dh{padding:20px 24px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px}
+.a-dh h2{font-size:16.5px;font-weight:800}.a-dh p{font-size:12.5px;color:var(--mid);margin-top:3px}
+.a-x{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--mid);font-size:18px}
+.a-db{padding:20px 24px;display:grid;gap:16px}
+.a-est{display:flex;justify-content:space-between;align-items:center;background:var(--canvas);border-radius:12px;padding:12px 16px}
+.a-est p{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mid)}.a-est small{font-size:12px;color:var(--mid)}
+.a-est b{font-family:var(--mono);font-size:19px}
+.a-db label{font-size:13.5px;font-weight:700}
+.a-inp{margin-top:8px;border:1.5px solid var(--ink);border-radius:12px;padding:12px 16px;font-family:var(--mono);font-size:20px;font-weight:600;display:flex;gap:10px}
+.a-inp span{color:var(--mid)}
+.a-diff{display:flex;gap:8px;align-items:center;background:#fbf8f2;border-radius:12px;padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--held)}
+.a-diff b{font-family:var(--mono)}
+.a-df{padding:14px 24px;border-top:1px solid var(--rule);background:#fafaf8;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.a-df p{font-size:11.5px;color:var(--mid);max-width:55%;line-height:1.45}
+</style></head><body>
+<iframe src="budgets-desktop.html"></iframe>
+<div class="a-ov"><div class="a-dlg">
+ <div class="a-dh"><div><h2>Confirm budget &amp; start tracking</h2><p>Ndi family home · Esther Ndi</p></div><span class="a-x">×</span></div>
+ <div class="a-db">
+  <div class="a-est"><div><p>Wizard estimate</p><small>Auto-calculated from build details</small></div><b>$48,200</b></div>
+  <div><label>Confirmed budget</label><div class="a-inp"><span>$</span>52,000</div></div>
+  <div class="a-diff">↗ Higher than estimate by <b>$3,800</b> <span>(+7.9%)</span></div>
+ </div>
+ <div class="a-df"><p>Activates Stage 1, sets the payment schedule, and notifies the homeowner.</p><span class="btn g">→ Confirm &amp; Start</span></div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto;color:#ddd">Design concept · illustrative data</p>
+</body></html>

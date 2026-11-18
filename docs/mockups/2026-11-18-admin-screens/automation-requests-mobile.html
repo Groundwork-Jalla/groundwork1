@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Automation Requests · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.r-m{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.r-t{font-size:14px;font-weight:600;margin-top:5px}
+.r-acts{display:flex;gap:6px;margin-top:9px;align-items:center}
+.r-sel{border:1px solid var(--rule);border-radius:9px;padding:5px 9px;font-size:12px;font-weight:600}
+.r-x{margin-left:auto;width:30px;height:30px;border:1px solid var(--rule);border-radius:9px;display:grid;place-items:center;color:var(--mid);font-size:12px}
+.r-dl{font-size:12px;margin-top:7px;display:grid;gap:3px}.r-dl span{color:var(--mid)}
+</style></head><body data-active="/admin/requests">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<div style="display:flex;justify-content:space-between;align-items:flex-end"><div><h1>Agent requests</h1><p class="sub">2 open · 5 in total</p></div><span class="btn g s">+ New request</span></div>
+<div class="scrollx"><span class="chip on">All<b>5</b></span><span class="chip">Waiting<b>1</b></span><span class="chip">In progress<b>1</b></span><span class="chip">Delivered<b>2</b></span><span class="chip">Declined<b>1</b></span></div>
+
+<div class="mcard">
+ <div class="mrow"><div class="r-m"><span class="tag" style="background:var(--ink);color:#fff">Waiting</span><span class="tag mute">Deck</span><span class="hint">needed by 25 Nov</span></div>
+  <div class="r-t">Homeowner explainer for the Houston diaspora</div><small>Not started yet. These are produced by hand, so allow a working day unless you have flagged it as urgent.</small>
+  <div class="r-dl"><div><span>Who watches it</span> Diaspora homeowners in Houston</div><div><span>What they should be able to do afterwards</span> Trust that each stage is checked before it is paid</div><div><span>Where you will show it</span> WhatsApp · <span>Language</span> Both</div></div>
+  <div class="r-acts"><span class="btn g s">Copy brief</span><span class="r-sel">Waiting ▾</span><span class="r-x"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+ <div class="mrow"><div class="r-m"><span class="tag warn">In progress</span><span class="tag mute">Video</span><span class="hint">needed by 21 Nov</span></div>
+  <div class="r-t">Investor demo, end to end</div><small>Someone is working on this now.</small>
+  <div class="r-acts"><span class="btn o s">Copy brief</span><span class="r-sel">In progress ▾</span><span class="r-x"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+ <div class="mrow"><div class="r-m"><span class="tag ok">Delivered</span><span class="tag mute">Both</span><span class="hint">needed by 14 Nov</span></div>
+  <div class="r-t">Contractor onboarding, Douala builders</div><small>2 min 40 s, English and French tracks.</small>
+  <div class="r-acts"><span class="btn o s">Open the result</span><span class="btn o s">Download</span><span class="r-x">⋯</span></div></div>
+ <div class="mrow"><div class="r-m"><span class="tag ok">Delivered</span><span class="tag mute">Video</span><span class="hint">needed by 6 Nov</span></div>
+  <div class="r-t">Test instructions: uploading a payment receipt</div>
+  <div class="r-acts"><span class="btn o s">Open the result</span><span class="btn o s">Download</span><span class="r-x">⋯</span></div></div>
+ <div class="mrow"><div class="r-m"><span class="tag mute">Declined</span><span class="tag mute">Video</span></div><div class="r-t">Short social clip of stage photos</div></div>
+</div>
+</div>
+<p class="caption">Design concept · illustrative data</p>
+<nav class="ptab" data-ptab></nav>
+<script src="sidebar.js"></script></body></html>

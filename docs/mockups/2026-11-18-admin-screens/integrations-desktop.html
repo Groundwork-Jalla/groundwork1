@@ -1,0 +1,100 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Integrations · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.e-sum{display:flex;gap:10px;margin-top:16px}
+.e-sum .stat{flex:1;padding:12px 16px}.e-sum .stat .v{font-size:20px;margin-top:4px}
+.e-grid{display:grid;grid-template-columns:1.45fr 1fr;align-items:start;gap:14px;margin-top:14px}
+.e-card{background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.e-hd{display:flex;gap:12px;align-items:flex-start;padding:12px 16px 10px}
+.e-logo{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:14px;flex-shrink:0}
+.e-hd h2{font-size:15px;font-weight:700}.e-hd p{font-size:12px;color:var(--mid);margin-top:2px;line-height:1.4}
+.e-hd .tag{margin-left:auto;flex-shrink:0}
+.e-role{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-top:4px}
+.e-steps{border-top:1px solid var(--rule);display:grid;grid-template-columns:1fr 1fr}
+.e-step{display:flex;gap:9px;align-items:flex-start;padding:8px 16px;font-size:12.5px;border-bottom:1px solid var(--rule)}
+.e-step:nth-child(odd){border-right:1px solid var(--rule)}
+.e-step .k{color:var(--mid);font-size:11.5px}.e-step b{display:block;font-weight:600;font-size:12.5px;margin-top:1px}
+.e-ic{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;margin-top:1px}
+.e-ic svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6}
+.e-ic.ok{background:#e9f0ec;color:var(--complete)}.e-ic.no{background:var(--pale);color:var(--muted)}.e-ic.warn{background:#f4eee2;color:var(--held)}
+.e-steps.one{grid-template-columns:1fr}.e-steps.one .e-step{border-right:0}
+.e-ft{margin-top:auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mid);background:#fbfbfa;border-top:1px solid var(--rule)}
+.e-body{padding:10px 16px 12px;font-size:12px;color:var(--mid);line-height:1.5;border-top:1px solid var(--rule)}
+.e-body p+p{margin-top:5px;font-size:11.5px}
+.e-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.e-mini .e-steps{grid-template-columns:1fr}.e-mini .e-step{border-right:0}
+.e-o{display:grid;grid-template-columns:34px 1.5fr 1fr 1fr auto;gap:12px;align-items:center;padding:9px 16px;border-top:1px solid var(--rule);font-size:12px}.e-o .e-logo{width:32px;height:32px;font-size:12px;border-radius:9px}.e-o b{display:block;font-size:13px}.e-o span{color:var(--mid);font-size:11.5px}.e-o .e-f{display:flex;gap:6px;align-items:center;color:var(--ink);font-size:11.5px}.e-o .e-ic{margin-top:0}
+.e-new{font-size:10px;font-weight:700;color:#2a6f9e;background:#e8f1f8;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+</style></head><body data-active="/admin/integrations">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">System · <b>Integrations</b></div>
+  <div class="ph2"><div><h1>Integrations</h1><p class="lead">The external services Groundwork depends on, and whether each one is actually working.</p></div>
+   <div class="acts"><span class="btn o s"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>Check again</span></div></div>
+
+  <div class="e-sum">
+   <div class="stat"><div class="l"><span class="tag ok"><i></i>Connected</span></div><div class="v">3</div><div class="d">GoHighLevel · Stripe · Resend</div></div>
+   <div class="stat"><div class="l"><span class="tag warn"><i></i>Needs attention</span></div><div class="v">0</div><div class="d">Nothing refused or half set up</div></div>
+   <div class="stat"><div class="l"><span class="tag mute"><i></i>Not connected</span></div><div class="v">2</div><div class="d">SwyChr · WhatsApp direct (Meta)</div></div>
+   <div class="stat" style="flex:1.4"><div class="l">No secret is ever shown here</div><div class="d" style="color:var(--ink);font-size:12.5px;margin-top:6px;line-height:1.45">Every state is asked of the server. "Set" and "accepted" are different answers.</div></div>
+  </div>
+
+  <div class="e-grid">
+   <div>
+   <!-- GoHighLevel -->
+   <section class="e-card">
+    <div class="e-hd"><div class="e-logo" style="background:#e9f0ec;color:var(--green)">GH</div>
+     <div><h2>GoHighLevel</h2><p>Carries WhatsApp and email to and from homeowners, and mirrors contacts and pipeline stages.</p><div class="e-role">Live transport for WhatsApp and the CRM</div></div>
+     <span class="tag ok"><i></i>Connected</span></div>
+    <div class="e-steps">
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">Events go through</span><b>The API</b></div></div>
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">API token</span><b>Accepted by GoHighLevel</b></div></div>
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">Location</span><b>Configured</b></div></div>
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">Pipeline</span><b>Configured</b></div></div>
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">Inbound webhook secret</span><b>Configured</b></div></div>
+     <div class="e-step"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><span class="k">Conversation provider</span><b>Configured</b></div></div>
+    </div>
+    <div class="e-ft"><span>Settings, diagnostics and repair live on the CRM page</span><span class="link" style="font-size:12.5px">Manage GoHighLevel ↗</span></div>
+   </section>
+   <section class="e-card" style="margin-top:14px">
+    <div class="e-hd" style="padding-bottom:8px"><div><h2>Other services</h2><p>Payments in, email out, and the WhatsApp line that will replace GoHighLevel's.</p></div></div>
+    <div class="e-o"><div class="e-logo" style="background:#eceaf4;color:#4b4370">St</div><div><b>Stripe</b><span>Plan subscriptions paid by homeowners</span></div><div class="e-f"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>Subscriptions live</div><div class="e-f"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>Webhook secret</div><span class="tag ok"><i></i>Connected</span></div>
+    <div class="e-o"><div class="e-logo" style="background:#e8f1f8;color:#2a6f9e">Re</div><div><b>Resend</b><span>Groundwork's own email: invitations, the team inbox</span></div><div class="e-f"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>API key</div><div class="e-f"><span class="e-ic ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>Team inbox set</div><span class="tag ok"><i></i>Connected</span></div>
+    <div class="e-o"><div class="e-logo" style="background:#e3f7e9;color:var(--wa-dark)">WA</div><div><b>WhatsApp direct (Meta)</b><span>Until verified, WhatsApp runs through GoHighLevel</span></div><div class="e-f"><span class="e-ic warn"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg></span>Waiting on Meta verification</div><div class="e-f"></div><span class="tag mute"><i></i>Not connected</span></div>
+   </section>
+   </div>
+
+   <!-- SwyChr -->
+   <div>
+   <section class="e-card">
+    <div class="e-hd"><div class="e-logo" style="background:var(--pale);color:var(--mid)">SW</div>
+     <div><h2>SwyChr</h2><p>Intended to move money to contractors. Groundwork records the decision; the provider moves the funds.</p><div class="e-role">Contractor payouts · not wired yet</div></div>
+     <span class="tag mute"><i></i>Not connected</span></div>
+    <div class="e-steps">
+     <div class="e-step"><span class="e-ic no"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><div><span class="k">1 · Credentials</span><b>Not configured</b></div></div>
+     <div class="e-step"><span class="e-ic no"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><div><span class="k">2 · Credentials accepted</span><b>Set, not yet tested</b></div></div>
+     <div class="e-step"><span class="e-ic no"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><div><span class="k">3 · Status callback</span><b>Not configured</b></div></div>
+     <div class="e-step"><span class="e-ic no"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><div><span class="k">4 · Webhook signing secret</span><b>Not configured</b></div></div>
+    </div>
+    <div class="e-body"><p style="color:var(--ink)">No credentials, no endpoint and no code path exist for SwyChr in Groundwork today. Nothing is sent to them and nothing is received.</p><p>The API contract is under review before anything is built — see docs/groundwork-admin/07-swychr-payout-audit.md.</p></div>
+   </section>
+   <section class="e-card" style="margin-top:14px;border-style:dashed">
+    <div class="e-hd" style="padding-bottom:8px"><div><h2>How a problem shows</h2><p>The same rows turn amber and the card's badge becomes Needs attention. Examples:</p></div></div>
+    <div class="e-steps one">
+     <div class="e-step"><span class="e-ic warn"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg></span><div><span class="k">API token</span><b style="color:var(--held)">Refused by GoHighLevel (401 Invalid JWT)</b></div></div>
+     <div class="e-step"><span class="e-ic warn"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg></span><div><span class="k">Pipeline</span><b style="color:var(--held)">Set, but the stage map does not match</b></div></div>
+     <div class="e-step"><span class="e-ic warn"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01"/></svg></span><div><span class="k">SwyChr · Credentials accepted</span><b style="color:var(--held)">Refused by SwyChr</b></div></div>
+     <div class="e-step" style="border-bottom:0"><span class="e-ic no"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><div><span class="k">Whole card, if the status call fails</span><b>The connection could not be read.</b></div></div>
+    </div>
+   </section>
+   </div>  </div>
+
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

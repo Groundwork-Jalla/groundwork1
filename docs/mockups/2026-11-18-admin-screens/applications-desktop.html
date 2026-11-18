@@ -1,0 +1,102 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Applications · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1100px;overflow:hidden;position:relative}
+.app{height:1100px}
+.a-alerts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.a-alert{display:flex;gap:10px;align-items:center;border-radius:12px;padding:10px 14px;font-size:13px;border:1px solid var(--rule);background:#fff}
+.a-alert.held{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.a-alert .btn{margin-left:auto}
+.a-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
+.a-cols{display:grid;grid-template-columns:1fr 410px;gap:14px;margin-top:12px}
+.a-q{overflow:hidden}
+.a-qh{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;font-size:12px;color:var(--mid);border-bottom:1px solid var(--rule);background:var(--canvas)}
+.a-row{display:grid;grid-template-columns:34px 1fr 128px 124px 104px 88px;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--rule);font-size:13px}
+.a-row:first-of-type{border-top:0}
+.a-row.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.a-row .nm{font-weight:700;font-size:13.5px}
+.a-row small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.a-meta{font-size:12px;color:var(--mid)}
+.a-flags{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-size:11.5px}
+.a-flags span{display:inline-flex;gap:5px;align-items:center;color:var(--mid)}
+.a-flags .w{color:var(--held);font-weight:600}
+.a-acts{display:flex;gap:6px;justify-content:flex-end}
+.a-ib{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--mid);border:1px solid var(--rule);background:#fff}
+.a-pane{padding:18px}
+.a-pane h3{font-family:var(--sans);font-size:19px;font-weight:800;margin-top:6px}
+.a-kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:12.5px;margin-top:14px}
+.a-kv span:nth-child(odd){color:var(--mid)}
+.a-sec{border-top:1px solid var(--rule);margin-top:14px;padding-top:12px}
+.a-sec h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.a-dec{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.a-dec .btn{padding:8px 6px}
+.a-dec .btn.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
+.a-why{font-size:12.5px;line-height:1.5;color:var(--ink);background:var(--canvas);border-radius:10px;padding:9px 11px}
+.a-sync{margin-top:12px}
+.a-sync p{font-size:12px;color:var(--mid);line-height:1.45}
+.a-cnt{font-size:11.5px;color:var(--mid);margin-top:8px;display:flex;gap:6px}
+.a-pre{margin-top:8px;font-family:var(--mono);font-size:10.5px;background:var(--canvas);border-radius:8px;padding:8px 10px;color:var(--ink);line-height:1.5}
+</style></head><body data-active="/admin/applications">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Applications</b></div>
+  <div class="ph2">
+   <div><h1>Contractor Applications</h1><p class="lead">Founding-network applications. Supabase holds the full record; GoHighLevel has a lead summary.</p></div>
+   
+  </div>
+
+  <div class="a-alerts">
+   <div class="a-alert held"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span><b>3 applicant(s)</b> have not been told we received their application.</span><span class="btn o s">Show only these</span></div>
+   <div class="a-alert"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9zM3 3l18 18"/></svg><span class="muted"><b style="color:var(--ink)">2 application(s)</b> never reached the CRM.</span></div>
+  </div>
+
+  <div class="a-bar">
+   <div class="seg"><span class="on">All <b class="mono">47</b></span><span>Pending <b class="mono">14</b></span><span>Reviewing <b class="mono">6</b></span><span>Accepted <b class="mono">19</b></span><span>Rejected <b class="mono">5</b></span><span>Disqualified <b class="mono">3</b></span></div>
+   <span class="field" style="width:330px;white-space:nowrap"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name, email, business or city…</span>
+  </div>
+
+  <div class="a-cols">
+   <section class="card a-q">
+    <div class="a-qh"><span><b class="mono" style="color:var(--ink)">47 of 47</b> · newest first</span><span>Status · CRM · submitted</span></div>
+    <div class="a-row on"><span class="av c1">ET</span><div><span class="nm">Emmanuel Tchoupo</span><small>Tchoupo Bâtiment SARL</small></div><div class="a-meta">General contractor<br>Douala, CM</div><div class="a-flags"><span class="tag warn"><i></i>Pending</span><span class="w">Not acknowledged</span></div><div class="a-flags"><span>In GoHighLevel</span><span>12 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c2">HN</span><div><span class="nm">Henriette Ngo Bassa</span><small>h.ngobassa@mail.cm</small></div><div class="a-meta">Electrician<br>Douala, CM</div><div class="a-flags"><span class="tag warn"><i></i>Pending</span></div><div class="a-flags"><span class="w">Not forwarded</span><span>11 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c5">CA</span><div><span class="nm">Collins Achu</span><small>Achu &amp; Sons Construction</small></div><div class="a-meta">General contractor<br>Bamenda, CM</div><div class="a-flags"><span class="tag info"><i></i>Reviewing</span></div><div class="a-flags"><span>In GoHighLevel</span><span>9 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c3">IM</span><div><span class="nm">Ibrahim Moussa</span><small>i.moussa@mail.cm</small></div><div class="a-meta">Plumber<br>Garoua, CM</div><div class="a-flags"><span class="tag warn"><i></i>Pending</span><span class="w">Not acknowledged</span></div><div class="a-flags"><span class="w">Not forwarded</span><span>8 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c6">DT</span><div><span class="nm">Divine Tanyi</span><small>Tanyi Roofing</small></div><div class="a-meta">Roofer<br>Buea, CM</div><div class="a-flags"><span class="tag ok"><i></i>Accepted</span></div><div class="a-flags"><span>In GoHighLevel</span><span>4 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c4">BN</span><div><span class="nm">Brice Nana</span><small>brice.nana@mail.cm</small></div><div class="a-meta">Mason<br>Yaoundé, CM</div><div class="a-flags"><span class="tag mute"><i></i>Disqualified</span></div><div class="a-flags"><span>In GoHighLevel</span><span>2 Nov 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c1">RE</span><div><span class="nm">Rose Ewodo</span><small>Ewodo Finitions</small></div><div class="a-meta">Tiler<br>Yaoundé, CM</div><div class="a-flags"><span class="tag bad"><i></i>Rejected</span><span class="w">Not acknowledged</span></div><div class="a-flags"><span>In GoHighLevel</span><span>30 Oct 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+    <div class="a-row"><span class="av c2">PE</span><div><span class="nm">Pascal Ebode</span><small>p.ebode@mail.cm</small></div><div class="a-meta">Carpenter<br>Kribi, CM</div><div class="a-flags"><span class="tag ok"><i></i>Accepted</span></div><div class="a-flags"><span>In GoHighLevel</span><span>27 Oct 2026</span></div><div class="a-acts"><span class="btn o s">Edit</span><span class="a-ib"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div></div>
+   </section>
+
+   <aside>
+    <section class="card a-pane">
+     <div style="display:flex;justify-content:space-between;align-items:center"><span class="tag warn"><i></i>Pending</span><span class="hint">Submitted 12 Nov 2026 · in FR</span></div>
+     <h3>Emmanuel Tchoupo</h3>
+     <p class="muted" style="font-size:12.5px;margin-top:2px">Tchoupo Bâtiment SARL · Douala, CM</p>
+     <div class="a-kv"><span>Role</span><span>General contractor</span><span>Experience</span><span>12 years · team of 18</span><span>Regions</span><span>Littoral, Centre</span><span>Standards</span><span>3 of 3 accepted</span><span>Credentials</span><span>4 files · 2 projects with references</span></div>
+     <div class="a-sec"><h4>Why they want to join</h4><p class="a-why">We build in Douala and want homeowners abroad to trust us with milestone payments and stage checks.</p></div>
+     <div class="a-sec"><h4>Decision</h4>
+      <div class="a-dec"><span class="btn o">Mark reviewing</span><span class="btn g">Accept</span><span class="btn o" style="color:var(--alert)">Reject</span></div>
+      <p class="note held" style="margin-top:10px">Never acknowledged — this applicant has heard nothing. <span class="link" style="font-size:12.5px">Send acknowledgement</span></p>
+     </div>
+     <div style="display:flex;gap:8px;margin-top:14px"><span class="btn o s" style="flex:1"><svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Edit</span><span class="btn g s" style="flex:2">Open application<svg class="ico" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M7 17L17 7M9 7h8v8"/></svg></span></div>
+    </section>
+
+    <section class="card a-pane a-sync">
+     <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13.5px">Send everyone to the CRM</b><span class="tag mute">After preview</span></div>
+     <p style="margin-top:4px">Creates or updates each contact in Go High Level with fields, tags and pipeline card. Anyone already contacted has their thread backfilled — never emailed again.</p>
+     <div style="display:flex;gap:8px;margin-top:10px"><span class="btn o s">Preview</span><span class="btn s" style="background:var(--ink);color:#fff">Send to 4 and backfill the rest</span></div>
+     <p class="a-cnt"><svg class="ico" viewBox="0 0 24 24" style="width:12px;height:12px;margin-top:1px"><path d="M12 3l10 18H2zM12 10v5M12 18h.01"/></svg>4 would receive a new email; 43 would only have their thread backfilled.</p>
+     <div class="a-pre">{ "wouldSend": 4, "wouldBackfill": 43, "pages": 1 }</div>
+    </section>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

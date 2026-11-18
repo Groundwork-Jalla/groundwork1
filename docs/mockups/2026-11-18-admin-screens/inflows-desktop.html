@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Inflows · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.app{height:900px}
+.a-figs{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;margin-top:16px}
+.a-figs .stat .v{font-size:26px}
+.stat.hero .v{color:#fff}
+.stat.a-held .v{color:var(--held)}
+.a-deg{margin-top:12px;display:flex;gap:9px;align-items:center;border:1px solid #e6d9bf;background:#fbf8f2;border-radius:12px;padding:9px 14px;font-size:12.5px}
+.a-deg svg{width:15px;height:15px;stroke:var(--held);fill:none;stroke-width:2;flex-shrink:0}
+.a-tb{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.seg b{font-family:var(--mono);font-weight:600;margin-left:6px;color:var(--mid);font-size:11.5px}
+.field svg{width:15px;height:15px;stroke:var(--mid);fill:none;stroke-width:2}
+.a-cols{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-top:12px;align-items:start}
+.tbl td small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.tbl td .nm{display:flex;gap:10px;align-items:center}
+.tbl tr.sel td{background:#f3f6f4}
+.tbl tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+.tbl .num b{font-weight:600}
+.a-in{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e9f0ec;color:var(--complete);font-size:12px;font-weight:700}
+.a-det{padding:18px}
+.a-det .amt{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.5px;margin-top:8px}
+.a-dl{margin-top:14px;border-top:1px solid var(--rule)}
+.a-dl div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+.a-dl dt{color:var(--mid)}.a-dl dd{text-align:right;font-weight:500}
+.a-who{display:flex;gap:10px;align-items:center;margin-top:14px;font-size:13px}
+.a-who small{display:block;color:var(--mid);font-size:11.5px}
+.a-foot{font-size:12px;color:var(--mid);padding:10px 14px;border-top:1px solid var(--rule)}
+</style></head><body data-active="/admin/finance/inflows">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">Finance · <b>Inflows</b></p>
+  <div class="ph2"><div><h1>Inflows</h1><p class="lead">Money arriving from homeowners, against the stage it funds.</p></div></div>
+
+  <div class="a-figs">
+   <div class="stat hero"><p class="l">Confirmed received</p><p class="v">$212,400</p><p class="d">Funded and reconciled</p></div>
+   <div class="stat a-held"><p class="l"><i class="dotc" style="background:var(--held)"></i>Expected funding</p><p class="v">$41,650</p><p class="d">Scheduled, not arrived · never added to received</p></div>
+   <div class="stat"><p class="l">Movements</p><p class="v">38</p><p class="d">Every inflow row in the ledger</p></div>
+  </div>
+
+  <div class="a-deg"><svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>Some names could not be looked up (profiles), so a few rows show less context. No movement is missing.</div>
+
+  <div class="a-tb">
+   <div class="seg"><span class="on">Received<b>29</b></span><span>Expected<b>9</b></span></div>
+   <span class="field lg" style="width:380px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by project, person, stage or reference</span>
+  </div>
+
+  <div class="a-cols">
+   <section class="card" style="overflow:hidden">
+    <table class="tbl">
+     <thead><tr><th style="border-top:0">Homeowner</th><th style="border-top:0">For</th><th style="border-top:0;text-align:right">Amount</th><th style="border-top:0">Status</th><th style="border-top:0">When</th></tr></thead>
+     <tbody>
+      <tr class="sel"><td><span class="nm"><span class="av sm c1">CM</span>Claire Mbala</span></td><td>Mbala Residence<small>Stage 5 · Structure &amp; walls</small></td><td class="num"><b>$3,333</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Confirmed 18 Nov</td></tr>
+      <tr><td><span class="nm"><span class="av sm c5">AK</span>Ama Kouam</span></td><td>Kouam house<small>Stage 4 · Foundation</small></td><td class="num"><b>$5,000</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Paid 15 Nov</td></tr>
+      <tr><td><span class="nm"><span class="av sm c3">JT</span>Joseph Tabe</span></td><td>Tabe duplex<small>Purpose not recorded</small></td><td class="num"><b>$1,500</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Confirmed 10 Nov</td></tr>
+      <tr><td><span class="nm"><span class="av sm c6">BN</span>Benoit Nkeng</span></td><td>Nkeng villa<small>Stage 2 · Design completed</small></td><td class="num"><b>$4,200</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Paid 6 Nov</td></tr>
+      <tr><td><span class="nm"><span class="av sm c2">GF</span>Grace Fon</span></td><td>Fon duplex<small>Stage 3 · Site preparation</small></td><td class="num"><b>$2,000</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Paid 2 Nov</td></tr>
+      <tr><td><span class="nm"><span class="av sm c1">CM</span>Claire Mbala</span></td><td>Mbala Residence<small>Stage 4 · Foundation</small></td><td class="num"><b>$10,000</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Confirmed 28 Oct</td></tr>
+      <tr><td><span class="nm"><span class="av sm">?</span><span class="muted">Account not readable</span></span></td><td>Ngu residence<small>Stage 5 · Structure &amp; walls</small></td><td class="num"><b>$6,500</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Paid 24 Oct</td></tr>
+      <tr><td><span class="nm"><span class="av sm c5">PE</span>Paul Ewane</span></td><td>Ewane house<small>Stage 2 · Design completed</small></td><td class="num"><b>$2,750</b></td><td><span class="tag ok"><i></i>Funding confirmed</span></td><td class="muted">Confirmed 19 Oct</td></tr>
+     </tbody>
+    </table>
+    <p class="a-foot">29 received movements · newest first</p>
+   </section>
+
+   <aside class="card a-det">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="tag ok"><i></i>Funding confirmed</span><span class="hint">Confirmed 18 Nov</span></div>
+    <p class="amt">$3,333</p>
+    <div class="a-who"><span class="av c1">CM</span><span><b>Claire Mbala</b><small>Homeowner · Mbala Residence</small></span></div>
+    <dl class="a-dl">
+     <div><dt>For</dt><dd>Stage 5 · Structure &amp; walls</dd></div>
+     <div><dt>Confirmed by</dt><dd>Ruth Achu</dd></div>
+     <div><dt>Receipt established</dt><dd>Confirmed by staff</dd></div>
+     <div><dt>Provider reference</dt><dd class="mono">SW-IN-88213</dd></div>
+     <div><dt>Note</dt><dd>MoMo transfer, receipt in Documents</dd></div>
+    </dl>
+    <span class="btn o" style="width:100%;margin-top:16px">Open project financials<svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></span>
+    <p class="hint" style="margin-top:12px;line-height:1.5">Groundwork records this movement; SwyChr holds and moves the money. Confirming or correcting it happens in the project's Financials tab.</p>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

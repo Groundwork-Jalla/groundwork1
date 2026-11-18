@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Finance · desktop</title>
 <link rel="stylesheet" href="common.css">
 <style>
-body{width:1440px;height:900px;overflow:hidden;position:relative}
+body{width:1440px;height:1180px;overflow:hidden;position:relative}
 .kpis{grid-template-columns:repeat(4,1fr);margin-top:16px}
 .kpi.g .v{color:var(--complete)}
 .banner{margin-top:12px;display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--alert);background:#fbf6f7;border-radius:14px;padding:12px 16px;font-size:13.5px}
@@ -11,8 +11,16 @@ body{width:1440px;height:900px;overflow:hidden;position:relative}
 .arr.in{background:#e9f0ec;color:var(--complete)}.arr.out{background:#f4eee2;color:var(--held)}
 .state{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;justify-self:start}
 .s1{background:#e9f0ec;color:var(--complete)}.s2{background:#f4eee2;color:var(--held)}.s3{background:#f3e6e8;color:var(--alert)}.s4{background:var(--pale);color:var(--mid)}
+.f-two{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:12px}
+.f-chart{display:flex;gap:22px;align-items:flex-end;height:170px;padding:14px 26px 6px}
+.f-m{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+.f-m span{font-size:11.5px;color:var(--mid)}
+.f-b{flex:1;width:100%;display:flex;gap:5px;align-items:flex-end;border-bottom:1px solid var(--rule)}
+.f-b i{flex:1;border-radius:5px 5px 0 0;display:block}
+.f-stack{display:flex;height:16px;border-radius:999px;overflow:hidden;margin:4px 18px 14px}.f-stack i{display:block}
+.f-leg{padding:0 18px 14px}.f-leg div{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--rule);font-size:13px}
 </style></head><body data-active="/admin/finance">
-<div class="app">
+<div class="app" style="height:1180px">
 <aside class="side" data-sidebar></aside>
 <div class="main">
  <div class="top" data-topbar></div>
@@ -25,6 +33,20 @@ body{width:1440px;height:900px;overflow:hidden;position:relative}
    <div class="kpi"><p class="l">Available project funding</p><p class="v">$32,000</p><p class="s">After approved releases</p></div>
   </div>
   <div class="banner"><span><b>2 payments need a person</b> <span class="muted">· failed or under review</span></span><span class="link">Open disbursements</span></div>
+  <div class="f-two">
+   <section class="card">
+    <div class="sec-h"><h2>Money in and out</h2><span class="seg"><span>3 months</span><span class="on">6 months</span><span>12 months</span></span></div>
+    <p class="hint" style="padding:0 18px">Confirmed inflows against disbursements, from the ledger · thousands of USD</p>
+    <div class="f-chart"><div class="f-m"><div class="f-b"><i style="height:30%;background:var(--green)"></i><i style="height:10%;background:#d9b46a"></i></div><span>Jun</span></div><div class="f-m"><div class="f-b"><i style="height:43%;background:var(--green)"></i><i style="height:23%;background:#d9b46a"></i></div><span>Jul</span></div><div class="f-m"><div class="f-b"><i style="height:52%;background:var(--green)"></i><i style="height:37%;background:#d9b46a"></i></div><span>Aug</span></div><div class="f-m"><div class="f-b"><i style="height:73%;background:var(--green)"></i><i style="height:47%;background:#d9b46a"></i></div><span>Sep</span></div><div class="f-m"><div class="f-b"><i style="height:87%;background:var(--green)"></i><i style="height:68%;background:#d9b46a"></i></div><span>Oct</span></div><div class="f-m"><div class="f-b"><i style="height:68%;background:var(--green)"></i><i style="height:85%;background:#d9b46a"></i></div><span>Nov</span></div></div>
+    <p class="hint" style="padding:0 18px 14px;display:flex;gap:16px"><span><i class="dotc" style="background:var(--green)"></i> Confirmed inflows</span><span><i class="dotc" style="background:#d9b46a"></i> Disbursed</span></p>
+   </section>
+   <section class="card">
+    <div class="sec-h"><h2>Where the money stands</h2></div>
+    <p class="hint" style="padding:0 18px 10px">Every dollar confirmed in, by what has happened to it since</p>
+    <div class="f-stack"><i style="width:76%;background:var(--green)"></i><i style="width:9%;background:#d9b46a"></i><i style="width:15%;background:#cfe0d5"></i></div>
+    <div class="f-leg"><div><span><i class="dotc" style="background:var(--green)"></i> Disbursed</span><b class="mono">$161,900</b></div><div><span><i class="dotc" style="background:#d9b46a"></i> Approved for release</span><b class="mono">$18,500</b></div><div><span><i class="dotc" style="background:#cfe0d5"></i> Available project funding</span><b class="mono">$32,000</b></div></div>
+   </section>
+  </div>
   <section class="card" style="margin-top:12px">
    <div class="sec-h"><h2>Recent money movement</h2><span class="muted" style="font-size:12px">Latest 12</span></div>
    <div class="mv"><span class="arr in">↓</span><span>Inflow<small>Claire Mbala</small></span><span>Mbala Residence<small>Stage 5 · Structure &amp; walls</small></span><b class="mono">$3,333</b><span class="state s1">Funding confirmed</span><span class="muted">18 Nov</span></div>

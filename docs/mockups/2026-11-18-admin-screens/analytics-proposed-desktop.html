@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Analytics · proposed · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.p-ban{display:flex;gap:12px;align-items:center;border:1.5px dashed var(--held);background:#fbf8f2;border-radius:14px;padding:10px 16px;margin-top:14px;font-size:13px}
+.p-ban b{white-space:nowrap;color:var(--held);font-family:var(--sans);font-size:14px}
+.p-k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.p-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.p-c{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:14px 18px 12px}
+.p-c h2{font-size:14px;font-weight:700}
+.p-c .sb{font-size:12px;color:var(--mid);margin-top:1px}
+.p-c svg.ch{width:100%;height:150px;margin-top:8px;display:block}
+.p-src{margin-top:6px;font-size:11.5px;color:var(--held);display:flex;gap:6px;align-items:flex-start}
+.p-src code{font-family:var(--mono);font-size:11px;background:var(--pale);border-radius:4px;padding:0 4px;color:var(--ink)}
+.p-ax{font-family:var(--body);font-size:10px;fill:#9a9a96}
+</style></head><body data-active="/admin/analytics">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Analytics</h1><p class="lead">Trends over a chosen period — once Groundwork records a history.</p></div>
+   <div class="acts"><div class="seg"><span>7 days</span><span class="on">30 days</span><span>90 days</span><span>12 months</span></div></div>
+  </div>
+  <div class="p-ban"><b>Proposed — needs a data source</b><span>Nothing on this page is computed today. Each chart names the history it would need. Until then, the live Analytics page shows counts as they stand, with no trend.</span></div>
+
+  <div class="p-k">
+   <div class="stat"><div class="l">New projects</div><div class="v">11</div><div class="d up">+3 vs previous 30 days</div></div>
+   <div class="stat"><div class="l">Disbursed</div><div class="v">$58,400</div><div class="d up">+12% vs previous 30 days</div></div>
+   <div class="stat"><div class="l">Median first reply</div><div class="v">1 h 40</div><div class="d up">22 min faster</div></div>
+   <div class="stat"><div class="l">Verification turnaround</div><div class="v">2.6 days</div><div class="d down">0.4 days slower</div></div>
+  </div>
+
+  <div class="p-g">
+   <div class="p-c"><h2>New projects per week</h2><p class="sb">Projects created, by week</p>
+    <svg class="ch" viewBox="0 0 520 150" preserveAspectRatio="none">
+     <line x1="30" y1="20" x2="520" y2="20" stroke="#efeeea"/><line x1="30" y1="70" x2="520" y2="70" stroke="#efeeea"/><line x1="30" y1="120" x2="520" y2="120" stroke="#e4e3df"/>
+     <text class="p-ax" x="0" y="24">6</text><text class="p-ax" x="0" y="74">3</text><text class="p-ax" x="0" y="124">0</text>
+     <g fill="#1f4d36"><rect x="50" y="87" width="40" height="33" rx="4"/><rect x="150" y="70" width="40" height="50" rx="4"/><rect x="250" y="53" width="40" height="67" rx="4"/><rect x="350" y="70" width="40" height="50" rx="4"/><rect x="450" y="37" width="40" height="83" rx="4"/></g>
+     <g class="p-ax"><text x="52" y="140">21 Oct</text><text x="152" y="140">28 Oct</text><text x="254" y="140">4 Nov</text><text x="352" y="140">11 Nov</text><text x="452" y="140">18 Nov</text></g>
+    </svg>
+    <p class="p-src">Needs: only a grouping query — each project already carries its creation date.</p></div>
+   <div class="p-c"><h2>Money disbursed per month</h2><p class="sb">USD, Groundwork’s record of releases</p>
+    <svg class="ch" viewBox="0 0 520 150" preserveAspectRatio="none">
+     <line x1="40" y1="20" x2="520" y2="20" stroke="#efeeea"/><line x1="40" y1="70" x2="520" y2="70" stroke="#efeeea"/><line x1="40" y1="120" x2="520" y2="120" stroke="#e4e3df"/>
+     <text class="p-ax" x="0" y="24">$60k</text><text class="p-ax" x="0" y="74">$30k</text><text class="p-ax" x="0" y="124">$0</text>
+     <polyline fill="none" stroke="#1f4d36" stroke-width="2" points="60,95 140,88 220,72 300,80 380,52 470,23"/>
+     <g fill="#1f4d36" stroke="#fff" stroke-width="2"><circle cx="60" cy="95" r="4"/><circle cx="140" cy="88" r="4"/><circle cx="220" cy="72" r="4"/><circle cx="300" cy="80" r="4"/><circle cx="380" cy="52" r="4"/><circle cx="470" cy="23" r="5"/></g>
+     <g class="p-ax"><text x="50" y="140">Jun</text><text x="130" y="140">Jul</text><text x="210" y="140">Aug</text><text x="290" y="140">Sep</text><text x="370" y="140">Oct</text><text x="460" y="140">Nov</text></g>
+    </svg>
+    <p class="p-src">Needs: a dated disbursement event per release (the ledger keeps the current state, not when each state was reached).</p></div>
+   <div class="p-c"><h2>Median first reply, by week</h2><p class="sb">From a homeowner’s message to the first staff answer</p>
+    <svg class="ch" viewBox="0 0 520 150" preserveAspectRatio="none">
+     <line x1="30" y1="20" x2="520" y2="20" stroke="#efeeea"/><line x1="30" y1="70" x2="520" y2="70" stroke="#efeeea"/><line x1="30" y1="120" x2="520" y2="120" stroke="#e4e3df"/>
+     <text class="p-ax" x="0" y="24">4 h</text><text class="p-ax" x="0" y="74">2 h</text><text class="p-ax" x="0" y="124">0</text>
+     <polyline fill="none" stroke="#1f4d36" stroke-width="2" points="60,40 160,55 260,62 360,66 470,78"/>
+     <g fill="#1f4d36" stroke="#fff" stroke-width="2"><circle cx="60" cy="40" r="4"/><circle cx="160" cy="55" r="4"/><circle cx="260" cy="62" r="4"/><circle cx="360" cy="66" r="4"/><circle cx="470" cy="78" r="5"/></g>
+    </svg>
+    <p class="p-src">Needs: per-message timestamps exist; a “first staff reply” marker per conversation does not.</p></div>
+   <div class="p-c"><h2>Verification turnaround</h2><p class="sb">Days from request to decision, median by week</p>
+    <svg class="ch" viewBox="0 0 520 150" preserveAspectRatio="none">
+     <line x1="30" y1="20" x2="520" y2="20" stroke="#efeeea"/><line x1="30" y1="70" x2="520" y2="70" stroke="#efeeea"/><line x1="30" y1="120" x2="520" y2="120" stroke="#e4e3df"/>
+     <text class="p-ax" x="0" y="24">4 d</text><text class="p-ax" x="0" y="74">2 d</text><text class="p-ax" x="0" y="124">0</text>
+     <polyline fill="none" stroke="#1f4d36" stroke-width="2" points="60,72 160,66 260,70 360,62 470,55"/>
+     <g fill="#1f4d36" stroke="#fff" stroke-width="2"><circle cx="60" cy="72" r="4"/><circle cx="160" cy="66" r="4"/><circle cx="260" cy="70" r="4"/><circle cx="360" cy="62" r="4"/><circle cx="470" cy="55" r="5"/></g>
+    </svg>
+    <p class="p-src">Needs: the time a verification decision was recorded, kept alongside the request date.</p></div>
+  </div>
+ </div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data · proposed, not built</p>
+<script src="sidebar.js"></script></body></html>

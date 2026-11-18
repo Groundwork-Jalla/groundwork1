@@ -1,0 +1,129 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Budgets &amp; fees · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1600px;overflow:hidden;position:relative}
+.app{height:1600px}
+.a-wrap{display:grid;grid-template-columns:190px 1fr;gap:22px;margin-top:18px;align-items:start}
+.a-nav{position:sticky;top:0;display:grid;gap:2px}
+.a-nav a{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--mid)}
+.a-nav a.on{background:#fff;color:var(--ink);box-shadow:inset 3px 0 0 var(--green),0 1px 2px rgba(0,0,0,.05)}
+.a-nav a b{font-family:var(--mono);font-size:11.5px;font-weight:600}
+.a-nav a b.w{background:#f4eee2;color:var(--held);border-radius:999px;padding:0 7px}
+.a-nav .sub{padding-left:24px;font-weight:500;font-size:12.5px}
+.a-sec{margin-bottom:22px}
+.a-sh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:10px}
+.a-sh h2{font-size:17px;font-weight:800;display:flex;gap:9px;align-items:center}
+.a-sh p{font-size:12.5px;color:var(--mid);margin-top:2px}
+.tbl td small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px;white-space:nowrap}
+.tbl .num b{font-weight:600}
+.a-ic{width:34px;height:34px;border-radius:10px;background:var(--pale);display:grid;place-items:center}
+.a-ic svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.a-ext{width:13px;height:13px;stroke:var(--mid);fill:none;stroke-width:2;vertical-align:-1px;margin-left:5px}
+.a-tot{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--rule)}
+.a-tot div{padding:12px 16px;border-left:1px solid var(--rule)}.a-tot div:first-child{border-left:0}
+.a-tot p{font-size:11.5px;color:var(--mid)}.a-tot b{display:block;font-family:var(--mono);font-size:16px;font-weight:600;margin-top:3px}
+.a-fo td{padding:10px 14px}
+.a-chev{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2}
+.a-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.a-lh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.a-lh h3{font-size:14px;font-weight:700}
+.a-li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--rule);font-size:13px}
+.a-li:last-child{border-bottom:0}
+.a-li small{display:block;color:var(--mid);font-size:11.5px;margin-top:2px;line-height:1.45}
+.a-li .p{font-weight:600}
+.a-li .amt{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.a-grp{padding:7px 16px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);background:var(--canvas);border-bottom:1px solid var(--rule)}
+.btn.dis{opacity:.4}
+</style></head><body data-active="/admin/budgets">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">Finance · <b>Budgets &amp; fees</b></p>
+  <div class="ph2"><div><h1>Budgets &amp; fees</h1><p class="lead">Confirm budgets so tracking can begin, see where each build's money stands, and record funding and releases.</p></div></div>
+
+  <div class="a-wrap">
+   <nav class="a-nav">
+    <a class="on">Budget confirmations<b class="w">3</b></a>
+    <a>Financial operations<b>6</b></a>
+    <a>Funding &amp; releases<b></b></a>
+    <a class="sub">Funding<b>5</b></a>
+    <a class="sub">Releases<b>6</b></a>
+   </nav>
+
+   <div>
+    <!-- 1. Budget confirmations -->
+    <section class="a-sec">
+     <div class="a-sh"><div><h2>Budget Confirmations <span class="tag warn">3 waiting</span></h2><p>Jalla Management projects awaiting a confirmed budget before tracking can begin</p></div>
+</div>
+     <div class="card" style="overflow:hidden">
+      <table class="tbl">
+       <thead><tr><th style="border-top:0;width:46px"></th><th style="border-top:0">Project</th><th style="border-top:0">Homeowner</th><th style="border-top:0">Country</th><th style="border-top:0;text-align:right">Estimate</th><th style="border-top:0"></th></tr></thead>
+       <tbody>
+        <tr><td><span class="a-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5h8v2"/></svg></span></td><td><b>Ndi family home</b><svg class="a-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg><small>Waiting since 3 Nov</small></td><td>Esther Ndi</td><td>Cameroon</td><td class="num"><b>$48,200</b></td><td style="text-align:right"><span class="btn g s">Set budget</span></td></tr>
+        <tr><td><span class="a-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5h8v2"/></svg></span></td><td><b>Achu duplex</b><svg class="a-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg><small>Waiting since 9 Nov</small></td><td>samuel.achu@gmail.com</td><td>Cameroon</td><td class="num"><b>$112,750</b></td><td style="text-align:right"><span class="btn g s">Set budget</span></td></tr>
+        <tr><td><span class="a-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5h8v2"/></svg></span></td><td><b>Fomba rental units</b><svg class="a-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg><small>Waiting since 15 Nov</small></td><td>Linda Fomba</td><td>Cameroon</td><td class="num"><b class="muted">—</b></td><td style="text-align:right"><span class="btn g s">Set budget</span></td></tr>
+       </tbody>
+      </table>
+      <p style="border-top:1px solid var(--rule);padding:10px 16px;font-size:12px;color:var(--mid);background:var(--canvas)">Set budget opens the confirmation: the wizard estimate, your confirmed figure, and Confirm &amp; Start. Confirming activates Stage 1, sets the payment schedule, and notifies the homeowner.</p>
+     </div>
+    </section>
+
+    <!-- 2. Financial operations -->
+    <section class="a-sec">
+     <div class="a-sh"><div><h2>Financial operations</h2><p>Where the money of each build stands. What needs a person comes first.</p></div><span class="hint">Each row opens the project's Financials tab</span></div>
+     <div class="card" style="overflow:hidden">
+      <div class="a-tot">
+       <div><p>Funded</p><b style="color:var(--complete)">$212,400</b></div>
+       <div><p>Expected</p><b style="color:var(--held)">$41,650</b></div>
+       <div><p>Release authorised</p><b>$12,000</b></div>
+       <div><p>In transit</p><b>$6,500</b></div>
+       <div><p>Disbursed</p><b>$161,900</b></div>
+      </div>
+      <table class="tbl a-fo">
+       <thead><tr><th style="border-top:0">Project</th><th style="border-top:0;text-align:right">Funded</th><th style="border-top:0;text-align:right">Available</th><th style="border-top:0;text-align:right">Disbursed</th><th style="border-top:0;width:30px"></th></tr></thead>
+       <tbody>
+        <tr><td><b>Nkeng villa</b> <span class="tag bad">Release failed</span><small>Benoit Nkeng · budget $86,000</small></td><td class="num">$18,400</td><td class="num"><b>$9,800</b></td><td class="num muted">$4,400</td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+        <tr><td><b>Ngu residence</b> <span class="tag warn">Reconciliation required</span><small>Peter Ngu · budget $74,500</small></td><td class="num">$31,000</td><td class="num"><b>$12,700</b></td><td class="num muted">$15,500</td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+        <tr><td><b>Fon duplex</b> <span class="tag mute">Awaiting release</span><small>Grace Fon · budget $64,000</small></td><td class="num">$22,000</td><td class="num"><b>$8,000</b></td><td class="num muted">$12,000</td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+        <tr><td><b>Mbala Residence</b><small>Claire Mbala · budget $120,000</small></td><td class="num">$63,333</td><td class="num"><b>$13,333</b></td><td class="num muted">$50,000</td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+        <tr><td><b>Tabe duplex</b><small>Joseph Tabe · budget $58,900 · awaiting funding</small></td><td class="num muted" colspan="2" style="text-align:right">Expected <b class="mono" style="color:var(--ink)">$8,400</b></td><td></td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+        <tr><td><b>Ewane house</b><small>Paul Ewane · no confirmed budget · nothing recorded yet</small></td><td class="num muted" colspan="3" style="text-align:right">—</td><td><svg class="a-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr>
+       </tbody>
+      </table>
+     </div>
+    </section>
+
+    <!-- 3. Funding & releases -->
+    <section class="a-sec">
+     <div class="a-sh"><div><h2>Funding &amp; releases</h2><p>Groundwork's record of what is expected, what has been received, and what has been released. Money moves through the provider; the decisions are recorded here.</p></div></div>
+     <div class="a-two">
+      <div class="card" style="overflow:hidden">
+       <div class="a-lh"><h3>Funding</h3><span class="hint">5 tranches</span></div>
+       <div class="a-li"><span><span class="p link" style="text-decoration:none;color:var(--ink)">Kouam house</span> <span class="muted">· Stage 5 · Structure &amp; walls</span><small><span class="amt">$5,000</span> · <span style="color:var(--held)">Expected</span> · second tranche</small></span><span class="btn o s" style="border-color:var(--ink)">Confirm received</span></div>
+       <div class="a-li"><span><span class="p">Tabe duplex</span> <span class="muted">· Stage 4 · Foundation</span><small><span class="amt">$8,400</span> · <span style="color:var(--held)">Expected</span></small></span><span class="btn o s" style="border-color:var(--ink)">Confirm received</span></div>
+       <div class="a-li"><span><span class="p">Mbala Residence</span> <span class="muted">· Stage 5 · Structure &amp; walls</span><small><span class="amt">$3,333</span> · Received · confirmed by Ruth Achu · 3 h ago · MoMo transfer</small></span><span></span></div>
+       <div class="a-li"><span><span class="p">Nkeng villa</span> <span class="muted">· Stage 2 · Design completed</span><small><span class="amt">$4,200</span> · Reconciled · confirmed by provider · 12 d ago</small></span><span></span></div>
+       <div class="a-li"><span><span class="p">Fon duplex</span> <span class="muted">· Stage 3 · Site preparation</span><small><span class="amt">$2,000</span> · Received · confirmed by provider · 16 d ago</small></span><span></span></div>
+      </div>
+      <div class="card" style="overflow:hidden">
+       <div class="a-lh"><h3>Releases</h3><span class="hint">4 recorded · 2 ready</span></div>
+       <div class="a-li"><span><span class="p">Nkeng villa</span> <span class="muted">· Stage 2 · to Benoit Nkeng</span><small><span class="amt">$4,200</span> · <span style="color:var(--held)">Failed</span> · authorised by Ruth Achu · 5 d ago · SwyChr SW-PO-55093 · Beneficiary account closed</small></span><span class="btn o s">Open reconciliation</span></div>
+       <div class="a-li"><span><span class="p">Ngu residence</span> <span class="muted">· Stage 5 · to Peter Ngu</span><small><span class="amt">$3,700</span> · Sent to provider · authorised by Ruth Achu · 3 d ago · SwyChr SW-PO-55120</small></span><span></span></div>
+       <div class="a-li"><span><span class="p">Mbala Residence</span> <span class="muted">· Stage 4 · to Bob Ousmane</span><small><span class="amt">$10,000</span> · <span style="color:var(--complete)">Disbursed</span> · authorised by Ruth Achu · 2 d ago · SwyChr SW-PO-54871</small></span><span></span></div>
+       <div class="a-li"><span><span class="p">Fon duplex</span> <span class="muted">· Stage 3 · to Grace Fon</span><small><span class="amt">$2,000</span> · Release authorised · authorised by Ruth Achu · 1 d ago</small></span><span></span></div>
+       <p class="a-grp">Approved stages with no release yet</p>
+       <div class="a-li"><span><span class="p">Kouam house</span> <span class="muted">· Stage 4 · Foundation</span><small><span class="amt">$6,000</span></small></span><span class="btn g s">Authorise release</span></div>
+       <div class="a-li"><span><span class="p">Ewane house</span> <span class="muted">· Stage 2 · Design completed</span><small><span class="amt">$2,750</span> · No accepted contractor on this project — nobody to release to.</small></span><span class="btn g s dis">Authorise release</span></div>
+      </div>
+     </div>
+    </section>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

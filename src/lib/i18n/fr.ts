@@ -792,6 +792,11 @@ export const fr: Mirror<EnDict> = {
       eveningPlain:   'Bonsoir.',
       sub:       'Voici ce qui se passe sur Groundwork aujourd\u2019hui.',
       today:     'Aujourd\u2019hui',
+      openActionCenter: 'Ouvrir le centre d\u2019actions',
+      nothingWaiting:   'Rien ne vous attend.',
+      priorityCount:    '{n} {level}',
+      bandBuilding:     'Chantiers',
+      bandPeople:       'Personnes et croissance',
     },
     kpi: {
       projects:      'Projets',
@@ -899,6 +904,9 @@ export const fr: Mirror<EnDict> = {
       lastOutbound: 'Dernier message en file',
       never:        'Jamais',
       openSettings: 'Ouvrir le CRM',
+      summary:      '{ok} sur {total} configur\u00e9s',
+      outboxTag:    'File {n}',
+      failuresTag:  '{n} \u00e9checs de synchronisation',
     },
     kpiRow: {
       needsReply:        'Réponse attendue',

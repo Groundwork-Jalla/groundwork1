@@ -1,0 +1,41 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Email · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css">
+<style>
+.em-back{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--green)}
+.em-h h1{font-size:19px;line-height:1.25;margin-top:8px}
+.em-s{font-size:12px;color:var(--mid);margin-top:4px;display:flex;gap:6px;align-items:center}
+.em-acts{display:flex;gap:6px;margin-top:10px}
+.em-sel{border:1px solid var(--rule);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:600;background:#fff;flex:1;display:flex;justify-content:space-between;align-items:center}
+.em-pj{padding:10px 14px;font-size:12.5px;border-top:1px solid var(--rule)}.em-pj .btn{margin-top:7px}
+.em-pj small{display:block;color:var(--mid);font-size:11.5px}
+.em-m{padding:12px 14px;border-top:1px solid var(--rule);font-size:13px;line-height:1.5}
+.em-m .h{display:flex;justify-content:space-between;font-size:12px;color:var(--mid);margin-bottom:4px}
+.em-m .h b{color:var(--ink)}
+.em-note{margin:10px 14px;border:1px dashed #d8c7a4;background:#fbf8f2;border-radius:10px;padding:8px 10px;font-size:12.5px}
+.em-note b{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--held);display:block}
+.em-comp{position:fixed;left:0;right:0;bottom:62px;background:#fff;border-top:1px solid var(--rule);padding:10px 16px;display:flex;gap:6px;align-items:center}
+.em-comp .in{flex:1;border:1px solid var(--rule);border-radius:12px;padding:9px 12px;font-size:13px;color:var(--muted)}
+.em-ib{width:34px;height:34px;border-radius:10px;border:1px solid var(--rule);display:grid;place-items:center;color:var(--mid)}
+</style></head><body data-active="/admin/inbox?channel=email">
+<div class="phonebar" data-phonebar></div>
+<div class="mp em-h">
+ <span class="em-back"><svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Email</span>
+ <h1>Question about the Jalla Verify plan</h1>
+ <div class="em-s"><span class="dotc" style="background:var(--held)"></span>Waiting on us · Didier Mballa</div>
+ <div class="em-acts"><span class="em-sel">Ruth <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="btn o s">Assign</span><span class="btn o s">Resolve</span></div>
+ <div class="mcard">
+  <div style="padding:10px 14px 4px;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700">Projects (2)</div>
+  <div class="em-pj"><div><b>Mballa house</b><small>Stage 2 · Active · Douala, CM</small></div><span class="btn o s">This conversation is about this</span></div>
+  <div class="em-pj"><div><b>Mballa studios</b><small>Stage 1 · On hold · Limbe, CM</small></div><span class="btn o s">This conversation is about this</span></div>
+  <div style="padding:8px 14px 10px;font-size:11.5px;color:var(--mid);border-top:1px solid var(--rule)">This conversation is not linked to a project yet.</div>
+ </div>
+ <div class="mcard">
+  <div class="em-m"><div class="h"><b>Didier Mballa</b><span>Yesterday 16:40</span></div>Hello, before I sign up I would like to know if the Jalla Verify plan includes the verifier's travel to Limbe, or is that extra?</div>
+  <div class="em-note"><b>Internal note · Ruth · 08:05</b>Travel is included in the plan. Check the studios project is still on hold.</div>
+  <div class="em-m" style="border-left:3px solid var(--green)"><div class="h"><b>Ruth · Groundwork</b><span>08:12</span></div>Good morning Didier, travel is included…</div>
+ </div>
+</div>
+<div class="em-comp"><span class="em-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12l-9 9a5 5 0 0 1-7-7l9-9a3 3 0 0 1 4 4l-9 9a1 1 0 0 1-2-2l8-8"/></svg></span><span class="em-ib"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="in">Write…</span><span class="em-ib" title="Internal note"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/></svg></span><span class="btn g s">Send</span></div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption" style="top:56px;bottom:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

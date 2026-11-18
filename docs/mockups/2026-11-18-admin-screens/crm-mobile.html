@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · CRM · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.m-tabs{display:flex;gap:18px;border-bottom:1px solid var(--rule);margin-top:10px;font-size:13px;font-weight:600;color:var(--mid)}
+.m-tabs span{padding:9px 0}.m-tabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+.lanes{display:flex;gap:8px;overflow:hidden;margin-top:12px}
+.lanes div{flex:0 0 auto;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 12px;min-width:92px}
+.lanes div.on{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.lanes b{font-family:var(--mono);font-size:17px;display:block}.lanes p{font-size:11.5px;color:var(--mid)}
+.mm{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+</style></head><body data-active="/admin/crm">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<h1>CRM</h1><p class="sub">What Go High Level has been told, and whether it is set up to hear it.</p>
+<div class="m-tabs"><span class="on">Pipeline</span><span>Setup &amp; health</span></div>
+<div class="mcard" style="margin-top:12px"><div class="mrow" style="display:flex;justify-content:space-between;align-items:center"><span><b>CRM connection</b><small>8 of 9 settings in place · Setup &amp; health</small></span><span class="tag ok">Using the API</span></div>
+ <div class="mrow" style="display:flex;justify-content:space-between;align-items:center"><span>Waiting to reach the CRM <b class="mono" style="color:var(--held)">3</b><small>2 syncs need a human</small></span><span class="btn o s">Send them now</span></div></div>
+<div class="lanes"><div class="on"><b>212</b><p>Waitlist</p></div><div><b>86</b><p>Signed up</p></div><div><b>20</b><p>Applied</p></div><div><b>19</b><p>Accepted</p></div></div>
+<div class="field" style="width:100%;margin-top:10px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name or email</div>
+<div class="scrollx"><span class="chip on">All stages</span><span class="chip">Waitlist</span><span class="chip">Sign-up</span><span class="chip">Application</span></div>
+<div class="mcard">
+ <div class="mrow"><b>nadege.eyenga@mail.cm</b><div class="mm"><span class="tag mute">Waitlist</span><span class="hint">1d in stage</span><span class="tag ok">In the CRM</span><span class="hint">No account</span></div></div>
+ <div class="mrow"><b>kwame.ndifor@mail.cm</b><div class="mm"><span class="tag mute">Waitlist</span><span class="hint">1d in stage</span><span class="tag mute">Not sent</span><span class="hint">No account</span></div></div>
+ <div class="mrow"><b>christelle.mvondo@mail.cm</b><div class="mm"><span class="tag mute">Waitlist</span><span class="hint">2d in stage</span><span class="tag ok">In the CRM</span><span class="hint">No account</span></div></div>
+</div>
+<p class="hint" style="margin-top:10px">One row is one acquisition record, not one person.</p>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

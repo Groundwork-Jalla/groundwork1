@@ -1,0 +1,104 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Communications · attention</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1180px;overflow:hidden;position:relative}
+.app{height:1180px}
+
+.c-health{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.c-pill{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mid)}
+.c-pill b{color:var(--ink);font-weight:600}
+.c-pill.warn{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.c-pill.bad{border-color:#e6c9ce;background:#fbf6f7;color:var(--alert)}
+.c-tabs{margin-top:16px}
+.c-tabs span{cursor:pointer}
+.c-h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;color:var(--ink);display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
+.c-sel:after{content:'';width:6px;height:6px;border-right:1.5px solid var(--mid);border-bottom:1.5px solid var(--mid);transform:rotate(45deg);margin:-3px 0 0 4px}
+.c-in{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink)}
+.c-lab{font-size:11.5px;font-weight:600;color:var(--mid);display:block;margin-bottom:4px}
+
+
+.n-cols{display:grid;grid-template-columns:1fr 520px;gap:16px;margin-top:16px;align-items:start}
+.n-q{overflow:hidden}
+.n-qh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px}
+.n-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 16px;border-top:1px solid var(--rule);font-size:13px;align-items:center}
+.n-row small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.n-open{border-top:1px solid var(--rule);background:#fbfbf9;box-shadow:inset 3px 0 0 var(--green);padding:14px 16px}
+.n-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.n-ta{height:46px}
+.n-ev{font-size:11.5px;color:var(--mid);border-top:1px dashed var(--rule);padding-top:8px;margin-top:10px}
+.n-ev p{margin-top:4px}
+.n-prob{border:1px solid #e6c9ce;background:#fbf6f7;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.45}
+.n-prob+.n-prob{margin-top:8px}
+.n-w td{font-size:12.5px;padding:9px 12px;vertical-align:top}
+.n-w th{padding:8px 12px}
+.n-w small{display:block;color:var(--mid);font-size:11px}
+
+</style></head><body data-active="/admin/sequences">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Communications</b></div>
+  <div class="ph2"><div><h1>Communications</h1><p class="lead">Manage activation reminders, conversations and staff follow-up. Review each journey and test with selected recipients before enabling wider delivery.</p></div>
+   <div class="acts"><span class="btn o">Preview due messages</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 5l12 7-12 7z"/></svg>Run due now</span></div></div>
+  <div class="c-health">
+    <span class="c-pill warn"><span class="dotc" style="background:var(--held)"></span>Communication delivery is paused. <span class="link" style="font-size:12.5px">Settings</span></span>
+    <span class="c-pill"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last background run: <b>18/11/2026, 09:00</b> · completed</span>
+    </div><p class="note" style="border-color:var(--complete);background:#f3f8f5;margin-top:10px">3 checked, 2 ready. No email was sent.</p><div class="card" style="margin-top:10px;padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">Reminder preview</b><span class="hint">Nothing was sent · <span class="link" style="font-size:12px">Hide</span></span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;font-size:12px">
+        <div><b>m.etoundi@mail.cm · CS2</b><p>Create your first Groundwork project</p><p class="muted">ready</p></div>
+        <div><b>a.nkwenti@mail.cm · Follow-up review</b><p>—</p><p class="muted">followup due</p></div>
+        <div><b>+237 691 22 30 41 · CL1</b><p>Your project is waiting for a contractor</p><p class="muted">WhatsApp outreach paused</p></div></div></div>
+  <div class="tabs2 c-tabs"><span class="on">Needs attention<b>7</b></span><span class="">Tracking and recovery</span><span class="">Journeys</span><span class="">Sequences</span><span class="">Send log</span><span class="">Inbox</span><span class="">WhatsApp</span><span class="">Settings</span></div>
+  
+<div class="n-cols">
+ <section class="card n-q">
+  <div class="n-qh"><div><h2 style="font-size:15px;font-weight:700">Human follow-up <span class="mono muted" style="font-size:13px">5</span></h2><p class="hint">High priority first, then the soonest next contact.</p></div>
+   <div class="seg"><span class="on">All open</span><span>Assigned to me</span><span>Due now</span></div></div>
+  <div class="n-open">
+   <div style="display:flex;justify-content:space-between;gap:10px"><div><b style="font-size:14px">Martin Etoundi</b> <span class="tag bad" style="margin-left:6px">High</span><p class="hint" style="margin-top:2px"><span class="link" style="font-size:12px">m.etoundi@mail.cm</span> · <span class="link" style="font-size:12px">+237 699 31 04 58</span></p></div><span class="tag vio">Activation action</span></div>
+   <p style="font-size:13px;margin-top:8px">Onboarded 9 days ago and has not created a first project.</p>
+   <p class="hint">Etoundi duplex · Contact attempts: 1 · Next contact: 18/11/2026, 10:00</p>
+   <p class="hint" style="margin-top:4px;font-style:italic">Called Monday, asked to call back after his site visit.</p>
+   <div class="n-grid">
+    <div><span class="c-lab">Owner</span><div style="display:flex;gap:6px"><span class="c-sel" style="flex:1">Ruth Ndongo</span><span class="btn o s">Save</span></div></div>
+    <div><span class="c-lab">When contact took place</span><div class="c-in">18/11/2026 09:42:10</div></div>
+    <div style="grid-column:1/-1"><span class="c-lab">Contact or resolution note</span><div class="c-in n-ta">Spoke by phone; he will add the duplex plans this week.</div></div>
+    <div><span class="c-lab">Record contact</span><span class="c-sel" style="width:100%;justify-content:space-between">Contacted</span></div>
+    <div><span class="c-lab">Next contact</span><div class="c-in">20/11/2026 10:00</div></div>
+   </div>
+   <div style="display:flex;gap:8px;margin-top:12px"><span class="btn g s">Record contact</span><span class="btn o s">Check and resolve</span><span class="btn o s">Contact history</span></div>
+   <div class="n-ev"><b style="color:var(--ink)">Contact history</b><p>17/11/2026, 16:05 · contacted · Ruth Ndongo — Called Monday, asked to call back after his site visit.</p><p>12/11/2026, 09:00 · created · Automated</p></div>
+  </div>
+  <div class="n-row"><span><b>Brigitte Ondoa</b> <span class="tag info" style="margin-left:4px">User reply</span><small>Replied “Je n’ai pas encore de terrain” · attempts 0 · next contact 18/11, 14:00 · Unassigned</small></span><span class="tag warn">Due now</span></div>
+  <div class="n-row"><span><b>Alain Nkwenti</b> <span class="tag vio" style="margin-left:4px">Activation action</span><small>Invited the homeowner 6 days ago, not accepted · attempts 2 · 19/11, 09:00 · Ruth Ndongo</small></span><span class="hint">Tomorrow</span></span></div>
+  <div class="n-row"><span><b>Clarisse Mbah</b> <span class="tag bad" style="margin-left:4px">Delivery review</span><small>Email bounced twice · attempts 0 · 19/11, 11:00 · Kevin Ayuk</small></span><span class="hint">Tomorrow</span></div>
+  <div class="n-row"><span><b>Désiré Fouda</b> <span class="tag vio" style="margin-left:4px">Activation action</span><small>Project created, no contractor connected · attempts 1 · 21/11, 10:00 · Unassigned</small></span><span class="hint">In 3 days</span></div>
+ </section>
+
+ <div style="display:flex;flex-direction:column;gap:14px">
+  <section class="card" style="padding:14px 16px">
+   <h2 style="font-size:15px;font-weight:700;color:var(--alert)">Delivery problems · 2</h2>
+   <p class="hint" style="margin-bottom:10px">Each one is retried every hour.</p>
+   <div class="n-prob"><b>c.mbah@mail.cm</b> — CS2 failed 3h ago: mailbox does not exist.</div>
+   <div class="n-prob"><b>p.tamba@mail.cm</b> — CL1 failed 5h ago: rate limited by provider.</div>
+  </section>
+  <section class="card" style="overflow:hidden">
+   <div style="padding:14px 16px 8px"><h2 style="font-size:15px;font-weight:700">Emailed, waiting on them · 23</h2><p class="hint">Longest wait first. Each one leaves this list the moment they do the action.</p></div>
+   <table class="tbl n-w"><thead><tr><th>Who</th><th>Waiting for</th><th>Last email</th><th>Next</th></tr></thead><tbody>
+    <tr><td><b>Désiré Fouda</b><small>d.fouda@mail.cm · Fouda villa</small><small>Homeowner self-signup</small></td><td>Connect a contractor</td><td style="white-space:nowrap">CL3 · 9d ago<small>(3 sent)</small></td><td><small>no more emails</small></td></tr>
+    <tr><td><b>Alain Nkwenti</b><small>a.nkwenti@mail.cm</small><small>Contractor self-signup</small></td><td>Homeowner accepts</td><td style="white-space:nowrap">CS4 · 6d ago<small>(2 sent)</small></td><td><small>next email in 1d</small></td></tr>
+    <tr><td><b>s.abena@mail.cm</b><small>Homeowner invited</small></td><td>Accept invitation</td><td style="white-space:nowrap">IV1 · 52h ago<small>(1 sent)</small></td><td><small>next email in 20h</small></td></tr>
+    <tr><td><b>Yannick Manga</b><small>y.manga@mail.cm</small><small>Contractor self-signup</small></td><td>Create first project</td><td style="white-space:nowrap">CS2 · 30h ago<small>(1 sent)</small></td><td><small>next email due now</small></td></tr>
+   </tbody></table>
+  </section>
+ </div>
+</div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Started Applications · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1060px;overflow:hidden;position:relative}
+.app{height:1060px}
+.r-bar{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.r-band{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 0 8px;display:flex;gap:8px;align-items:center}
+.r-band b{font-family:var(--mono);color:var(--ink)}
+.r-list{overflow:hidden}
+.r-row{display:grid;grid-template-columns:18px 34px 1fr 210px 120px 236px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--rule);font-size:13px}
+.r-list>.r-row:first-child{border-top:0}
+.r-row .nm{font-weight:700;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.r-row small{display:block;color:var(--mid);font-size:11.5px;margin-top:2px}
+.r-src{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px}
+.r-src.p{background:var(--ink);color:#fff}.r-src.c{background:var(--pale);color:var(--mid)}
+.r-prog{display:flex;align-items:center;gap:10px}
+.r-prog .bar5{flex:1;height:7px}
+.r-prog b{font-family:var(--mono);font-size:13px;width:40px;text-align:right}
+.r-when{font-family:var(--mono);font-size:12px;color:var(--mid)}
+.r-acts{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.r-ib{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--mid)}
+.r-ans{grid-column:1/-1;padding:4px 0 6px 66px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px 24px}
+.r-ans dt{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.r-ans dd{font-size:12.5px;margin-top:2px}
+.r-ans .un{opacity:.45}
+.r-open{background:#fbfbf9}
+</style></head><body data-active="/admin/drafts">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Started Applications</b></div>
+  <div class="ph2"><div><h1>Started applications</h1><p class="lead">People who began the contractor application and have not sent it. Saved as they typed; the form tells them so.</p></div></div>
+  <div class="r-bar">
+   <div class="seg"><span>Not finished</span><span class="on">Everyone</span></div>
+   <span class="field" style="width:320px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search by name, email or phone…</span>
+  </div>
+
+  <div class="r-band">Closest to done · call these first <b>3</b></div>
+  <section class="card r-list">
+   <div class="r-row r-open"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M6 9l6 6 6-6"/></svg><span class="av c1">SM</span><div><span class="nm">Samuel Mbarga <span class="r-src p">Partner</span></span><small>General contractor · s.mbarga@mail.cm · +237 690 22 18 47</small></div><div class="r-prog"><span class="bar5"><i style="width:92%"></i></span><b>92%</b></div><span class="r-when">18 Nov, 09:14</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+    <dl class="r-ans">
+     <div><dt>What’s your preferred language?</dt><dd>French</dd></div><div><dt>Years of experience</dt><dd>9</dd></div><div><dt>You operate as</dt><dd>Registered company</dd></div>
+     <div><dt>Regions you cover</dt><dd>Centre, South</dd></div><div><dt>Projects you can take on at once</dt><dd>2</dd></div><div><dt>Have you worked with diaspora homeowners before?</dt><dd>Yes</dd></div>
+     <div><dt>Do you have an active project about to start or already running?</dt><dd>Already running</dd></div><div><dt>What stage is the project in?</dt><dd>Foundation</dd></div><div class="un"><dt>Would you use Groundwork to manage the project?</dt><dd>Not answered yet</dd></div>
+    </dl></div>
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c5">AF</span><div><span class="nm">Aïcha Fadimatou <span class="r-src c">Contractor</span></span><small>Electrician · aicha.f@mail.cm · +237 655 03 71 90</small></div><div class="r-prog"><span class="bar5"><i style="width:84%"></i></span><b>84%</b></div><span class="r-when">17 Nov, 21:40</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c2">GK</span><div><span class="nm">Georges Kamga <span class="r-src c">Contractor</span></span><small>Mason · +237 677 88 10 32</small></div><div class="r-prog"><span class="bar5"><i style="width:76%"></i></span><b>76%</b></div><span class="r-when">16 Nov, 15:02</span><div class="r-acts"><span class="btn o s" style="visibility:hidden">Email</span><span class="btn o s">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+  </section>
+
+  <div class="r-band">Part way <b>3</b></div>
+  <section class="card r-list">
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c3">VN</span><div><span class="nm">Valentin Nkodo <span class="r-src p">Partner</span></span><small>Plumber · v.nkodo@mail.cm</small></div><div class="r-prog"><span class="bar5"><i style="width:58%"></i></span><b>58%</b></div><span class="r-when">15 Nov, 11:26</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s" style="visibility:hidden">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c6">JA</span><div><span class="nm">Julienne Atangana <span class="r-src c">Contractor</span> <span class="tag mute">Applied</span></span><small>Painter · j.atangana@mail.cm · +237 699 45 12 08</small></div><div class="r-prog"><span class="bar5"><i style="width:47%"></i></span><b>47%</b></div><span class="r-when">12 Nov, 08:51</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c4">TF</span><div><span class="nm">Thierry Fotso <span class="r-src c">Contractor</span></span><small>Carpenter · t.fotso@mail.cm</small></div><div class="r-prog"><span class="bar5"><i style="width:35%"></i></span><b>35%</b></div><span class="r-when">10 Nov, 19:03</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s" style="visibility:hidden">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+  </section>
+
+  <div class="r-band">Just started <b>2</b></div>
+  <section class="card r-list">
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av">?</span><div><span class="nm" style="color:var(--mid)">No name yet <span class="r-src c">Contractor</span></span><small>nfor.ebenezer@mail.cm</small></div><div class="r-prog"><span class="bar5"><i style="width:12%"></i></span><b>12%</b></div><span class="r-when">9 Nov, 07:30</span><div class="r-acts"><span class="btn o s">Email</span><span class="btn o s" style="visibility:hidden">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+   <div class="r-row"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><path d="M9 6l6 6-6 6"/></svg><span class="av c1">MB</span><div><span class="nm">Marie Bilong <span class="r-src c">Contractor</span></span><small>Tiler · +237 670 19 55 64</small></div><div class="r-prog"><span class="bar5"><i style="width:6%"></i></span><b>6%</b></div><span class="r-when">4 Nov, 13:12</span><div class="r-acts"><span class="btn o s" style="visibility:hidden">Email</span><span class="btn o s">Call</span><span class="r-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div></div>
+  </section>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

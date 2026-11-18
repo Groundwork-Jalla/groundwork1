@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · CRM · desktop</title>
+<link rel="stylesheet" href="common.css"><style>
+body{width:1440px;height:1120px;overflow:hidden;position:relative}.app{height:1120px}
+
+.s-wrap{display:grid;grid-template-columns:420px 1fr;gap:14px;margin-top:14px;align-items:start}
+.s-c{padding:16px}
+.s-c+.s-c{margin-top:12px}
+.cfg{display:grid;grid-template-columns:22px 1fr auto;gap:2px 8px;padding:7px 0;border-top:1px solid var(--rule);font-size:12.5px;align-items:start}
+.cfg .ic{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px}
+.cfg .ic.ok{background:#e9f0ec;color:var(--complete)}.cfg .ic.no{background:var(--pale);color:var(--mid)}
+.cfg small{grid-column:2/4;color:var(--mid);font-size:11px;font-family:var(--mono)}
+.cfg small.p{font-family:var(--body)}
+.src{font-size:10.5px;color:var(--mid);background:var(--pale);border-radius:6px;padding:1px 6px}
+.tool{display:grid;grid-template-columns:1fr;gap:6px;padding:12px 0;border-top:1px solid var(--rule)}
+.tool:first-of-type{border-top:0;padding-top:4px}
+.tool .bs{display:flex;gap:6px;flex-wrap:wrap}
+.pre{font-family:var(--mono);font-size:10.5px;background:var(--canvas);border-radius:8px;padding:8px 10px;line-height:1.5;white-space:pre}
+.btn.danger{border:1px solid #e6c9ce;color:var(--alert);background:#fff}
+.fl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--rule);font-size:12.5px}
+.fl small{color:var(--mid);font-size:11.5px}
+</style></head><body data-active="/admin/crm">
+<div class="app"><aside class="side" data-sidebar></aside><div class="main"><div class="top" data-topbar></div><div class="page">
+<div class="crumbs">Acquisition · <b>CRM</b></div>
+<div class="ph2"><div><h1>CRM</h1><p class="lead">What Go High Level has been told, and whether it is set up to hear it.</p></div></div>
+<div class="tabs2" style="margin-top:14px"><span class="">Pipeline</span><span class="on">Setup &amp; health</span></div>
+<div class="s-wrap">
+<div>
+ <section class="card s-c">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px;font-weight:700">Configuration</h2><span class="tag ok">Using the API</span></div>
+  <div style="margin-top:8px"><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Contractor applications webhook</b><span class=src>from Supabase</span><small class="">ghl_contractor_webhook_url</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Lifecycle events webhook</b><span class=src>from Supabase</span><small class="">ghl_event_webhook_url</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">API token</b><span class=src>from Vercel</span><small class="">ghl_api_token</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Location id</b><span class=src>from Vercel</span><small class="">ghl_location_id</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Pipeline</b><span class=src>from Supabase</span><small class="">ghl_pipeline_id</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Pipeline stages mapped (6)</b><span class=src>from Supabase</span><small class="">waitlist, user_signup, contractor_application, accepted, rejected, project_created</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Inbound webhook secret</b><span class=src>from Vercel</span><small class="">ghl_inbound_secret</small></div><div class="cfg"><span class="ic no">×</span><b style="font-weight:600">Conversations token</b><span></span><small class="p">The token expired and could not be refreshed — emails are landing as notes. Reinstall from the app’s install link.</small></div><div class="cfg"><span class="ic ok">✓</span><b style="font-weight:600">Conversation provider (emails appear in Conversations)</b><span class=src>from Supabase</span><small class="">ghl_conversation_provider_id</small></div></div>
+  <div style="margin-top:10px;border:1px solid #e6c9ce;background:#fbf6f7;border-radius:12px;padding:10px 12px;font-size:12.5px"><b style="color:var(--alert)">Go High Level is rejecting this token</b><p style="margin-top:3px;color:var(--ink)">The token is set but refused. It has usually expired, been revoked, or is missing a scope. Events are going through the webhook meanwhile, so nothing is being lost.</p></div>
+  <p class="hint" style="margin-top:8px">When nothing is configured: “Nothing is reaching the CRM. Set either the events webhook or the API token and location id.”</p>
+ </section>
+</div>
+<div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+  <section class="card s-c" style="border-color:#e6c9ce;margin:0">
+   <h2 style="font-size:15px;font-weight:700;color:var(--alert)">2 syncs need a human</h2><p class="hint">A contractor application whose API sync failed. These do not resolve themselves.</p>
+   <div style="margin-top:8px">
+    <div class="fl"><b>h.ngobassa@mail.cm</b><span class="tag warn">defective record in the CRM</span><small>custom field “years_experience” rejected</small><small>11 Nov 2026</small></div>
+    <div class="fl"><b>i.moussa@mail.cm</b><span class="tag mute">never reached the CRM</span><small>401 Unauthorized</small><small>8 Nov 2026</small></div>
+   </div></section>
+  <section class="card s-c" style="margin:0">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px;font-weight:700">Waiting to reach the CRM (3)</h2><span class="btn g s">Send them now</span></div>
+   <p class="note" style="border-color:var(--complete);background:#f3f8f5">2 sent, 1 still failing.</p>
+   <div style="margin-top:6px">
+    <div class="fl"><b class="mono" style="font-size:12px">user_signup</b><small>17 Nov 2026</small><small>y.manga@mail.cm</small><span></span><small style="color:var(--alert);grid-column:1/-1">502 Bad Gateway · 3 attempt(s)</small></div>
+    <div class="fl"><b class="mono" style="font-size:12px">project_created</b><small>16 Nov 2026</small><small>a.bello@mail.cm</small></div>
+    <div class="fl"><b class="mono" style="font-size:12px">contractor_application</b><small>11 Nov 2026</small><small>h.ngobassa@mail.cm</small></div>
+   </div></section>
+ </div>
+ <section class="card s-c" style="margin-top:12px">
+  <h2 style="font-size:15px;font-weight:700">Checks and repairs</h2><p class="hint">Shown while the API is configured, even when the token is refused — they are how you find out why.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:8px">
+   <div>
+    <div class="tool"><div class="bs"><span class="btn o s">Test a document upload</span></div><p class="hint">Uploads one real document and prints exactly what Go High Level answered.</p></div>
+    <div class="tool"><div class="bs"><span class="btn o s">Check custom fields</span><span class="btn g s">Create 3 missing fields</span><span class="btn danger s">Remove 1 unusable fields</span></div><p class="hint">Go High Level silently discards any field it does not already have, so a missing field looks exactly like a blank answer. Checking changes nothing; creating adds only what is absent.</p>
+     <div class="pre">{ "missingCount": 3, "corruptedCount": 1,
+  "missing": ["team_size", "regions", "video_url"] }</div></div>
+    <div class="tool"><div class="bs"><span class="btn o s">Test the email log</span></div><p class="hint">Writes one entry to your own contact through the same code the real emails use. Nothing is emailed, and no contractor is touched.</p>
+     <p style="font-size:11.5px;background:#f3f8f5;color:var(--complete);border-radius:8px;padding:7px 10px">Written. Emails are reaching the contact.</p></div>
+   </div>
+   <div>
+    <div class="tool"><div class="bs"><span class="btn o s">Audit the contact book</span><span class="btn o s">Show pipeline &amp; stage ids</span></div><p class="hint">Read-only. Counts misrouted phone numbers and duplicate records; changes nothing.</p>
+     <div class="bs" style="margin-top:4px"><span class="btn o s">Export 14 records first</span><span class="btn o s">Repair mangled phone numbers</span><span class="btn danger s">Delete duplicate records</span></div>
+     <div class="pre">{ "contacts": 1342, "orphanRecords": 14,
+  "misroutedPhones": 9, "duplicates": 5 }</div>
+     <p class="hint">Delete asks first: “Delete the duplicate records? Only records whose twin holds the email and tags are removed… Export first if you have not.”</p></div>
+   </div>
+  </div>
+ </section>
+</div></div>
+</div></div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

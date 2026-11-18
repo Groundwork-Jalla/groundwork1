@@ -1,0 +1,99 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Bill of Quantities draft · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.page{padding:18px 28px}
+.d-wrap{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-top:12px;align-items:start}
+.d-g{width:100%;border-collapse:collapse;font-size:12.5px}
+.d-g th{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;background:var(--canvas);border-bottom:1px solid var(--rule)}
+.d-g td{padding:4px 10px;border-bottom:1px solid #efeeea;height:31px}
+.d-g .r{text-align:right}
+.d-g .cd{font-family:var(--mono);font-size:11px;color:var(--mid);width:46px}
+.d-g .u{color:var(--mid);font-size:11.5px;width:44px}
+.d-in{display:block;border:1px solid var(--rule);border-radius:7px;padding:3px 8px;font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--mid);background:#fff}
+.d-in.dirty{border-color:var(--ink);color:var(--ink);font-weight:600}
+.d-amt{font-family:var(--mono);font-size:12px;text-align:right;font-weight:500}
+.d-sec td{background:#fafaf8;height:34px;font-weight:700;font-size:12.5px;border-bottom:1px solid var(--rule)}
+.d-sec .chev{display:inline-block;width:14px;color:var(--mid)}
+.d-sec .ct{font-weight:500;color:var(--mid);font-size:11.5px;margin-left:6px}
+.d-sec.col td{background:#fff;font-weight:600}
+.d-ov td{background:#f7f9f8}
+.b-est{display:inline-flex;align-items:center;gap:3px;border:1px dashed var(--rule);border-radius:999px;padding:0 6px;font-size:10px;color:var(--mid);margin-left:6px}
+.b-you{display:inline-flex;align-items:center;gap:3px;background:var(--ink);color:#fff;border-radius:999px;padding:0 6px;font-size:10px;margin-left:6px}
+.d-rs{color:var(--mid);font-size:13px}
+.d-side .card{padding:16px;margin-bottom:12px}
+.d-tot .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.d-tot .big{font-family:var(--mono);font-size:25px;font-weight:600;margin-top:4px;letter-spacing:-.5px}
+.d-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.d-row span{color:var(--mid)}
+.d-fi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.d-fi label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mid);font-weight:600}
+.d-fi div div{margin-top:4px;border:1px solid var(--rule);border-radius:9px;padding:7px 10px;font-family:var(--mono);font-size:12.5px;display:flex;justify-content:space-between}
+.d-warn{margin-top:10px;border:1px solid #e7dcc6;border-radius:10px;padding:8px 10px;font-size:11.5px;line-height:1.45;color:var(--held)}
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Projects · Mbala Residence · <span>← Bill of Quantities</span> · <b>Draft of 18 Nov 2026</b></div>
+  <div class="ph2"><div><h1 style="display:flex;gap:10px;align-items:center">Bill of Quantities <span class="tag mute" style="font-size:12px">Draft</span></h1><p class="lead">Every line is pre-priced from the Groundwork model. Change only what differs from your own supplier.</p></div>
+   <div class="acts" style="align-items:center"><span class="seg"><span class="on">Expand all</span><span>Changed lines only · 1</span></span></div></div>
+
+  <div class="d-wrap">
+   <section class="card" style="overflow:hidden">
+    <table class="d-g">
+     <thead><tr><th>Item</th><th>Description</th><th>Unit</th><th class="r" style="width:96px">Qty</th><th class="r" style="width:116px">Rate</th><th class="r" style="width:130px">Amount</th><th style="width:28px"></th></tr></thead>
+     <tbody>
+      <tr class="d-sec"><td colspan="5"><span class="chev">▾</span>Site &amp; preliminary<span class="ct">2 lines</span></td><td class="d-amt">1,120,000</td><td></td></tr>
+      <tr><td class="cd">101</td><td>Site setup, hoarding and temporary works<span class="b-est">! est.</span></td><td class="u">item</td><td><span class="d-in">1</span></td><td><span class="d-in">850000</span></td><td class="d-amt">XAF 850,000</td><td></td></tr>
+      <tr><td class="cd">102</td><td>Site clearing and setting out<span class="b-est">! est.</span></td><td class="u">m²</td><td><span class="d-in">180</span></td><td><span class="d-in">1500</span></td><td class="d-amt">XAF 270,000</td><td></td></tr>
+      <tr class="d-sec"><td colspan="5"><span class="chev">▾</span>Foundation<span class="ct">8 lines · 1 changed</span></td><td class="d-amt">8,322,250</td><td></td></tr>
+      <tr><td class="cd">201</td><td>Excavation of pits and trenches</td><td class="u">m³</td><td><span class="d-in">64.5</span></td><td><span class="d-in">4500</span></td><td class="d-amt">XAF 290,250</td><td></td></tr>
+      <tr><td class="cd">202</td><td>Backfill and compaction</td><td class="u">m³</td><td><span class="d-in">38</span></td><td><span class="d-in">3000</span></td><td class="d-amt">XAF 114,000</td><td></td></tr>
+      <tr><td class="cd">203</td><td>Lean concrete blinding</td><td class="u">m³</td><td><span class="d-in">4.2</span></td><td><span class="d-in">65000</span></td><td class="d-amt">XAF 273,000</td><td></td></tr>
+      <tr class="d-ov"><td class="cd">204</td><td>Reinforced concrete footings<span class="b-you">✎ yours</span></td><td class="u">m³</td><td><span class="d-in">18.6</span></td><td><span class="d-in dirty">195000</span></td><td class="d-amt"><b>XAF 3,627,000</b></td><td class="d-rs" title="Reset to the Groundwork model value">↺</td></tr>
+      <tr><td class="cd">205</td><td>Ground floor slab</td><td class="u">m³</td><td><span class="d-in">14.2</span></td><td><span class="d-in">160000</span></td><td class="d-amt">XAF 2,272,000</td><td></td></tr>
+      <tr><td class="cd">206</td><td>Foundation blockwork</td><td class="u">m²</td><td><span class="d-in">96</span></td><td><span class="d-in">14500</span></td><td class="d-amt">XAF 1,392,000</td><td></td></tr>
+      <tr><td class="cd">207</td><td>Damp-proof membrane<span class="b-est">! est.</span></td><td class="u">m²</td><td><span class="d-in">118</span></td><td><span class="d-in">1800</span></td><td class="d-amt">XAF 212,400</td><td></td></tr>
+      <tr><td class="cd">208</td><td>Sand blinding<span class="b-est">! est.</span></td><td class="u">m²</td><td><span class="d-in">118</span></td><td><span class="d-in">1200</span></td><td class="d-amt">XAF 141,600</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Ground floor structure<span class="ct">10 lines</span></td><td class="d-amt">13,846,500</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Upper floor structure<span class="ct">10 lines · G+1</span></td><td class="d-amt">12,904,250</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Roof &amp; covering<span class="ct">4 lines</span></td><td class="d-amt">6,215,000</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Doors &amp; windows<span class="ct">3 lines</span></td><td class="d-amt">4,780,000</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Electrical<span class="ct">2 lines</span></td><td class="d-amt">2,960,000</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Plumbing &amp; sanitary<span class="ct">10 lines</span></td><td class="d-amt">3,412,000</td><td></td></tr>
+      <tr class="d-sec col"><td colspan="5"><span class="chev">▸</span>Finishing &amp; painting<span class="ct">6 lines · incl. % lines</span></td><td class="d-amt">2,850,000</td><td></td></tr>
+      <tr><td colspan="5" style="font-weight:700;background:var(--canvas)">Your total</td><td class="d-amt" style="background:var(--canvas)"><b>XAF 56,410,000</b></td><td style="background:var(--canvas)"></td></tr>
+     </tbody>
+    </table>
+   </section>
+
+   <aside class="d-side">
+    <div class="card d-tot">
+     <div class="k">Your total</div>
+     <div class="big">XAF 56,410,000</div>
+     <div class="hint" style="margin-top:2px">≈ $94,017 · USD indicative, converted at a rounded rate</div>
+     <div style="margin-top:10px">
+      <div class="d-row"><span>Vs homeowner budget</span><b class="mono" style="color:var(--held)">+2.7%</b></div>
+      <div class="d-row"><span>Homeowner budget</span><span class="mono" style="color:var(--ink)">$91,500.00</span></div>
+      <div class="d-row" style="display:block"><span>Groundwork model, before your changes:</span><div class="mono" style="margin-top:2px">XAF 56,224,000</div></div>
+     </div>
+    </div>
+    <div class="card">
+     <b style="font-size:13.5px">Building dimensions</b>
+     <p class="hint" style="margin-top:3px;line-height:1.45">Optional. With real length and width the perimeter is exact; without them the model assumes a square plan.</p>
+     <div class="d-fi"><div><label>Length</label><div>14.5<span class="muted">m</span></div></div><div><label>Width</label><div>8<span class="muted">m</span></div></div></div>
+     <div class="d-warn">Stated floor area is 118 m² but 116 m² follows from these dimensions. Both are kept — correct whichever is wrong.</div>
+    </div>
+    <div class="card" style="padding:14px 16px">
+     <div style="display:flex;gap:8px"><span class="btn o" style="flex:1">Save draft</span><span class="btn g" style="flex:1.4">Submit to homeowner</span></div>
+     <p class="hint" style="margin-top:8px;line-height:1.45">Submitting shares this bill of quantities with the homeowner and freezes its figures. Drafts stay private to you and project admins.</p>
+    </div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

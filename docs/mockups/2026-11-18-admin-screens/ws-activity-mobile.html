@@ -1,0 +1,79 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin &middot; workspace &middot; Activity &middot; mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-at{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.f-tl{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:6px 0}
+.f-dh{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 20px 4px}
+.f-ev{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:9px 20px;position:relative}
+.f-ev:hover{background:#fafaf8}
+.f-ei{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;position:relative;z-index:1}
+.f-ei .ico{width:14px;height:14px}
+.f-ei.st{background:#e9f0ec;color:var(--green)}.f-ei.vf{background:#eceaf4;color:#4b4370}.f-ei.su{background:#e8f1f8;color:#2a6f9e}.f-ei.pm{background:#f4eee2;color:var(--held)}.f-ei.cv{background:#f6ece4;color:#9a5a2a}.f-ei.pp{background:var(--pale);color:var(--mid)}
+.f-ev .tx{font-size:13.5px}
+.f-ev .tx b{font-weight:600}
+.f-ev .mt{display:flex;gap:8px;align-items:center;margin-top:3px;font-size:11.5px;color:var(--mid)}
+.f-ec{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--rule);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600;color:var(--mid);background:#fff}
+.f-ec .ico{width:11px;height:11px}
+.f-ev .tm{font-size:12px;color:var(--mid);text-align:right;white-space:nowrap}
+.f-ev .go{color:var(--muted)}
+.f-tl .f-ev:not(:last-child):after{content:'';position:absolute;left:36px;top:40px;bottom:-9px;width:2px;background:var(--pale)}
+.f-ev{padding:9px 14px;grid-template-columns:30px 1fr auto;gap:10px}.f-dh{padding:12px 14px 4px}.f-ev .tx{font-size:13px}.f-tl .f-ev:not(:last-child):after{left:28px}
+.f-mtabs{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin:10px -16px 0;padding:0 16px 10px;border-bottom:1px solid var(--rule)}
+.f-mtabs .more{color:var(--muted);font-size:12px;align-self:center}
+</style></head><body data-active="/admin/projects">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<span class="link" style="font-size:13px">&larr; Back to projects</span>
+<h1 style="margin-top:6px">Mbala Residence</h1><p class="sub">Claire Mbala &middot; Jalla Verify &middot; Douala</p>
+<p style="font-size:12.5px;margin-top:6px"><i class="dotc" style="background:var(--complete)"></i> Active &middot; Stage 5 of 10 &middot; <span style="color:var(--held);font-weight:600">Under review</span></p>
+<div class="scrollx"><span class="btn o s">Assign verifier</span><span class="btn o s">Jalla message</span><span class="btn o s"><span style="color:#25D366">&#9679;</span> WhatsApp &#9662;</span><span class="btn o s">Homeowner view</span></div>
+<div class="f-mtabs"><span class="chip">Conversations</span><span class="chip on">Activity</span><span class="chip">Team</span></div>
+<div class="scrollx"><span class="chip on">All <b>48</b></span><span class="chip">Stage <b>9</b></span><span class="chip">Verification <b>6</b></span><span class="chip">Payment <b>19</b></span></div><div class="f-tl" style="margin-top:12px"><p class="f-dh">Today</p><div class="f-ev"><span class="f-ei su"><svg class="ico" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><div><p class="tx"><b>Bob Ousmane</b> submitted a site update</p><p class="mt"><span class="f-ec">Site update 5<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></p></div><span class="tm" title="">3h</span></div><div class="f-ev"><span class="f-ei pm"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span><div><p class="tx"><b>Claire Mbala</b> uploaded a payment receipt <span class="f-mut">&middot; $5,000</span></p><p class="mt"><span class="f-ec">Payment 5<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></p></div><span class="tm" title="">5h</span></div><p class="f-dh">Yesterday</p><div class="f-ev"><span class="f-ei pm"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span><div><p class="tx"><b>Bob Ousmane</b> confirmed a receipt and authorized work on its stage <span class="f-mut">&middot; $6,667</span></p><p class="mt"><span class="f-ec">Payment 5<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></p></div><span class="tm" title="">1d</span></div><div class="f-ev"><span class="f-ei vf"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><div><p class="tx"><b>Ruth</b> requested a verification <span class="f-mut">&middot; Vanessa G.</span></p><p class="mt"><span class="f-ec">Verification 5<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></p></div><span class="tm" title="">1d</span></div><div class="f-ev"><span class="f-ei pm"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span><div><p class="tx"><b>Ruth</b> confirmed funding received <span class="f-mut">&middot; $1,667</span></p><p class="mt"><span class="f-ec">Payment 5<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></p></div><span class="tm" title="">1d</span></div></div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script></body></html>

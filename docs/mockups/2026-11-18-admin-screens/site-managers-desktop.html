@@ -1,0 +1,47 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Site Managers · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-e{margin-top:22px;display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.b-em{background:#fff;border:1.5px dashed var(--rule);border-radius:18px;padding:34px 36px}
+.b-ic{width:52px;height:52px;border-radius:14px;background:var(--pale);display:grid;place-items:center;color:var(--mid)}
+.b-ic .ico{width:24px;height:24px}
+.b-em h2{font-size:20px;font-weight:800;margin-top:16px}
+.b-em p.b{font-size:13.5px;color:var(--mid);margin-top:6px;line-height:1.55;max-width:560px}
+.b-will{margin-top:20px;display:grid;gap:10px}
+.b-will div{display:flex;gap:10px;font-size:13px;line-height:1.45}
+.b-will i{width:22px;height:22px;border-radius:7px;background:#e9f0ec;color:var(--green);display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;flex-shrink:0}
+.b-ghost{margin-top:22px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;opacity:.55}
+.b-ghost div{height:38px;border-top:1px solid var(--rule);display:flex;align-items:center;gap:12px;padding:0 14px}
+.b-ghost div:first-child{border-top:0;background:var(--canvas);height:30px}
+.b-ghost span{height:8px;border-radius:9px;background:var(--pale)}
+.b-side{display:grid;gap:12px;align-content:start}
+.b-side .card{padding:16px 18px}
+.b-side h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.b-lk{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--rule);font-size:13px}
+.b-lk:first-of-type{border-top:0}
+.b-lk small{display:block;color:var(--mid);font-size:11.5px}
+</style></head><body data-active="/admin/site-managers">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · <b>Site Managers</b></p>
+  <div class="ph2"><div><h1>Site Managers</h1><p class="lead">This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.</p></div><div class="acts"><span class="tag mute" style="font-size:12px;padding:5px 12px">Not built yet</span></div></div>
+  <div class="b-e">
+   <section class="b-em">
+    <div class="b-ic"><svg class="ico" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 21c1-4 4-6 7-6M18 15v6M15 18h6"/></svg></div>
+    <h2>No site managers yet</h2>
+    <p class="b">A site manager is not a role in Groundwork today — no account, table or assignment records one. Budgets already price a site manager per month of build, so the work is real; who does it is not recorded anywhere yet.</p>
+    <div class="b-will"><div><i>1</i><span>Who is on site for each project, and since when.</span></div><div><i>2</i><span>The site manager line on each budget, beside the person it pays for.</span></div><div><i>3</i><span>Site updates and inspections they file, and when they last visited.</span></div></div>
+    <div class="b-ghost"><div><span style="width:90px"></span><span style="width:70px"></span><span style="width:60px;margin-left:auto"></span></div><div><span style="width:160px"></span><span style="width:90px"></span><span style="width:50px;margin-left:auto"></span></div><div><span style="width:130px"></span><span style="width:110px"></span><span style="width:50px;margin-left:auto"></span></div></div>
+   </section>
+   <aside class="b-side"><div class="card"><h3>Where this lives today</h3><div style="margin-top:6px"><div class="b-lk"><div><b>Projects</b><small>Each workspace’s Team tab lists who is on a build</small></div><span>→</span></div><div class="b-lk"><div><b>Budgets &amp; fees</b><small>The site manager fee line, per month of build</small></div><span>→</span></div><div class="b-lk"><div><b>Site Updates</b><small>Evidence filed from site, by whoever filed it</small></div><span>→</span></div></div></div><div class="card"><h3>To build this page</h3><p style="font-size:12.5px;color:var(--mid);margin-top:8px;line-height:1.5">Needs a site-manager role (or assignment) on a project. Until then this page stays empty rather than guessing from names.</p></div></aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

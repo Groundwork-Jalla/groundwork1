@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Verifiers · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.b-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.b-t{margin-top:12px;overflow:hidden}
+.b-h,.b-r{display:grid;grid-template-columns:1.6fr 1.1fr 1.5fr 104px 70px 70px 70px 120px;gap:12px;align-items:center;padding:11px 16px}
+.b-h{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;background:var(--canvas);border-bottom:1px solid var(--rule)}
+.b-h .n,.b-r .n{text-align:right}
+.b-r{border-top:1px solid var(--rule);font-size:13px}
+.b-r:nth-child(2){border-top:0}
+.b-h>span:last-child,.b-r>span:last-child{padding-left:14px}
+.b-r small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.b-r .nm{font-weight:700;font-size:13.5px}
+.b-r .n{font-family:var(--mono);font-weight:600}
+.b-r .m{color:var(--mid);font-size:12.5px}
+.b-who{display:flex;gap:10px;align-items:center}
+.b-ds{display:flex;gap:4px;flex-wrap:wrap}
+.b-ds span{font-size:11px;border:1px solid var(--rule);border-radius:7px;padding:1px 7px;color:var(--mid);background:#fff}
+.b-held{color:var(--held)}
+.b-ft{padding:10px 16px;border-top:1px solid var(--rule);font-size:12px;color:var(--mid);display:flex;justify-content:space-between}
+</style></head><body data-active="/admin/verifiers">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">People · <b>Verifiers</b></p>
+  <div class="ph2"><div><h1>Verifiers</h1><p class="lead">Who can verify, in what discipline, and what they are carrying now.</p></div>
+   <div class="acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Invite a verifier</span></div></div>
+
+  <div class="b-k">
+   <div class="stat"><p class="l">Verifier accounts</p><p class="v">7</p><p class="d">5 with a verifier profile</p></div>
+   <div class="stat"><p class="l">Available</p><p class="v">4</p><p class="d">2 unavailable · 1 no profile</p></div>
+   <div class="stat"><p class="l">Pending</p><p class="v" style="color:var(--held)">9</p><p class="d">stage findings awaited</p></div>
+   <div class="stat"><p class="l">Decided</p><p class="v">63</p><p class="d">last decision 2 hours ago</p></div>
+  </div>
+
+  <div class="b-bar">
+   <span class="seg"><span class="on">All · 7</span><span>Available · 4</span><span>Carrying pending · 4</span></span>
+   <span class="field lg"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search name, city or discipline</span>
+  </div>
+
+  <section class="card b-t">
+   <div class="b-h"><span>Verifier</span><span>Registration</span><span>Disciplines</span><span>Status</span><span class="n">Projects</span><span class="n">Pending</span><span class="n">Decided</span><span>Last decision</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c1 sm">AN</div><div><p class="nm">Eng. Alain Nkwenti</p><small>a.nkwenti@mail.cm · Douala</small></div></div><span class="m">ONIGC 1187</span><div class="b-ds"><span>Structural</span><span>Foundations</span></div><span class="tag ok"><i></i>Available</span><span class="n">4</span><span class="n b-held">3</span><span class="n">21</span><span class="m">2 hours ago</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c3 sm">CE</div><div><p class="nm">Eng. Carine Etoga</p><small>c.etoga@mail.cm · Yaoundé</small></div></div><span class="m">ONIGC 0942</span><div class="b-ds"><span>Electrical</span><span>MEP</span></div><span class="tag ok"><i></i>Available</span><span class="n">3</span><span class="n b-held">2</span><span class="n">17</span><span class="m">yesterday</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c5 sm">PM</div><div><p class="nm">Eng. Patrick Mbah</p><small>p.mbah@mail.cm · Bamenda</small></div></div><span class="m">ONIGC 1310</span><div class="b-ds"><span>Structural</span><span>Roofing</span></div><span class="tag ok"><i></i>Available</span><span class="n">2</span><span class="n b-held">2</span><span class="n">12</span><span class="m">3 days ago</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c2 sm">SE</div><div><p class="nm">Eng. Solange Eyong</p><small>s.eyong@mail.cm · Buea</small></div></div><span class="m">ONIGC 1402</span><div class="b-ds"><span>Plumbing</span></div><span class="tag ok"><i></i>Available</span><span class="n">1</span><span class="n b-held">2</span><span class="n">9</span><span class="m">last week</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c6 sm">JT</div><div><p class="nm">Eng. Jules Tchinda</p><small>j.tchinda@mail.cm · Limbe</small></div></div><span class="m">ONIGC 0715</span><div class="b-ds"><span>Structural</span></div><span class="tag mute"><i></i>Unavailable</span><span class="n">0</span><span class="n">0</span><span class="n">4</span><span class="m">last month</span></div>
+   <div class="b-r"><div class="b-who"><div class="av c4 sm">RB</div><div><p class="nm">Eng. Rita Bih</p><small>r.bih@mail.cm · Douala</small></div></div><span class="m">—</span><span class="m">No discipline recorded</span><span class="tag mute"><i></i>Unavailable</span><span class="n">0</span><span class="n">0</span><span class="n">0</span><span class="m">No verification recorded yet</span></div>
+   <div class="b-r"><div class="b-who"><div class="av sm">ND</div><div><p class="nm">n.djoum@mail.cm</p><small>&nbsp;</small></div></div><span class="m">—</span><span class="m" style="grid-column:span 2">No verifier profile yet — they hold the role but have recorded no disciplines.</span><span class="n">0</span><span class="n">0</span><span class="n">0</span><span class="m">No verification recorded yet</span></div>
+   <div class="b-ft"><span>Pending = stage findings waiting on this verifier. Projects = active projects they are on.</span><span>Assign from a project workspace →</span></div>
+  </section>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

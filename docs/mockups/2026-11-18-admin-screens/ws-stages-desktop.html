@@ -1,0 +1,203 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin &middot; Project workspace &middot; Stages &middot; desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1270px;overflow:hidden;position:relative}
+.app{height:1270px}
+
+.wh{background:#fff;border-bottom:1px solid var(--rule);padding:16px 28px 0}
+.back{font-size:13px;color:var(--green);font-weight:600}
+.wh h1{font-family:var(--sans);font-size:26px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+.facts{display:flex;gap:22px;font-size:12.5px;color:var(--mid);margin-top:6px}.facts b{color:var(--ink);font-weight:600}
+.status{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--mid);margin-top:8px;flex-wrap:wrap}
+.lc{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#f4eee2;color:var(--held)}
+.wacts{display:flex;gap:6px;flex-shrink:0}
+.wa{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:7px 11px;font-weight:600;font-size:13px;border:1px solid var(--rule);background:#fff}
+.wtabs{display:flex;gap:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.wtabs span{padding:10px 0}.wtabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.42)}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+.f-lad .it{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--rule);font-size:13px}
+.f-lad .it.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.f-lad .it small{display:block;font-size:11px;color:var(--mid);margin-top:1px}
+.f-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600}
+.f-n.d{background:var(--green);color:#fff}.f-n.a{border:2px solid var(--held);color:var(--held)}.f-n.l{border:1px solid var(--rule);color:var(--muted)}
+.f-n .ico{width:12px;height:12px;stroke-width:3}
+.f-amt{font-family:var(--mono);font-size:11.5px;color:var(--mid)}
+/* stepper */
+.f-rail{display:grid;grid-template-columns:repeat(6,1fr);padding:6px 18px 18px;position:relative}
+.f-st{position:relative;padding-top:2px}
+.f-st:before{content:'';position:absolute;top:15px;left:30px;right:-2px;height:2px;background:var(--rule)}
+.f-st:last-child:before{display:none}
+.f-st.done:before{background:var(--green)}
+.f-st .c{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;position:relative;z-index:1;background:#fff;border:1.5px solid var(--rule);color:var(--muted)}
+.f-st.done .c{background:var(--green);border-color:var(--green);color:#fff}
+.f-st.now .c{border:2px solid var(--held);color:var(--held);box-shadow:0 0 0 4px #f4eee2}
+.f-st.blk .c{background:var(--pale);color:var(--muted)}
+.f-st.part .c{border:2px solid var(--held);color:var(--held);background:conic-gradient(#f4eee2 0 70%,#fff 70% 100%)}
+.f-st .c .ico{width:14px;height:14px;stroke-width:2.6}
+.f-st h4{font-size:12.5px;font-weight:700;margin-top:9px}
+.f-st p{font-size:11.5px;color:var(--mid);margin-top:2px;line-height:1.35;padding-right:10px}
+.f-st.now h4{color:var(--held)}
+/* next action */
+.f-next{margin:0 18px 18px;border:1.5px solid var(--green);border-radius:14px;background:#f3f6f4;padding:14px 16px}
+.f-next h3{font-size:14.5px;font-weight:700}
+.f-next .acts{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.f-next .f-lock{margin-top:10px;background:#fff}
+.f-steps{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+.f-sc{padding:14px 18px;border-bottom:1px solid var(--rule)}
+.f-sc:nth-child(odd){border-right:1px solid var(--rule)}
+.f-sc:nth-last-child(-n+2){border-bottom:0}
+.f-sc .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.f-sc .hd b{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.f-sc .hd i{font-style:normal;font-family:var(--mono);font-size:10.5px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--rule);color:var(--mid)}
+.f-sc .hd .tag{margin-left:auto}
+.f-sub3{display:grid;grid-template-columns:auto 1fr auto;gap:6px 9px;align-items:center;font-size:12.5px}
+.f-ev{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.f-ev .f-thumb{height:46px}
+.f-vr{font-size:12.5px;padding:8px 0;border-top:1px dashed var(--rule)}
+.f-vr:first-of-type{border-top:0;padding-top:0}
+.f-vr small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-vr q{display:block;font-size:12px;margin-top:4px;padding:6px 9px;background:var(--canvas);border-radius:8px;quotes:none}
+.f-vr em{display:block;font-size:11.5px;color:var(--mid);margin-top:3px}
+.f-fb{height:8px;border-radius:9px;background:var(--pale);overflow:hidden;display:flex;margin:6px 0 8px}
+.f-fb i{display:block;height:100%}
+.f-pt span{white-space:nowrap}.f-pt{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;font-size:12px;align-items:center}
+
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="wh">
+  <span class="back">&larr; Back to projects</span>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+   <div>
+    <h1>Mbala Residence</h1>
+    <div class="facts"><span>Homeowner <b>Claire Mbala</b></span><span>Plan <b>Jalla Verify</b></span><span>Location <b>Douala, Cameroon</b></span></div>
+    <div class="status"><span style="display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-weight:600"><i class="dotc" style="background:var(--complete)"></i>Active</span><span>Stage 5 of 10 &middot; Structure &amp; walls</span><span>Tracking since 30 Oct 2026</span><span>Last activity 2 h ago</span><span class="lc">Under review</span></div>
+   </div>
+   <div class="wacts">
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Assign verifier</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Jalla message</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24" style="color:#25D366"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg>WhatsApp &#9662;</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open homeowner view</span>
+   </div>
+  </div>
+  <div class="wtabs"><span>Overview</span><span class="on">Stages</span><span>Financials</span><span>Site updates</span><span>Documents</span><span>Conversations</span><span>Activity</span><span>Team</span></div>
+ </div>
+ <div class="f-body">
+<div class="f-wrap">
+ <section class="card f-lad">
+  <div class="f-h"><h2>Stages</h2><span class="f-xs f-mut">4 of 10 complete</span></div>
+  <div style="padding:8px 16px 12px"><div class="bar5"><i style="width:40%"></i></div></div>
+  <div class="it"><span class="f-n d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><span style="">Land secured</span><small><span class="tag ok" style="padding:0 7px;font-size:10.5px">Release authorised</span></small></span><span class="f-amt">$5,000</span></div><div class="it"><span class="f-n d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><span style="">Design completed</span><small><span class="tag ok" style="padding:0 7px;font-size:10.5px">Release authorised</span></small></span><span class="f-amt">$6,000</span></div><div class="it"><span class="f-n d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><span style="">Site preparation</span><small><span class="tag ok" style="padding:0 7px;font-size:10.5px">Release authorised</span></small></span><span class="f-amt">$4,000</span></div><div class="it"><span class="f-n d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><span style="">Foundation</span><small><span class="tag ok" style="padding:0 7px;font-size:10.5px">Release authorised</span></small></span><span class="f-amt">$12,667</span></div><div class="it on"><span class="f-n a">5</span><span><span style="font-weight:700">Structure &amp; walls</span><small><span class="tag warn" style="padding:0 7px;font-size:10.5px">Verification pending</span></small></span><span class="f-amt">$16,667</span></div><div class="it"><span class="f-n l">6</span><span><span style="color:var(--mid)">Roofing</span><small><span class="tag mute" style="padding:0 7px;font-size:10.5px">Locked</span></small></span><span class="f-amt">$14,000</span></div><div class="it"><span class="f-n l">7</span><span><span style="color:var(--mid)">Electrical &amp; plumbing</span><small><span class="tag mute" style="padding:0 7px;font-size:10.5px">Locked</span></small></span><span class="f-amt">$13,000</span></div><div class="it"><span class="f-n l">8</span><span><span style="color:var(--mid)">Finishing</span><small><span class="tag mute" style="padding:0 7px;font-size:10.5px">Locked</span></small></span><span class="f-amt">$15,000</span></div><div class="it"><span class="f-n l">9</span><span><span style="color:var(--mid)">Exterior work</span><small><span class="tag mute" style="padding:0 7px;font-size:10.5px">Locked</span></small></span><span class="f-amt">$8,666</span></div><div class="it"><span class="f-n l">10</span><span><span style="color:var(--mid)">Final handover</span><small><span class="tag mute" style="padding:0 7px;font-size:10.5px">Locked</span></small></span><span class="f-amt">$5,000</span></div>
+ </section>
+ <section class="card">
+  <div class="f-h" style="align-items:flex-start;padding-top:16px">
+   <div><p class="f-eyebrow">Stage 5</p>
+    <h2 style="font-size:20px;font-family:var(--sans);font-weight:800;margin-top:2px">Structure &amp; walls</h2>
+    <div class="f-row" style="margin-top:6px;flex-wrap:wrap"><span class="tag warn"><i></i>Verification pending</span><span class="f-xs f-mut">Awaiting funding</span><span class="f-xs f-mut">Milestone <b class="f-num" style="color:var(--ink)">$16,667</b> &middot; 10,000,000 XAF</span></div></div>
+   <span class="link f-sm">Open in Overview</span>
+  </div>
+  <div class="f-rail">
+   <div class="f-st done"><div class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div><h4>Work</h4><p>Submitted for review</p></div>
+   <div class="f-st done"><div class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div><h4>Evidence</h4><p>6 files &middot; 2 updates</p></div>
+   <div class="f-st now"><div class="c">3</div><h4>Verification</h4><p>Pending &middot; Vanessa G.</p></div>
+   <div class="f-st blk"><div class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h4>Approval</h4><p>Locked until verified</p></div>
+   <div class="f-st part"><div class="c">5</div><h4>Funding</h4><p>$11,667 of $16,667 received</p></div>
+   <div class="f-st"><div class="c">6</div><h4>Release</h4><p>No release recorded.</p></div>
+  </div><div class="f-next">
+   <p class="f-eyebrow" style="color:var(--green)">Next action</p>
+   <h3 style="margin-top:3px">Vanessa G. has an open verification on this stage</h3>
+   <p class="f-sm f-mut" style="margin-top:3px">Requested by Ruth &middot; 1 d ago. If she gave her decision by phone or message, record it on her behalf.</p>
+   <div class="acts">
+    <span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Record the verifier&rsquo;s decision</span>
+    <span class="btn o">Request changes</span>
+   </div>
+   <div class="f-lock"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span><b>Approve stage</b> &mdash; Approval is locked until the verifier&rsquo;s decision is &ldquo;verified&rdquo;.</span></div>
+  </div><div class="f-steps">
+   <div class="f-sc"><div class="hd"><i>1</i><b>Work</b><span class="tag warn">1 under review</span></div>
+    <div class="f-sub3">
+     <span class="f-dot ok"></span><span>Columns and ring beam</span><span class="f-xs f-mut">Complete</span>
+     <span class="f-dot ok"></span><span>Blockwork to lintel</span><span class="f-xs f-mut">Complete</span>
+     <span class="f-dot warn"></span><span>Lintel and upper blockwork</span><span class="f-xs f-mut">Under review</span>
+    </div></div>
+   <div class="f-sc"><div class="hd"><i>2</i><b>Evidence</b><span class="f-xs f-mut" style="margin-left:auto">6 files &middot; open in a new tab</span></div>
+    <div class="f-ev"><div class="f-thumb"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t2"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t3"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t4"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb t5"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div><div class="f-thumb un" title="ring-beam-old.jpg"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20 16l-5-5-8 8"/></svg></div></div>
+    <p class="f-xs f-mut" style="margin-top:8px"><b style="color:var(--ink);font-weight:600">Bob Ousmane</b> &middot; 3 h ago &middot; Upper blockwork started on the north side.</p>
+    <p class="f-xs f-mut" style="margin-top:3px"><b style="color:var(--ink);font-weight:600">Bob Ousmane</b> &middot; 2 d ago &middot; Ring beam cast, curing under wet sacks.</p></div>
+   <div class="f-sc"><div class="hd"><i>3</i><b>Verification</b><span class="tag warn">Pending</span></div>
+    <div class="f-vr"><span style="color:var(--held);font-weight:600">Pending</span> &middot; Vanessa G. &middot; <span class="f-mut">1 d ago</span>
+     <small>Requested by Ruth &middot; 1 d ago &middot; Site not visited yet</small></div>
+    <div class="f-vr"><span style="color:var(--alert);font-weight:600">Needs more evidence</span> &middot; Vanessa G. &middot; <span class="f-mut">4 d ago</span>
+     <small>Requested by Ruth &middot; 6 d ago &middot; Site visited 14 Nov 2026</small>
+     <q>Close-up photos of the ring-beam reinforcement before the pour, please.</q>
+     <em>recorded by Ruth on their behalf: decision given by phone after reviewing the photos</em></div></div>
+   <div class="f-sc"><div class="hd"><i>4</i><b>Approval</b><span class="tag mute"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg> Locked</span></div>
+    <p class="f-sm f-mut">Approval is locked until the verifier&rsquo;s decision is &ldquo;verified&rdquo;.</p></div>
+   <div class="f-sc"><div class="hd"><i>5</i><b>Funding</b><span class="tag warn">awaiting funding</span></div>
+    <p class="f-sm"><b class="f-num">$16,667</b> <span class="f-mut">milestone &middot; 10,000,000 XAF</span></p>
+    <div class="f-fb"><i style="width:70%;background:var(--green)"></i></div>
+    <div class="f-pt">
+     <span class="f-dot ok"></span><span>Part 1 &middot; <span class="f-num">$3,333</span> &middot; Received</span><span class="f-xs f-mut">confirmed by Ruth &middot; 12 d ago</span>
+     <span class="f-dot ok"></span><span>Part 2 &middot; <span class="f-num">$6,667</span> &middot; Received</span><span class="f-xs f-mut">confirmed by Bob Ousmane &middot; 1 d ago</span>
+     <span class="f-dot ok"></span><span>Part 3 &middot; <span class="f-num">$1,667</span> &middot; Received</span><span class="f-xs f-mut">confirmed by Ruth &middot; 1 d ago</span>
+     <span class="f-dot warn"></span><span>Part 4 &middot; <span class="f-num">$5,000</span> &middot; Expected</span><span class="link f-xs">Open in Financials</span>
+    </div></div>
+   <div class="f-sc"><div class="hd"><i>6</i><b>Release</b><span class="tag mute">Not yet</span></div>
+    <p class="f-sm f-mut">No release recorded.</p>
+    <p class="f-xs f-mut" style="margin-top:6px">Authorise release appears here once the stage is approved and owes something; the database re-checks before it records anything.</p></div>
+  </div>
+ </section>
+</div>
+ </div>
+</div>
+</div>
+
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

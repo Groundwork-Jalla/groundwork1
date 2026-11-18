@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Communications · settings</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1200px;overflow:hidden;position:relative}
+.app{height:1200px}
+
+.c-health{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.c-pill{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mid)}
+.c-pill b{color:var(--ink);font-weight:600}
+.c-pill.warn{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.c-pill.bad{border-color:#e6c9ce;background:#fbf6f7;color:var(--alert)}
+.c-tabs{margin-top:16px}
+.c-tabs span{cursor:pointer}
+.c-h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;color:var(--ink);display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
+.c-sel:after{content:'';width:6px;height:6px;border-right:1.5px solid var(--mid);border-bottom:1.5px solid var(--mid);transform:rotate(45deg);margin:-3px 0 0 4px}
+.c-in{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink)}
+.c-lab{font-size:11.5px;font-weight:600;color:var(--mid);display:block;margin-bottom:4px}
+
+
+.st-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;align-items:start}
+.st-f{padding:18px}
+.st-f .form{gap:11px;margin-top:12px}
+.st-c{padding:16px 18px}
+.st-ck{display:grid;grid-template-columns:118px 1fr;gap:4px 10px;padding:9px 0;border-top:1px solid var(--rule);font-size:12.5px}
+.st-ck .tag{justify-self:start}.st-ck small{grid-column:2;color:var(--mid);font-size:11.5px}
+
+</style></head><body data-active="/admin/sequences">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Communications</b></div>
+  <div class="ph2"><div><h1>Communications</h1><p class="lead">Manage activation reminders, conversations and staff follow-up. Review each journey and test with selected recipients before enabling wider delivery.</p></div>
+   <div class="acts"><span class="btn o">Preview due messages</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 5l12 7-12 7z"/></svg>Run due now</span></div></div>
+  <div class="c-health">
+    <span class="c-pill warn"><span class="dotc" style="background:var(--held)"></span>Communication delivery is paused. <span class="link" style="font-size:12.5px">Settings</span></span>
+    <span class="c-pill"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last background run: <b>18/11/2026, 09:00</b> · completed</span>
+    </div>
+  <div class="tabs2 c-tabs"><span class="">Needs attention<b>7</b></span><span class="">Tracking and recovery</span><span class="">Journeys</span><span class="">Sequences</span><span class="">Send log</span><span class="">Inbox</span><span class="">WhatsApp</span><span class="on">Settings</span></div>
+  <div class="st-wrap">
+ <section class="card st-f">
+  <h2 style="font-size:16px;font-weight:700">Communication settings</h2>
+  <p class="hint" style="margin-top:4px">Groundwork manages activation and follow-up. Configure a verified sending address and a domain that receives replies before enabling delivery.</p>
+  <div class="form">
+   <div style="display:flex;justify-content:space-between;align-items:center;background:#fbf8f2;border:1px solid #e5d6b8;border-radius:12px;padding:10px 12px"><span style="font-size:13px;font-weight:600">Enable communication delivery</span><span class="switch"></span></div>
+   <label>Sender name<div class="in">Groundwork by Jalla</div></label>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label>Welcome sender email<div class="in">hello@groundwork.cm</div></label><label>Follow-up sender email<div class="in">team@groundwork.cm</div></label></div>
+   <label>Partner application sender email<div class="in">partners@groundwork.cm</div></label>
+   <label>Domain for incoming replies<div class="in">reply.groundwork.cm</div><span class="hint" style="font-weight:400;display:block;margin-top:4px">Configure this domain to receive email through Resend and connect its signed webhook to Groundwork. Sending domains must also be verified.</span></label>
+   <label>Test recipients<div class="in" style="height:62px">ruth@groundwork.cm<br>kevin.ayuk@groundwork.cm</div><span class="hint" style="font-weight:400;display:block;margin-top:4px">One email per line. While this list has entries, only these recipients can receive messages. An empty list allows all eligible recipients.</span></label>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label>Default follow-up owner<div class="in c-sel" style="display:flex;justify-content:space-between">Ruth Ndongo</div></label><label>Default hours until the next contact<div class="in">48</div></label></div>
+   <span class="btn g" style="justify-self:start">Save communication settings</span>
+  </div>
+ </section>
+ <div style="display:flex;flex-direction:column;gap:14px">
+  <section class="card st-c" style="border-color:#e6c9ce">
+   <h3 style="font-size:14px;font-weight:700;color:var(--alert)">Incoming email needs attention</h3>
+   <p style="font-size:12.5px;margin-top:6px">The email provider could not supply an incoming message. Check that the API key permits reading received email. <span class="hint">17/11/2026, 22:14</span></p>
+  </section>
+  <section class="card st-c">
+   <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-size:14px;font-weight:700">Email setup checks</h3><span class="btn o s">Check email setup</span></div>
+   <p class="hint" style="margin-top:4px">Check the saved settings against Resend. This reads configuration without sending messages or changing delivery settings.</p>
+   <p class="hint" style="margin-top:8px">Checked 18/11/2026, 09:31</p>
+   <div style="margin-top:6px">
+    <div class="st-ck"><span class="tag ok">Confirmed</span><b>Communication database</b><small>The required communication tables and fields are installed.</small></div>
+    <div class="st-ck"><span class="tag ok">Confirmed</span><b>Sending domains</b><small>Resend confirms these domains are verified and sending is enabled. (groundwork.cm)</small></div>
+    <div class="st-ck"><span class="tag bad">Setup needed</span><b>Reply domain</b><small>Enable receiving for the saved reply domain and verify its receiving MX record in Resend.</small></div>
+    <div class="st-ck"><span class="tag ok">Confirmed</span><b>Incoming email access</b><small>The server key permits the incoming-email lookup used by Groundwork.</small></div>
+    <div class="st-ck"><span class="tag ok">Confirmed</span><b>Webhook subscription</b><small>An enabled webhook matches the application URL and includes all required events.</small></div>
+    <div class="st-ck"><span class="tag mute">Check incomplete</span><b>Webhook signing secret</b><small>A signing secret is stored. Confirm it with a real signed event from Resend.</small></div>
+   </div>
+   <p class="note held" style="margin-top:10px">Before enabling reminders, retire the old GHL activation workflows and test actual delivery, a signed webhook event and an incoming reply with the selected accounts.</p>
+  </section>
+  <section class="card st-c"><h3 style="font-size:14px;font-weight:700">Background run</h3><p style="font-size:12.5px;margin-top:6px">Last background run: 18/11/2026, 09:00 · completed</p><p class="hint" style="margin-top:4px">If a run fails: “A background run needs attention.” If none in 15 minutes: “No recent background run. Check Vercel’s scheduled job and its cron credentials.”</p></section>
+ </div>
+</div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

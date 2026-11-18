@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Budgets · authorise release dialog</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+iframe{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.a-ov{position:absolute;inset:0;background:rgba(10,10,10,.45);display:grid;place-items:center}
+.a-dlg{width:460px;background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.a-dlg h2{font-size:16.5px;font-weight:800;display:flex;justify-content:space-between}
+.a-dlg h2 span{color:var(--mid);font-weight:500}
+.a-dlg .b{font-size:12.5px;color:var(--mid);margin-top:6px;line-height:1.5}
+.form{margin-top:16px}
+.a-sel{display:flex;justify-content:space-between}
+.a-err{margin-top:12px;font-size:12.5px;color:var(--held);background:#fbf8f2;border-radius:10px;padding:9px 12px}
+.a-f{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.a-other{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px;font-size:11.5px;color:var(--mid);line-height:1.5}
+</style></head><body>
+<iframe src="budgets-desktop.html" style="transform:translateY(-640px);height:1600px"></iframe>
+<div class="a-ov"><div class="a-dlg">
+ <h2>Authorise a release<span>×</span></h2>
+ <p class="b">Release for stage 4 of Kouam house. The database re-checks that the stage is approved, verified where required, and funded before it records your authorisation.</p>
+ <div class="form">
+  <div><label>Amount (USD)</label><div class="in mono">6000</div></div>
+  <div><label>Beneficiary</label><div class="in a-sel">bob.ousmane@ousmanebtp.cm<span class="muted">▾</span></div></div>
+  <div><label>Reference or note (optional)</label><div class="in" style="color:var(--muted)">&nbsp;</div></div>
+ </div>
+ <p class="a-err">The project has not received enough funding for this release.</p>
+ <div class="a-f"><span class="btn o">Cancel</span><span class="btn g">Authorise release</span></div>
+ <p class="a-other">The same dialog serves the two other ledger acts on this page. <b>Confirm received</b>: "Confirm funding received" with the amount, stage and project, a note, and Confirm. <b>Open reconciliation</b>: marks a failed disbursement as under investigation, with a note.</p>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto;color:#ddd">Design concept · illustrative data</p>
+</body></html>

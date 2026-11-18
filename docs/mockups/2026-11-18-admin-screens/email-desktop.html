@@ -1,0 +1,121 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Email · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}.app{height:960px}
+.c-panes{display:grid;grid-template-columns:300px 1fr 268px;gap:0;margin-top:16px;height:764px;background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.c-list{border-right:1px solid var(--rule);display:flex;flex-direction:column;min-width:0}
+.c-lh{padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap}
+.c-lh .chip{padding:5px 10px;font-size:12px}
+.c-r{display:grid;grid-template-columns:8px 1fr auto;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule)}
+.c-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.c-r i{width:7px;height:7px;border-radius:50%;margin-top:6px}
+.c-r .pj{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-r .who{font-size:12px;color:var(--mid);margin-top:1px}
+.c-r .pv{font-size:12px;color:var(--ink);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:215px}
+.c-r .pv u{text-decoration:none;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid);margin-right:4px}
+.c-r .st{font-size:11px;color:var(--muted);margin-top:3px}
+.c-r .t{font-size:11px;color:var(--muted);white-space:nowrap}
+.c-th{display:flex;flex-direction:column;min-width:0;background:#fbfbfa}
+.c-thh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--rule);background:#fff}
+.c-thh h2{font-size:15px;font-weight:700}
+.c-thh .s{font-size:12px;color:var(--mid);margin-top:2px;display:flex;gap:6px;align-items:center}
+.c-sel{border:1px solid var(--rule);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:600;display:inline-flex;gap:6px;align-items:center;background:#fff}
+.c-msgs{flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.c-day{align-self:center;font-size:11px;color:var(--mid);background:var(--pale);border-radius:99px;padding:2px 10px}
+.c-b{max-width:78%;border-radius:16px;padding:9px 13px;font-size:13px;line-height:1.45}
+.c-b.in{background:#fff;border:1px solid var(--rule);align-self:flex-start;border-bottom-left-radius:5px}
+.c-b.out{background:var(--green);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+.c-b small{display:block;font-size:10.5px;margin-top:4px;color:var(--muted)}
+.c-b.out small{color:rgba(255,255,255,.65)}
+.c-note{border:1px dashed #d8c7a4;background:#fbf8f2;border-radius:10px;padding:8px 11px;font-size:12.5px}
+.c-note b{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--held);display:flex;gap:5px;align-items:center;margin-bottom:2px}
+.c-att{display:flex;width:fit-content;gap:8px;align-items:center;margin-top:6px;background:rgba(0,0,0,.04);border:1px solid var(--rule);border-radius:9px;padding:5px 8px;font-size:12px}
+.c-att .th{width:34px;height:26px;border-radius:5px;background:linear-gradient(135deg,#c9b89a,#8f7a5a)}
+.c-comp{border-top:1px solid var(--rule);padding:12px 16px;background:#fff}
+.c-ta{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);min-height:50px}
+.c-pend{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--rule);border-radius:8px;padding:3px 8px;font-size:11.5px;margin-top:8px}
+.c-ca{display:flex;align-items:center;gap:8px;margin-top:9px}
+.c-ib{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--mid);border:1px solid var(--rule)}
+.c-rail{border-left:1px solid var(--rule);padding:16px;overflow:hidden}
+.c-rail h4{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+.c-rail h4:first-child{margin-top:0}
+.c-kv{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0}.c-kv span:first-child{color:var(--mid)}
+.c-pc{border:1px solid var(--rule);border-radius:12px;padding:11px 12px}
+.c-pc b{font-size:13.5px}
+.c-pc p{font-size:12px;color:var(--mid);margin-top:2px}
+.c-stg{display:flex;gap:3px;margin-top:9px}.c-stg i{flex:1;height:5px;border-radius:3px;background:var(--pale)}.c-stg i.d{background:var(--green)}.c-stg i.c{background:#8fb39d}
+</style><style>
+.e-panes{grid-template-columns:360px 1fr}
+.e-r{padding:12px 16px;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:8px 1fr;gap:10px}
+.e-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.e-r i{width:7px;height:7px;border-radius:50%;margin-top:6px}
+.e-r .top1{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mid)}
+.e-r .top1 b{color:var(--ink);font-weight:600}
+.e-r .sj{font-size:13.5px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.e-r .pv{font-size:12px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.e-r .ln{font-size:11px;color:var(--muted);margin-top:4px}
+.e-head{padding:16px 22px 12px;border-bottom:1px solid var(--rule);background:#fff}
+.e-head h2{font-size:19px;font-weight:800;letter-spacing:-.2px}
+.e-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px}
+.e-ctx{display:flex;gap:14px;align-items:center;padding:9px 22px;border-bottom:1px solid var(--rule);background:#fbfbfa;font-size:12.5px}
+.e-ctx .k{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.e-body{flex:1;padding:14px 22px;overflow:hidden;display:flex;flex-direction:column;gap:10px;background:#fbfbfa}
+.e-m{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
+.e-m .h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
+.e-m .h .who{display:flex;gap:9px;align-items:center}
+.e-m .h small{display:block;color:var(--mid);font-size:11.5px}
+.e-m .tx{font-size:13px;line-height:1.55;margin-top:9px;color:#222}
+.e-m.out{border-left:3px solid var(--green)}
+.e-m.coll{padding:9px 14px;color:var(--mid);font-size:12.5px}
+</style></head><body data-active="/admin/inbox?channel=email">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Email</h1><p class="lead">Email threads with homeowners, by subject.</p></div>
+   
+  </div>
+  <div class="c-panes e-panes">
+   <div class="c-list">
+    <div class="c-lh"><span class="chip on">All <b>11</b></span><span class="chip">Needs reply <b>2</b></span><span class="chip">Waiting on them</span><span class="chip">Resolved</span></div>
+    <div class="e-r on"><i style="background:var(--held)"></i><div style="min-width:0"><div class="top1"><b>Ama Kouam</b><span>09:12</span></div><div class="sj">Invoice for part 3 — Kouam house</div><div class="pv">Please find the bank slip attached. Is this enough for…</div><div class="ln">Waiting on us · Unassigned · Kouam house</div></div></div>
+    <div class="e-r"><i style="background:var(--held)"></i><div style="min-width:0"><div class="top1"><b>Didier Mballa</b><span>Yesterday</span></div><div class="sj">Question about the Jalla Verify plan</div><div class="pv">Hello, before I sign up I would like to know if the…</div><div class="ln">Waiting on us · Ruth</div></div></div>
+    <div class="e-r"><i style="background:var(--muted)"></i><div style="min-width:0"><div class="top1"><b>Joseph Tabe</b><span>Mon</span></div><div class="sj">Re: Your budget is confirmed</div><div class="pv"><span style="font-size:10px;font-weight:700;text-transform:uppercase">You:</span> Stage 1 is ready; here is what happens next…</div><div class="ln">Waiting on them · Bob · Tabe duplex</div></div></div>
+    <div class="e-r"><i style="background:#2a6f9e"></i><div style="min-width:0"><div class="top1"><b>Unidentified sender</b><span>Sun</span></div><div class="sj">Building in Limbe</div><div class="pv">Good day, I saw your page and want a quote for a…</div><div class="ln">Open · No project yet</div></div></div>
+    <div class="e-r"><i style="background:var(--complete)"></i><div style="min-width:0"><div class="top1"><b>Grace Ewane</b><span>12 Nov</span></div><div class="sj">Change of email address</div><div class="pv"><span style="font-size:10px;font-weight:700;text-transform:uppercase">Internal note:</span> Updated in Users.</div><div class="ln">Resolved</div></div></div>
+   </div>
+   <div class="c-th">
+    <div class="e-head">
+     <h2>Invoice for part 3 — Kouam house</h2>
+     <div class="e-meta"><div class="s" style="font-size:12px;color:var(--mid);display:flex;gap:6px;align-items:center"><span class="dotc" style="background:var(--held)"></span>Waiting on us · Email · Ama Kouam, ama.kouam@mail.cm</div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="c-sel">Unassigned <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="btn o s" style="opacity:.45">Assign</span><span class="btn o s"><svg class="ico" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>Resolve</span></div></div>
+    </div>
+    <div class="e-ctx"><span class="k">Account project</span><b>Kouam house</b><span class="muted">Stage 3 · Active · Buea, CM</span><span class="link" style="font-size:12.5px">Open project</span><span class="btn o s" style="margin-left:auto">This conversation is about this</span></div>
+    <div class="e-body">
+     <div class="e-m coll"><b style="color:var(--ink)">Ama Kouam</b> · 15 Nov — Good morning, when will you send the invoice for part 3?</div>
+     <div class="e-m out coll"><b style="color:var(--ink)">Bob · Groundwork</b> · 15 Nov — Here it is, the amount is the stage 3 share of the bill…</div>
+     <div class="e-m"><div class="h"><div class="who"><div class="av sm c2">AK</div><div><b>Ama Kouam</b><small>to Groundwork</small></div></div><span class="muted" style="font-size:11.5px">Today 09:12</span></div>
+      <div class="tx">Hello Bob,<br>Please find the bank slip attached. Is this enough for the release of part 3, or do you also need the receipt from the bank agent in Buea?<br>Thank you, Ama</div>
+      <div class="c-att"><span class="th" style="background:linear-gradient(135deg,#e7e3da,#bdb6a6)"></span>bank-slip-part3.pdf · 412 KB</div></div>
+     <div class="c-note"><b><svg class="ico" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M5 3h14v12l-6 6H5z"/></svg>Internal note · Bob · 09:20</b>Slip is from Afriland, amount matches. Finance to confirm before we answer.</div>
+     <div class="e-m out"><div class="h"><div class="who"><div class="av sm c1">BO</div><div><b>Bob · Groundwork</b><small>to Ama Kouam</small></div></div><span style="font-size:11.5px;color:var(--alert);font-weight:600">09:41 · not delivered</span></div>
+      <div class="tx">Thank you Ama, the slip is enough. Finance will confirm today.</div></div>
+    </div>
+    <div class="c-comp">
+     <p role="alert" style="font-size:12px;color:var(--alert);margin-bottom:8px">Saved in Groundwork, but not delivered to the homeowner — mailbox full (552)</p>
+     <div class="c-ta">Write to the homeowner…</div>
+     <div class="c-ca">
+      <span class="c-ib"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12l-9 9a5 5 0 0 1-7-7l9-9a3 3 0 0 1 4 4l-9 9a1 1 0 0 1-2-2l8-8"/></svg></span>
+      <span class="c-ib"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+      <span class="hint" style="flex:1">Internal notes stay with staff — never sent, never shown to the homeowner or contractor.</span>
+      <span class="btn o s">Internal note</span><span class="btn g s">Send</span>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div></div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

@@ -1,0 +1,121 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Site updates · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:940px;overflow:hidden;position:relative}
+.app{height:940px}
+.a-bar{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
+.a-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 12px;font-size:13px;display:inline-flex;gap:10px;align-items:center;color:var(--ink);font-weight:500}
+.a-sel svg{width:14px;height:14px;stroke:var(--mid);fill:none;stroke-width:2}
+.a-sel.on{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
+.a-sel .x{color:var(--mid);font-weight:700;margin-left:2px}
+.seg b{font-family:var(--mono);font-weight:600;margin-left:6px;color:var(--mid);font-size:11.5px}
+.a-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;margin-top:14px}
+.a-day{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:4px 0 8px 2px;display:flex;gap:8px;align-items:center}
+.a-day span{font-family:var(--mono);font-weight:600;color:var(--mid);text-transform:none;letter-spacing:0}
+.a-feed{display:grid;gap:8px;margin-bottom:14px}
+.a-u{display:grid;grid-template-columns:34px 1fr auto;gap:12px;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:13px 16px;align-items:start}
+.a-u:hover{border-color:#cfcdc7}
+.a-u .t{font-size:14px;font-weight:700;font-family:var(--sans);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.a-u .t small{font-family:var(--body);font-size:12px;font-weight:500;color:var(--mid)}
+.a-u .d{font-size:13px;margin-top:4px;line-height:1.45}
+.a-u .d.none{color:var(--muted);font-style:italic}
+.a-u .m{font-size:12px;color:var(--mid);margin-top:7px;display:flex;gap:6px;align-items:center}
+.a-u .m b{color:var(--ink);font-weight:600}
+.a-th{display:flex;gap:6px;margin-top:9px}
+.a-th i{width:64px;height:48px;border-radius:8px;display:block;border:1px solid var(--rule)}
+.a-th em{width:64px;height:48px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:12px;font-weight:600;background:var(--pale);color:var(--mid)}
+.p1{background:linear-gradient(160deg,#b9a68a 0%,#8f7b61 55%,#6f6150 100%)}
+.p2{background:linear-gradient(170deg,#c9d3d9 0%,#a8a397 50%,#7d7466 100%)}
+.p3{background:linear-gradient(150deg,#d8cdb8 0%,#a9967a 60%,#5f5547 100%)}
+.p4{background:linear-gradient(180deg,#b8c8d4 0%,#9aa39a 45%,#7a6d58 100%)}
+.p5{background:linear-gradient(140deg,#cfc4ad 0%,#7f8b78 70%)}
+.a-go{font-size:12.5px;font-weight:600;color:var(--green);display:flex;gap:4px;align-items:center;white-space:nowrap;margin-top:2px}
+.a-go svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.a-rail{display:grid;gap:12px;align-content:start}
+.a-rail .card{padding:14px 16px}
+.a-rail h3{font-size:13.5px;font-weight:700}
+.a-rail .hint{margin-top:2px}
+.a-pr{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:13px;padding:7px 0;border-top:1px solid var(--rule)}
+.a-pr:first-of-type{border-top:0}
+.a-pr small{display:block;font-size:11.5px;color:var(--mid)}
+.a-pr .n{font-family:var(--mono);font-weight:600;font-size:12.5px}
+.a-pr.on{color:var(--green);font-weight:600}
+.a-bars{height:4px;border-radius:9px;background:var(--pale);margin-top:5px;overflow:hidden}.a-bars i{display:block;height:100%;background:var(--green);border-radius:9px}
+.a-note{border:1px solid var(--rule);background:#fbfbf9;border-radius:14px;padding:13px 16px;font-size:12.5px;color:var(--mid);line-height:1.5}
+.a-note b{color:var(--ink)}
+</style></head><body data-active="/admin/site-updates">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <p class="crumbs">Work · <b>Site updates</b></p>
+  <div class="ph2"><div><h1>Site updates</h1><p class="lead">What has been reported from site, across every project.</p></div>
+   <div class="acts"><span class="a-sel"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>All projects<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+   <span class="a-sel on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Bob Ousmane<span class="x">×</span></span></div></div>
+
+  <div class="a-bar">
+   <div class="seg"><span class="on">All updates<b>23</b></span><span>With photos or files<b>19</b></span><span>Last 7 days<b>9</b></span><span>Last 30 days<b>21</b></span></div>
+   <span class="hint">Showing <b class="mono" style="color:var(--ink)">23</b> updates from Bob Ousmane · newest first</span>
+  </div>
+
+  <div class="a-grid">
+   <div>
+    <p class="a-day">Today <span>18 Nov</span></p>
+    <div class="a-feed">
+     <div class="a-u"><div class="av c2">BO</div><div>
+       <p class="t">Mbala Residence <small>Stage 5 · Structure &amp; walls · Lintel and upper blockwork</small></p>
+       <p class="d">Upper blockwork started on the north side. Lintels over the two front windows cast this morning.</p>
+       <div class="a-th"><i class="p1"></i><i class="p3"></i><i class="p2"></i><em>+1</em></div>
+       <p class="m"><b>Bob Ousmane</b> · 3 h ago · 4 files</p></div>
+      <span class="a-go">Open in project<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <div class="a-u"><div class="av c2">BO</div><div>
+       <p class="t">Kouam house <small>Stage 5 · Structure &amp; walls · Columns and ring beam</small></p>
+       <p class="d">Formwork up for the ring beam on the east wall. Pour planned for Thursday if the rain holds.</p>
+       <div class="a-th"><i class="p4"></i><i class="p5"></i></div>
+       <p class="m"><b>Bob Ousmane</b> · 6 h ago · 2 files</p></div>
+      <span class="a-go">Open in project<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+    </div>
+
+    <p class="a-day">Yesterday <span>17 Nov</span></p>
+    <div class="a-feed">
+     <div class="a-u"><div class="av c2">BO</div><div>
+       <p class="t">Mbala Residence <small>Stage 5 · Structure &amp; walls · Blockwork to lintel</small></p>
+       <p class="d none">No description — files only.</p>
+       <div class="a-th"><i class="p2"></i><i class="p1"></i><i class="p5"></i></div>
+       <p class="m"><b>Bob Ousmane</b> · 1 d ago · 3 files</p></div>
+      <span class="a-go">Open in project<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+     <div class="a-u"><div class="av c2">BO</div><div>
+       <p class="t">Tabe duplex <small>Stage 3 · Site preparation</small></p>
+       <p class="d">Site cleared and levelled. Setting-out pegs placed against the approved plan; Joseph has seen them on video.</p>
+       <p class="m"><b>Bob Ousmane</b> · 1 d ago</p></div>
+      <span class="a-go">Open in project<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+    </div>
+
+    <p class="hint" style="text-align:center;padding:6px 0 0">The 200 most recent updates are loaded · scroll for older days</p>
+   </div>
+
+   <aside class="a-rail">
+    <div class="card"><h3>Projects in this view</h3><p class="hint">Click one to filter the feed.</p>
+     <div style="margin-top:8px">
+      <div class="a-pr"><span>Mbala Residence<div class="a-bars"><i style="width:100%"></i></div></span><span class="n">11</span></div>
+      <div class="a-pr"><span>Kouam house<div class="a-bars"><i style="width:55%"></i></div></span><span class="n">6</span></div>
+      <div class="a-pr"><span>Tabe duplex<div class="a-bars"><i style="width:36%"></i></div></span><span class="n">4</span></div>
+      <div class="a-pr"><span>Nkeng villa<div class="a-bars"><i style="width:18%"></i></div></span><span class="n">2</span></div>
+     </div></div>
+    <div class="card"><h3>Who reported</h3>
+     <div style="margin-top:8px">
+      <div class="a-pr on"><span style="display:flex;gap:9px;align-items:center"><span class="av sm c2">BO</span>Bob Ousmane</span><span class="n">23</span></div>
+      <div class="a-pr"><span style="display:flex;gap:9px;align-items:center"><span class="av sm c1">CM</span>Claire Mbala</span><span class="n">7</span></div>
+      <div class="a-pr"><span style="display:flex;gap:9px;align-items:center"><span class="av sm c3">GF</span>Grace Fon</span><span class="n">5</span></div>
+      <div class="a-pr"><span style="display:flex;gap:9px;align-items:center"><span class="av sm c5">AK</span>Ama Kouam</span><span class="n">4</span></div>
+     </div></div>
+    <div class="a-note"><b>This feed shows work; it does not approve it.</b> Approval happens in <span class="link" style="font-size:12.5px">Reviews &amp; Approvals</span>. Every update opens the project's own Site updates tab, where the evidence is.</div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Communications · sequences</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1230px;overflow:hidden;position:relative}
+.app{height:1230px}
+
+.c-health{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.c-pill{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mid)}
+.c-pill b{color:var(--ink);font-weight:600}
+.c-pill.warn{border-color:#e5d6b8;background:#fbf8f2;color:var(--held)}
+.c-pill.bad{border-color:#e6c9ce;background:#fbf6f7;color:var(--alert)}
+.c-tabs{margin-top:16px}
+.c-tabs span{cursor:pointer}
+.c-h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.c-sel{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;color:var(--ink);display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
+.c-sel:after{content:'';width:6px;height:6px;border-right:1.5px solid var(--mid);border-bottom:1.5px solid var(--mid);transform:rotate(45deg);margin:-3px 0 0 4px}
+.c-in{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink)}
+.c-lab{font-size:11.5px;font-weight:600;color:var(--mid);display:block;margin-bottom:4px}
+
+
+.s-wrap{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:14px;align-items:start}
+.s-nav{overflow:hidden}
+.s-nav .g{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 14px 4px}
+.s-it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 14px;font-size:12.5px;border-top:1px solid var(--rule)}
+.s-it.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.s-it small{display:block;color:var(--mid);font-size:11px}
+.s-ed{padding:18px}
+.s-step{border:1px solid var(--rule);border-radius:14px;padding:14px;position:relative;background:#fff}
+.s-tl{position:relative;padding-left:26px;margin-top:14px}
+.s-tl:before{content:'';position:absolute;left:9px;top:12px;bottom:30px;width:2px;background:var(--rule)}
+.s-tl .s-step{margin-bottom:12px}
+.s-dot{position:absolute;left:-24px;top:14px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--green);font-size:9px;display:grid;place-items:center;font-weight:700;color:var(--green)}
+.s-line{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px}
+.s-num{width:54px;text-align:center}
+.s-bi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.s-bi .lg{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:3px}
+.s-bi .c-in{min-height:34px}
+.s-bi .ta{min-height:82px;line-height:1.45}
+
+</style></head><body data-active="/admin/sequences">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs">Acquisition · <b>Communications</b></div>
+  <div class="ph2"><div><h1>Communications</h1><p class="lead">Manage activation reminders, conversations and staff follow-up. Review each journey and test with selected recipients before enabling wider delivery.</p></div>
+   <div class="acts"><span class="btn o">Preview due messages</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 5l12 7-12 7z"/></svg>Run due now</span></div></div>
+  <div class="c-health">
+    <span class="c-pill warn"><span class="dotc" style="background:var(--held)"></span>Communication delivery is paused. <span class="link" style="font-size:12.5px">Settings</span></span>
+    <span class="c-pill"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last background run: <b>18/11/2026, 09:00</b> · completed</span>
+    </div>
+  <div class="tabs2 c-tabs"><span class="">Needs attention<b>7</b></span><span class="">Tracking and recovery</span><span class="">Journeys</span><span class="on">Sequences</span><span class="">Send log</span><span class="">Inbox</span><span class="">WhatsApp</span><span class="">Settings</span></div>
+  <div class="s-wrap"><section class="card s-nav">
+ <div style="padding:12px 14px"><span class="c-lab">Journey</span><span class="c-sel" style="width:100%;justify-content:space-between">All journeys</span></div>
+ <div class="g">Contractor self-signup</div>
+ <div class="s-it"><span>Finish contractor onboarding<small>12 in progress</small></span><span class="switch on"></span></div>
+ <div class="s-it on"><span>First project reminder<small>9 in progress · <span style="color:var(--held)">French missing</span></small></span><span class="switch on"></span></div>
+ <div class="s-it"><span>Invite your homeowner<small>4 in progress</small></span><span class="switch on"></span></div>
+ <div class="s-it"><span>Homeowner acceptance nudge<small>3 in progress</small></span><span class="switch on"></span></div>
+ <div class="g">Homeowner self-signup</div>
+ <div class="s-it"><span>Start your project<small>18 in progress</small></span><span class="switch on"></span></div>
+ <div class="s-it"><span>Connect a contractor<small>7 in progress</small></span><span class="switch on"></span></div>
+ <div class="s-it"><span>Contractor connected<small>0 in progress</small></span><span class="switch"></span></div>
+ <div class="g">Homeowner invited by a contractor</div>
+ <div class="s-it"><span>Accept your invitation<small>5 in progress</small></span><span class="switch on"></span></div>
+</section><section class="card s-ed">
+ <p style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#2a6f9e">Contractor self-signup</p>
+ <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-top:2px">
+  <div><h2 style="font-size:18px;font-weight:800">First project reminder</h2>
+   <p class="hint" style="margin-top:4px;max-width:620px">Nudges an onboarded contractor to add the build they are working on. Starts on <code class="mono">onboarding_completed</code>; stops on <code class="mono">project_created</code> <code class="mono">account_deleted</code> · 9 in progress</p></div>
+  <div style="display:flex;gap:8px;align-items:center"><span class="tag warn">French missing</span><span class="switch on"></span><b style="font-size:13px">On</b></div></div>
+ <div class="s-line" style="margin-top:12px;background:var(--canvas);border-radius:10px;padding:8px 12px"><span>Hand to a person after</span><span class="c-in s-num">7</span><span>days (blank = never)</span></div>
+ <div class="s-tl">
+  <div class="s-step"><span class="s-dot">1</span>
+  <div class="s-line"><b>CS2 · Step 1</b><span>send</span><span class="c-in s-num">24</span><span>hours after enrolling by</span><span class="c-sel">Email</span><span class="tag warn">Unsaved changes</span><span style="margin-left:auto;color:var(--alert)"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+  <div class="s-bi"><div><p class="lg">EN</p><div class="c-in">Create your first Groundwork project</div></div><div><p class="lg">FR</p><div class="c-in">Créez votre premier projet Groundwork</div></div>
+   <div><div class="c-in ta">Hi {{first_name}}, your contractor profile is ready. Add the project you are building now so the homeowner can follow each stage with you.</div></div><div><div class="c-in ta">Bonjour {{first_name}}, votre profil est prêt. Ajoutez le chantier en cours pour que le propriétaire suive chaque étape avec vous.</div></div>
+   <div><div class="c-in">Create my project</div></div><div><div class="c-in">Créer mon projet</div></div></div>
+  <span class="btn s" style="margin-top:10px;background:var(--ink);color:#fff;">Save step</span></div>
+  <div class="s-step"><span class="s-dot">2</span>
+  <div class="s-line"><b>CS2b · Step 2</b><span>send</span><span class="c-in s-num">72</span><span>hours after the previous step by</span><span class="c-sel">Email</span><span style="margin-left:auto;color:var(--alert)"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span></div>
+  <div class="s-bi"><div><p class="lg">EN</p><div class="c-in">Your homeowner is waiting to follow the build</div></div><div><p class="lg">FR</p><div class="c-in"><span class="muted">Objet (FR)</span></div></div>
+   <div><div class="c-in ta">Most contractors add their first project in under ten minutes. Start with the plot address and the stage you are on.</div></div><div><div class="c-in ta" style="border-color:#e5d6b8;background:#fbf8f2;color:var(--held)"><span style="opacity:.6">Message (FR)</span></div></div>
+   <div><div class="c-in">Add my project</div></div><div><div class="c-in"><span class="muted">Libellé du bouton (FR)</span></div></div></div>
+  <span class="btn s" style="margin-top:10px;background:var(--ink);color:#fff;opacity:.4">Save step</span></div>
+  <span class="link" style="font-size:13px;display:inline-flex;gap:6px;align-items:center">+ Add step</span>
+ </div>
+</section></div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

@@ -1,0 +1,239 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin &middot; Project workspace &middot; Financials &middot; desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:2620px;overflow:hidden;position:relative}
+.app{height:2620px}
+
+.wh{background:#fff;border-bottom:1px solid var(--rule);padding:16px 28px 0}
+.back{font-size:13px;color:var(--green);font-weight:600}
+.wh h1{font-family:var(--sans);font-size:26px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+.facts{display:flex;gap:22px;font-size:12.5px;color:var(--mid);margin-top:6px}.facts b{color:var(--ink);font-weight:600}
+.status{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--mid);margin-top:8px;flex-wrap:wrap}
+.lc{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#f4eee2;color:var(--held)}
+.wacts{display:flex;gap:6px;flex-shrink:0}
+.wa{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:7px 11px;font-weight:600;font-size:13px;border:1px solid var(--rule);background:#fff}
+.wtabs{display:flex;gap:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.wtabs span{padding:10px 0}.wtabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-top{display:grid;grid-template-columns:1fr;gap:0}
+.f-big{display:flex;height:16px;border-radius:999px;overflow:hidden;background:var(--pale);margin:4px 18px 8px}
+.f-big i{display:block;height:100%}
+.f-leg{display:flex;gap:18px;padding:0 18px 14px;font-size:12px;color:var(--mid)}
+.f-leg span{display:inline-flex;gap:6px;align-items:center}.f-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.f-six{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--rule)}
+.f-six div{padding:12px 18px;border-left:1px solid var(--rule)}
+.f-six div:first-child{border-left:0}
+.f-six p{font-size:12px;color:var(--mid)}
+.f-six b{display:block;font-family:var(--mono);font-size:19px;font-weight:600;margin-top:4px;letter-spacing:-.3px}
+.f-six small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.f-six .em{background:#f3f6f4;box-shadow:inset 0 0 0 1.5px var(--green)}
+.f-six .em b{color:var(--green)}
+.f-ban{display:flex;gap:10px;align-items:flex-start;background:#fbf8f2;border:1px solid #eadfc8;border-radius:12px;padding:11px 14px;font-size:12.5px;margin-top:14px}
+.f-ban .ico{color:var(--held);margin-top:1px}
+/* journey table */
+.f-jt{font-size:12.5px}
+.f-jr{display:grid;grid-template-columns:190px 118px 1fr 150px 150px;gap:12px;align-items:center;padding:10px 18px;border-top:1px solid var(--rule)}
+.f-jr.hd{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--canvas);padding:8px 18px}
+.f-jr.sel{background:#fbfaf6}
+.f-legs{display:grid;grid-template-columns:repeat(4,1fr)}
+.f-lg{position:relative;padding-right:6px}
+.f-lg:before{content:'';position:absolute;left:16px;right:0;top:7px;height:2px;background:var(--rule)}
+.f-lg:last-child:before{display:none}
+.f-lg.d:before{background:var(--green)}
+.f-nd{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;position:relative;z-index:1;background:#fff;border:1.5px solid var(--rule)}
+.f-lg.d .f-nd{background:var(--green);border-color:var(--green);color:#fff}
+.f-lg.p .f-nd{border:2px solid var(--held);background:conic-gradient(var(--held) 0 70%,#fff 70% 100%)}
+.f-lg.np .f-nd{border:1.5px dashed var(--muted);background:var(--pale)}
+.f-lg.ns .f-nd{border-style:dotted}
+.f-nd .ico{width:10px;height:10px;stroke-width:3.2}
+.f-lg p{font-size:11px;color:var(--mid);margin-top:4px;line-height:1.3}
+.f-lg.d p b{color:var(--complete);font-weight:600}.f-lg.p p b{color:var(--held);font-weight:600}.f-lg.np p b{color:var(--mid);font-weight:600}
+.f-legh{display:grid;grid-template-columns:repeat(4,1fr)}
+.f-3{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px;align-items:start}
+.f-3b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+.f-pr{display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--rule);font-size:12.5px}
+.f-pr small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-pr .amt{font-family:var(--mono);font-weight:600;width:78px;flex-shrink:0}
+.f-emp{padding:18px;text-align:center;font-size:12.5px;color:var(--mid);border-top:1px solid var(--rule)}
+.f-cost{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule)}
+.f-cost>div{padding:16px 18px}
+.f-cost>div+div{border-left:1px solid var(--rule)}
+.f-sbars{display:grid;grid-template-columns:150px 1fr 120px;gap:6px 10px;align-items:center;font-size:12px;margin-top:10px}
+.f-sbars .b{height:7px;border-radius:9px;background:var(--pale);overflow:hidden}.f-sbars .b i{display:block;height:100%;background:var(--green)}
+.f-sbars .b i.l{background:#9db5a7}
+.f-rp{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;margin-top:14px}
+
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="wh">
+  <span class="back">&larr; Back to projects</span>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+   <div>
+    <h1>Mbala Residence</h1>
+    <div class="facts"><span>Homeowner <b>Claire Mbala</b></span><span>Plan <b>Jalla Verify</b></span><span>Location <b>Douala, Cameroon</b></span></div>
+    <div class="status"><span style="display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-weight:600"><i class="dotc" style="background:var(--complete)"></i>Active</span><span>Stage 5 of 10 &middot; Structure &amp; walls</span><span>Tracking since 30 Oct 2026</span><span>Last activity 2 h ago</span><span class="lc">Under review</span></div>
+   </div>
+   <div class="wacts">
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Assign verifier</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Jalla message</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24" style="color:#25D366"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg>WhatsApp &#9662;</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open homeowner view</span>
+   </div>
+  </div>
+  <div class="wtabs"><span>Overview</span><span>Stages</span><span class="on">Financials</span><span>Site updates</span><span>Documents</span><span>Conversations</span><span>Activity</span><span>Team</span></div>
+ </div>
+ <div class="f-body">
+
+<section class="card">
+ <div class="f-h"><h2>Where the money stands</h2><span class="f-xs f-mut">USD &middot; at the confirmed project rate (600 XAF)</span></div>
+ <p class="f-sub">Funded by the homeowner, released to the contractor &mdash; held and moved by the provider, recorded here</p>
+ <div class="f-big"><i style="width:27.7%;background:var(--green)"></i><i style="width:11.7%;background:#7fa08c"></i></div>
+ <div class="f-leg"><span><i style="background:var(--green)"></i>Authorised $27,667</span><span><i style="background:#7fa08c"></i>Available to release $11,667</span><span><i style="background:var(--pale);border:1px solid var(--rule)"></i>Not yet funded $60,667</span></div>
+ <div class="f-six">
+  <div><p>Budget</p><b>$100,000</b><small>60,000,000 XAF</small></div>
+  <div><p>Funded</p><b>$39,333</b><small>23,600,000 XAF</small></div>
+  <div class="em"><p>Available to release</p><b>$11,667</b><small>7,000,000 XAF</small></div>
+  <div><p>Authorised</p><b>$27,667</b><small>stages 1&ndash;4</small></div>
+  <div><p>In transit</p><b>$0</b><small>&nbsp;</small></div>
+  <div><p>Disbursed</p><b>$0</b><small>&nbsp;</small></div>
+ </div>
+</section>
+<div class="f-ban"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><span>No payment provider has ever written to this ledger, so an authorised release cannot move. Releases will sit at &ldquo;Approved&rdquo; until one is connected. <span class="link" style="font-size:12.5px">Open Integrations</span></span></div>
+
+<section class="card" style="margin-top:14px">
+ <div class="f-h"><h2>Where each stage&rsquo;s money is</h2><span class="f-xs f-mut">Stage name opens it in Stages</span></div>
+ <p class="f-sub">The homeowner&rsquo;s money in, the release Groundwork authorised, and what the provider has done with it. The lifecycle decides what is releasable; the database re-checks before it records anything.</p>
+ <div class="f-jt">
+  <div class="f-jr hd"><span>Stage</span><span>Milestone</span><div class="f-legh"><span>Homeowner &rarr; Groundwork</span><span>Release authorised</span><span>Groundwork &rarr; provider</span><span>Provider &rarr; contractor</span></div><span>Lifecycle</span><span>Action</span></div>
+  <div class="f-jr"><span><span class="f-mut f-num">1</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Land secured</span></span>
+<span><b class="f-num">$5,000</b><small class="f-xs f-mut" style="display:block">3,000,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $5,000<br>2 Nov &middot; Ruth</p></div><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $5,000<br>3 Nov &middot; Ruth</p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div></div><span><span class="tag ok">Release authorised</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: paid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">2</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Design completed</span></span>
+<span><b class="f-num">$6,000</b><small class="f-xs f-mut" style="display:block">3,600,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $6,000<br>4 Nov &middot; Ruth</p></div><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $6,000<br>5 Nov &middot; Ruth</p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div></div><span><span class="tag ok">Release authorised</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: paid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">3</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Site preparation</span></span>
+<span><b class="f-num">$4,000</b><small class="f-xs f-mut" style="display:block">2,400,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $4,000<br>7 Nov &middot; Ruth</p></div><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $4,000<br>8 Nov &middot; Ruth</p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div></div><span><span class="tag ok">Release authorised</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: paid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">4</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Foundation</span></span>
+<span><b class="f-num">$12,667</b><small class="f-xs f-mut" style="display:block">7,600,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $12,667<br>12 Nov &middot; Ruth</p></div><div class="f-lg d"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><p><b>Done</b> &middot; $12,667<br>13 Nov &middot; Ruth</p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div><div class="f-lg np"><span class="f-nd"><svg class="ico" viewBox="0 0 24 24"><path d="M7 12h10"/></svg></span><p><b>No provider connected</b></p></div></div><span><span class="tag ok">Release authorised</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: paid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr sel"><span><span class="f-mut f-num">5</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Structure &amp; walls</span></span>
+<span><b class="f-num">$16,667</b><small class="f-xs f-mut" style="display:block">10,000,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg p"><span class="f-nd"></span><p><b>3 of 4 parts</b><br>$11,667 received</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag warn">Verification pending</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: partial</small></span><span><span class="btn o s">Confirm received &middot; Part 4</span></span></div><div class="f-jr"><span><span class="f-mut f-num">6</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Roofing</span></span>
+<span><b class="f-num">$14,000</b><small class="f-xs f-mut" style="display:block">8,400,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b> &middot; $14,000</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag mute">Locked</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: unpaid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">7</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Electrical &amp; plumbing</span></span>
+<span><b class="f-num">$13,000</b><small class="f-xs f-mut" style="display:block">7,800,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b> &middot; $13,000</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag mute">Locked</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: unpaid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">8</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Finishing</span></span>
+<span><b class="f-num">$15,000</b><small class="f-xs f-mut" style="display:block">9,000,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b> &middot; $15,000</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag mute">Locked</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: unpaid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">9</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Exterior work</span></span>
+<span><b class="f-num">$8,666</b><small class="f-xs f-mut" style="display:block">5,200,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b> &middot; $8,666</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag mute">Locked</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: unpaid</small></span><span><span class="f-mut">&mdash;</span></span></div><div class="f-jr"><span><span class="f-mut f-num">10</span> <span class="link" style="text-decoration:none;color:var(--ink);font-weight:600">Final handover</span></span>
+<span><b class="f-num">$5,000</b><small class="f-xs f-mut" style="display:block">3,000,000 XAF</small></span>
+<div class="f-legs"><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b> &middot; $5,000</p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div><div class="f-lg w"><span class="f-nd"></span><p><b>Not yet</b></p></div></div><span><span class="tag mute">Locked</span><small class="f-xs f-mut" style="display:block;margin-top:3px" title="project_stages.payment_status">legacy: unpaid</small></span><span><span class="f-mut">&mdash;</span></span></div>
+ </div>
+ <p class="f-xs f-mut" style="padding:10px 18px 14px;border-top:1px solid var(--rule)"><b style="color:var(--ink)">Authorise release</b> appears in Action when a stage is approved, owes money and has no live release (a failed one can be retried). With no accepted contractor it is held: &ldquo;No accepted contractor on this project &mdash; nobody to release to.&rdquo; &ldquo;legacy&rdquo; is project_stages.payment_status, shown for older screens and never read here.</p>
+</section>
+
+<div class="f-3">
+ <section class="card">
+  <div class="f-h"><h2>Funding</h2><span class="f-xs f-mut">13 tranches &middot; 7 received</span></div>
+  <p class="f-sub">Homeowner &rarr; provider. Tranches expected per stage, and whether each was received.</p>
+  <div class="f-pr"><span class="f-dot ok"></span><span class="amt">$5,000</span><span class="f-sp">Stage 1 &middot; Land secured <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 16 d ago &middot; MoMo ref 81524</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$6,000</span><span class="f-sp">Stage 2 &middot; Design completed <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 14 d ago</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$4,000</span><span class="f-sp">Stage 3 &middot; Site preparation <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 11 d ago</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$12,667</span><span class="f-sp">Stage 4 &middot; Foundation <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 6 d ago</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$3,333</span><span class="f-sp">Stage 5 &middot; Part 1 <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 12 d ago</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$6,667</span><span class="f-sp">Stage 5 &middot; Part 2 <span class="f-mut">&middot; Received</span><small>confirmed by Bob Ousmane &middot; 1 d ago &middot; 4,000,000 XAF</small></span></div><div class="f-pr"><span class="f-dot ok"></span><span class="amt">$1,667</span><span class="f-sp">Stage 5 &middot; Part 3 <span class="f-mut">&middot; Received</span><small>confirmed by Ruth &middot; 1 d ago</small></span></div><div class="f-pr"><span class="f-dot warn"></span><span class="amt">$5,000</span><span class="f-sp">Stage 5 &middot; Part 4 <span class="f-mut">&middot; Expected</span><small>Not yet received</small></span><span class="btn o s">Confirm received</span></div><div class="f-pr"><span class="f-dot warn"></span><span class="amt">$14,000</span><span class="f-sp">Stage 6 &middot; Roofing <span class="f-mut">&middot; Expected</span><small>Not yet received</small></span><span class="btn o s">Confirm received</span></div>
+  <div class="f-li" style="text-align:center"><span class="link f-sm">Show all 13</span></div>
+ </section>
+ <div style="display:flex;flex-direction:column;gap:14px">
+ <section class="card">
+  <div class="f-h"><h2>Disbursements</h2><span class="f-xs f-mut">4</span></div>
+  <p class="f-sub">The releases as money movement &mdash; initiated, disbursed, failed &mdash; with the provider&rsquo;s reference.</p>
+  <div class="f-pr"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span class="amt">$12,667</span><span class="f-sp">Release authorised <span class="f-mut">&middot; Stage 4 &middot; to Bob Ousmane</span><small>authorised by Ruth &middot; 5 d ago &middot; no provider reference yet</small></span></div><div class="f-pr"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span class="amt">$4,000</span><span class="f-sp">Release authorised <span class="f-mut">&middot; Stage 3 &middot; to Bob Ousmane</span><small>authorised by Ruth &middot; 10 d ago &middot; no provider reference yet</small></span></div><div class="f-pr"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span class="amt">$6,000</span><span class="f-sp">Release authorised <span class="f-mut">&middot; Stage 2 &middot; to Bob Ousmane</span><small>authorised by Ruth &middot; 13 d ago &middot; no provider reference yet</small></span></div><div class="f-pr"><svg class="ico" viewBox="0 0 24 24" style="color:var(--mid)"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span class="amt">$5,000</span><span class="f-sp">Release authorised <span class="f-mut">&middot; Stage 1 &middot; to Bob Ousmane</span><small>authorised by Ruth &middot; 15 d ago &middot; no provider reference yet</small></span></div>
+  <p class="f-xs f-mut" style="padding:9px 18px;border-top:1px solid var(--rule)">A failed row shows its reason in red and offers <b style="color:var(--ink)">Open reconciliation</b>.</p>
+ </section>
+ </div>
+</div>
+
+<div class="f-3b">
+ <section class="card"><div class="f-h"><h2>Fees</h2></div><p class="f-sub">Permit and professional fees &mdash; outside the milestone ledger, read-only.</p><div class="f-emp">No fee line on this project.<br><span class="f-xs">Bill-priced: the bill is the whole cost.</span></div></section>
+ <section class="card"><div class="f-h"><h2>Compensation</h2><span class="tag mute">Not modelled</span></div><p class="f-sub">Verifier, contractor, homeowner and agent compensation.</p><div class="f-emp">Not modelled yet. Compensation gets its own design gate before any table exists; nothing is assumed or computed here.</div></section>
+ <section class="card">
+  <div class="f-h"><h2>Reconciliation</h2></div>
+  <p class="f-sub">What the provider reported, matched against Groundwork&rsquo;s rows. Every event, applied or not.</p>
+  <div class="f-emp">No provider event has been received for this project.</div>
+ </section>
+</div>
+
+<section class="card" style="margin-top:14px">
+ <div class="f-h"><h2>Costing</h2><div class="r"><span class="btn o s"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> PDF</span><span class="btn g s">Edit bill of quantities</span></div></div>
+ <p class="f-sub">The budget as estimated and confirmed &mdash; the same view the homeowner sees.</p>
+ <div class="f-cost">
+  <div>
+   <p class="f-eyebrow">Confirmed bill total</p>
+   <p style="margin-top:4px"><b class="f-num" style="font-size:24px">60,000,000 XAF</b> <span class="f-mut f-sm">&asymp; $100,000 &middot; USD at the confirmed project rate</span></p>
+   <p class="f-xs f-mut" style="margin-top:6px">Stage allocations add up to the confirmed bill total. Groundwork fees are not added.</p>
+   <p class="f-sm" style="font-weight:600;margin-top:14px">Construction across the build stages</p>
+   <div class="f-sbars"><span class="f-mut">1 &middot; Land secured</span><span class="b"><i class="" style="width:30%"></i></span><span class="f-num" style="text-align:right">3,000,000 XAF</span><span class="f-mut">2 &middot; Design completed</span><span class="b"><i class="" style="width:36%"></i></span><span class="f-num" style="text-align:right">3,600,000 XAF</span><span class="f-mut">3 &middot; Site preparation</span><span class="b"><i class="" style="width:24%"></i></span><span class="f-num" style="text-align:right">2,400,000 XAF</span><span class="f-mut">4 &middot; Foundation</span><span class="b"><i class="" style="width:76%"></i></span><span class="f-num" style="text-align:right">7,600,000 XAF</span><span class="f-mut">5 &middot; Structure &amp; walls</span><span class="b"><i class="l" style="width:100%"></i></span><span class="f-num" style="text-align:right">10,000,000 XAF</span><span class="f-mut">6 &middot; Roofing</span><span class="b"><i class="l" style="width:84%"></i></span><span class="f-num" style="text-align:right">8,400,000 XAF</span><span class="f-mut">7 &middot; Electrical &amp; plumbing</span><span class="b"><i class="l" style="width:78%"></i></span><span class="f-num" style="text-align:right">7,800,000 XAF</span><span class="f-mut">8 &middot; Finishing</span><span class="b"><i class="l" style="width:90%"></i></span><span class="f-num" style="text-align:right">9,000,000 XAF</span><span class="f-mut">9 &middot; Exterior work</span><span class="b"><i class="l" style="width:52%"></i></span><span class="f-num" style="text-align:right">5,200,000 XAF</span><span class="f-mut">10 &middot; Final handover</span><span class="b"><i class="l" style="width:30%"></i></span><span class="f-num" style="text-align:right">3,000,000 XAF</span></div>
+  </div>
+  <div>
+   <div class="f-row"><h3 style="font-size:14px;font-weight:700">Stage pricing</h3><span class="tag mute">Read only</span></div>
+   <p class="f-xs f-mut" style="margin-top:3px">View agreed stage prices and the history of proposed changes.</p>
+   <div class="f-pr" style="padding:9px 0;border-top:0;margin-top:6px"><span class="f-dot mute"></span><span class="f-sp">Proposal withdrawn<small>Bob Ousmane &middot; 9 Nov &middot; Reason given: cement prices rose since the bill was priced.</small></span><span class="f-num f-xs">61,200,000 XAF</span></div>
+   <p class="f-xs" style="padding:8px 0;border-top:1px solid var(--rule)">Current project total: <b class="f-num">60,000,000 XAF</b></p>
+   <div class="f-rp">
+    <div class="f-row"><span class="f-sp"><b style="font-size:13px">Recalculate from the take-off</b><span class="f-help" style="display:block">Re-cuts the stages still owed so each carries what its own work was priced at. Paid, completed and pre-existing stages are never changed.</span></span><span class="btn o s">Preview recalculation</span></div>
+    <p class="f-xs" style="margin-top:8px;color:var(--complete)"><svg class="ico" viewBox="0 0 24 24" style="width:12px;height:12px;vertical-align:-2px"><path d="M5 12l5 5L20 7"/></svg> The costing already matches this building&rsquo;s take-off.</p>
+   </div>
+   <p class="f-xs f-mut" style="margin-top:8px">Preview opens a before/after table per stage (paid, completed, pre-existing and fixed-fee stages marked unchanged) with Apply to N stages / Cancel.</p>
+  </div>
+ </div>
+</section>
+
+ </div>
+</div>
+</div>
+
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

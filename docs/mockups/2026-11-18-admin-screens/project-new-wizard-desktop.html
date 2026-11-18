@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Create a project · wizard step</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.n-wrap{display:grid;grid-template-columns:230px 1fr 270px;gap:20px;margin-top:16px;align-items:start}
+.n-steps{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px 10px}
+.n-st{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:9px;font-size:12.5px;color:var(--mid);position:relative}
+.n-st i{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--rule);display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:10.5px;font-weight:600;flex-shrink:0;background:#fff}
+.n-st.on{background:#f3f6f4;color:var(--green);font-weight:700}.n-st.on i{background:var(--green);border-color:var(--green);color:#fff}
+.n-st.gate{padding-left:40px;font-size:11.5px;color:var(--muted)}
+.n-st.gate:before{content:'';position:absolute;left:18px;top:2px;bottom:50%;width:12px;border-left:1.5px dashed var(--rule);border-bottom:1.5px dashed var(--rule);border-bottom-left-radius:6px}
+.n-main{background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.n-mh{padding:18px 22px 12px}
+.n-mh .k{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.n-mh h2{font-size:20px;font-weight:800;margin-top:4px;letter-spacing:-.3px}
+.n-mh p{font-size:13px;color:var(--mid);margin-top:3px}
+.n-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 22px 14px}
+.n-h{display:flex;gap:11px;align-items:center;border:1px solid var(--rule);border-radius:12px;padding:10px 12px}
+.n-h b{font-size:13px;display:block}.n-h span{font-size:11.5px;color:var(--mid);display:block}
+.n-h.on{border:1.5px solid var(--green);background:#f3f6f4}
+.n-h .ck{margin-left:auto;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center}
+.n-h .ck svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:3}
+.n-ft{display:flex;justify-content:space-between;align-items:center;padding:12px 22px;border-top:1px solid var(--rule);background:#fbfbfa}
+.n-side .card{padding:16px}
+.n-side h3{font-size:13px;font-weight:700}
+.n-kv{display:flex;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.n-kv span{color:var(--mid)}
+.n-st.done{color:var(--ink)}.n-st.done i{background:#e9f0ec;border-color:#e9f0ec;color:var(--green)}
+.n-chip{display:flex;gap:10px;align-items:center;background:var(--canvas);border-radius:12px;padding:8px 12px;margin:0 22px 4px;font-size:12.5px}
+.n-f{padding:10px 22px}
+.n-l{font-size:12.5px;font-weight:600}
+.n-in{margin-top:6px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13.5px}
+.n-cities{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.n-c{border:1px solid var(--rule);border-radius:10px;padding:7px 10px;font-size:12.5px;font-weight:600}
+.n-c small{display:block;white-space:nowrap;letter-spacing:-.3px;font-weight:500;font-size:11px;color:var(--mid);font-family:var(--mono)}
+.n-c.on{border:1.5px solid var(--green);background:#f3f6f4;color:var(--green)}
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="crumbs"><span>← Back to projects</span> · Projects · <b>Create for a homeowner</b></div>
+  <div class="ph2"><div><h1>Create a project for a homeowner</h1><p class="lead">Choose the homeowner, then fill in the build on their behalf. The project will be theirs, on Jalla Management, and will record that you set it up.</p></div></div>
+
+  <div class="n-wrap">
+   <nav class="n-steps">
+    <div class="n-st done"><i>✓</i>Homeowner</div>
+    <div class="n-st done"><i>✓</i>Country</div>
+    <div class="n-st gate">Architecture plan? No</div>
+    <div class="n-st done"><i>✓</i>Project type</div>
+    <div class="n-st done"><i>✓</i>Building type</div>
+    <div class="n-st done"><i>✓</i>Floors</div>
+    <div class="n-st done"><i>✓</i>Rooms per floor</div>
+    <div class="n-st done"><i>✓</i>Roof type</div>
+    <div class="n-st on"><i>8</i>Project details</div>
+    <div class="n-st"><i>9</i>At a glance &amp; budget</div>
+    <div class="n-st"><i>10</i>Current stage &amp; create</div>
+   </nav>
+
+   <section class="n-main">
+    <div class="n-mh"><div class="k">Step 8 of 10</div><h2>Tell us about your project</h2><p>These details anchor your project in the Groundwork dashboard.</p></div>
+    <div class="n-chip"><div class="av sm c1">CM</div><div>Creating for <b>Claire Mbala</b> · Jalla Management</div></div>
+    <div class="n-f"><div class="n-l">Project name</div><div class="n-in">Mbala Residence, Bonamoussadi</div></div>
+    <div class="n-f"><div class="n-l">City / location</div>
+     <div class="n-cities"><div class="n-c on">Douala<small>baseline</small></div><div class="n-c">Yaoundé<small>+4% to build</small></div><div class="n-c">Bamenda<small>+18% to build</small></div><div class="n-c">Buea<small>+6% to build</small></div><div class="n-c">Other…<small>&nbsp;</small></div></div>
+     <p class="hint" style="margin-top:6px">Material costs vary by up to 45% across Cameroon — cement and steel carry the haulage inland.</p></div>
+    <div class="n-f"><div class="n-l">Ground floor footprint</div>
+     <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><div class="n-in" style="margin-top:0;width:180px;display:flex;justify-content:space-between"><span class="mono">118</span><span class="muted">m²</span></div><span class="btn o s">Use 124 sqm</span></div>
+     <p class="hint" style="margin-top:6px">The area the building covers on the ground, excluding the boys' quarters. Worked out from the rooms you chose. Change it if you have a measured figure.</p></div>
+    <div class="n-ft"><span class="btn o">← Back</span><span class="btn g">Continue →</span></div>
+   </section>
+
+   <aside class="n-side"><div class="card">
+    <h3>Answers so far</h3>
+    <div style="margin-top:8px">
+     <div class="n-kv"><span>Owner</span><b>Claire Mbala</b></div>
+     <div class="n-kv"><span>Country</span><b>Cameroon</b></div>
+     <div class="n-kv"><span>Architecture plan</span><b>Not yet</b></div>
+     <div class="n-kv"><span>Project</span><b>Residential</b></div>
+     <div class="n-kv"><span>Building</span><b>Single Family</b></div>
+     <div class="n-kv"><span>Floors</span><b>G+1</b></div>
+     <div class="n-kv"><span>Rooms</span><b>4 bed · 3 bath</b></div>
+     <div class="n-kv"><span>Roof</span><b>Long-span aluminium</b></div>
+    </div>
+    <p class="hint" style="margin-top:10px;line-height:1.5;border-top:1px solid var(--rule);padding-top:10px">Click any finished step on the left to change it. Step 9 shows the estimate and lets you type the confirmed budget; step 10 picks the stage the build is already at and creates it.</p>
+   </div></aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

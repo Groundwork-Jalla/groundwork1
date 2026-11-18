@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Verifiers · invite sheet</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.b-under{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.b-dim{position:absolute;left:236px;top:54px;right:0;bottom:0;background:rgba(10,10,10,.18)}
+.sheet{position:absolute;right:0;top:54px;bottom:0;width:440px;padding:22px 24px}
+.sheet h3{font-family:var(--sans);font-size:20px;font-weight:800}
+.b-ok{display:flex;gap:8px;align-items:flex-start;background:#e9f0ec;color:var(--complete);border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:16px}
+.b-steps{margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+.b-steps h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.b-steps li{font-size:12.5px;color:var(--mid);margin:0 0 6px 16px}
+</style></head><body>
+<iframe class="b-under" src="verifiers-desktop.html" scrolling="no"></iframe>
+<div class="b-dim"></div>
+<aside class="sheet">
+ <div style="display:flex;justify-content:space-between;align-items:center"><h3>Invite a verifier</h3><span class="muted">✕</span></div>
+ <p class="hint" style="margin-top:6px;line-height:1.5;font-size:12.5px">For an engineer who has been interviewed and accepted. They receive an email with a link to set up their own account and password — you never choose one for them.</p>
+ <div class="b-ok"><svg class="ico" viewBox="0 0 24 24" style="margin-top:1px"><path d="M5 12l5 5 9-10"/></svg><span>Invitation sent to s.eyong@mail.cm. They set up their account from the link.</span></div>
+ <div class="form" style="margin-top:16px">
+  <label>Full name<div class="in">Eng. Hervé Kamga</div></label>
+  <label>Email address<div class="in">h.kamga@mail.cm</div></label>
+ </div>
+ <div style="display:flex;gap:8px;margin-top:16px"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Send invitation</span><span class="btn o">Cancel</span></div>
+ <p class="hint" style="margin-top:10px">Re-sending to the same address re-sends the link they already have.</p>
+ <div class="b-steps"><h4>If it does not go through</h4>
+  <ul>
+   <li>Already a verifier — that address already holds the verifier role. Find them in the list.</li>
+   <li>Created but not emailed — send again; the same link is reused, so they will not get two.</li>
+  </ul></div>
+</aside>
+<p class="caption" style="left:250px;right:auto">Design concept · illustrative data</p>
+</body></html>

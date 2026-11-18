@@ -1,0 +1,146 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin &middot; workspace &middot; Stages &middot; mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.42)}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+.f-lad .it{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--rule);font-size:13px}
+.f-lad .it.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.f-lad .it small{display:block;font-size:11px;color:var(--mid);margin-top:1px}
+.f-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600}
+.f-n.d{background:var(--green);color:#fff}.f-n.a{border:2px solid var(--held);color:var(--held)}.f-n.l{border:1px solid var(--rule);color:var(--muted)}
+.f-n .ico{width:12px;height:12px;stroke-width:3}
+.f-amt{font-family:var(--mono);font-size:11.5px;color:var(--mid)}
+/* stepper */
+.f-rail{display:grid;grid-template-columns:repeat(6,1fr);padding:6px 18px 18px;position:relative}
+.f-st{position:relative;padding-top:2px}
+.f-st:before{content:'';position:absolute;top:15px;left:30px;right:-2px;height:2px;background:var(--rule)}
+.f-st:last-child:before{display:none}
+.f-st.done:before{background:var(--green)}
+.f-st .c{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:600;position:relative;z-index:1;background:#fff;border:1.5px solid var(--rule);color:var(--muted)}
+.f-st.done .c{background:var(--green);border-color:var(--green);color:#fff}
+.f-st.now .c{border:2px solid var(--held);color:var(--held);box-shadow:0 0 0 4px #f4eee2}
+.f-st.blk .c{background:var(--pale);color:var(--muted)}
+.f-st.part .c{border:2px solid var(--held);color:var(--held);background:conic-gradient(#f4eee2 0 70%,#fff 70% 100%)}
+.f-st .c .ico{width:14px;height:14px;stroke-width:2.6}
+.f-st h4{font-size:12.5px;font-weight:700;margin-top:9px}
+.f-st p{font-size:11.5px;color:var(--mid);margin-top:2px;line-height:1.35;padding-right:10px}
+.f-st.now h4{color:var(--held)}
+/* next action */
+.f-next{margin:0 18px 18px;border:1.5px solid var(--green);border-radius:14px;background:#f3f6f4;padding:14px 16px}
+.f-next h3{font-size:14.5px;font-weight:700}
+.f-next .acts{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.f-next .f-lock{margin-top:10px;background:#fff}
+.f-steps{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+.f-sc{padding:14px 18px;border-bottom:1px solid var(--rule)}
+.f-sc:nth-child(odd){border-right:1px solid var(--rule)}
+.f-sc:nth-last-child(-n+2){border-bottom:0}
+.f-sc .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.f-sc .hd b{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.f-sc .hd i{font-style:normal;font-family:var(--mono);font-size:10.5px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--rule);color:var(--mid)}
+.f-sc .hd .tag{margin-left:auto}
+.f-sub3{display:grid;grid-template-columns:auto 1fr auto;gap:6px 9px;align-items:center;font-size:12.5px}
+.f-ev{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.f-ev .f-thumb{height:46px}
+.f-vr{font-size:12.5px;padding:8px 0;border-top:1px dashed var(--rule)}
+.f-vr:first-of-type{border-top:0;padding-top:0}
+.f-vr small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-vr q{display:block;font-size:12px;margin-top:4px;padding:6px 9px;background:var(--canvas);border-radius:8px;quotes:none}
+.f-vr em{display:block;font-size:11.5px;color:var(--mid);margin-top:3px}
+.f-fb{height:8px;border-radius:9px;background:var(--pale);overflow:hidden;display:flex;margin:6px 0 8px}
+.f-fb i{display:block;height:100%}
+.f-pt span{white-space:nowrap}.f-pt{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;font-size:12px;align-items:center}
+
+.f-mlad{display:flex;gap:6px;overflow:hidden;margin-top:12px}
+.f-mlad span{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11.5px;font-weight:600;border:1px solid var(--rule);background:#fff;color:var(--muted)}
+.f-mlad span.d{background:var(--green);color:#fff;border-color:var(--green)}
+.f-mlad span.a{border:2px solid var(--held);color:var(--held);box-shadow:0 0 0 3px #f4eee2}
+.f-mlad .ico{width:13px;height:13px;stroke-width:3}
+.f-vrail{padding:4px 14px 6px}
+.f-vs{display:grid;grid-template-columns:26px 1fr;gap:10px;position:relative;padding-bottom:12px}
+.f-vs:before{content:'';position:absolute;left:12px;top:26px;bottom:0;width:2px;background:var(--rule)}
+.f-vs:last-child:before{display:none}.f-vs.done:before{background:var(--green)}
+.f-vs .c{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:600;border:1.5px solid var(--rule);color:var(--muted);background:#fff;position:relative;z-index:1}
+.f-vs.done .c{background:var(--green);border-color:var(--green);color:#fff}
+.f-vs.now .c{border:2px solid var(--held);color:var(--held)}
+.f-vs.blk .c{background:var(--pale)}
+.f-vs.part .c{border:2px solid var(--held);color:var(--held)}
+.f-vs .c .ico{width:12px;height:12px;stroke-width:2.6}
+.f-vs h4{font-size:13px;font-weight:700;margin-top:4px}.f-vs p{font-size:12px;color:var(--mid);margin-top:1px}
+.f-vs.now h4{color:var(--held)}
+.f-mnext{margin:0 14px 14px;border:1.5px solid var(--green);border-radius:12px;background:#f3f6f4;padding:12px}
+.f-mnext .btn{width:100%;margin-top:8px}
+
+.f-mtabs{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin:10px -16px 0;padding:0 16px 10px;border-bottom:1px solid var(--rule)}
+.f-mtabs .more{color:var(--muted);font-size:12px;align-self:center}
+</style></head><body data-active="/admin/projects">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<span class="link" style="font-size:13px">&larr; Back to projects</span>
+<h1 style="margin-top:6px">Mbala Residence</h1><p class="sub">Claire Mbala &middot; Jalla Verify &middot; Douala</p>
+<p style="font-size:12.5px;margin-top:6px"><i class="dotc" style="background:var(--complete)"></i> Active &middot; Stage 5 of 10 &middot; <span style="color:var(--held);font-weight:600">Under review</span></p>
+<div class="scrollx"><span class="btn o s">Assign verifier</span><span class="btn o s">Jalla message</span><span class="btn o s"><span style="color:#25D366">&#9679;</span> WhatsApp &#9662;</span><span class="btn o s">Homeowner view</span></div>
+<div class="f-mtabs"><span class="chip">Overview</span><span class="chip on">Stages</span><span class="chip">Financials</span><span class="chip">Site updates</span><span class="chip">Documents</span><span class="chip">Conversations</span><span class="chip">Activity</span><span class="chip">Team</span></div>
+<div class="f-mlad"><span class="d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span class="d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span class="d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span class="d"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span class="a">5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+<div class="mcard">
+ <div style="padding:12px 14px 8px"><p class="f-eyebrow">Stage 5 &middot; $16,667</p><h2 style="font-size:17px;font-weight:800;margin-top:2px">Structure &amp; walls</h2>
+ <p style="margin-top:5px"><span class="tag warn"><i></i>Verification pending</span> <span class="f-xs f-mut">Awaiting funding</span></p></div>
+ <div class="f-mnext"><p class="f-eyebrow" style="color:var(--green)">Next action</p>
+  <p style="font-size:13px;font-weight:600;margin-top:2px">Vanessa G. has an open verification</p>
+  <span class="btn g">Record the verifier&rsquo;s decision</span><span class="btn o">Request changes</span>
+  <div class="f-lock" style="margin-top:8px;background:#fff"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span><b>Approve stage</b> &mdash; locked until the verifier&rsquo;s decision is &ldquo;verified&rdquo;.</span></div></div>
+ <div class="f-vrail">
+  <div class="f-vs done"><div class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div><div><h4>Work</h4><p>2 of 3 substages complete &middot; 1 under review</p></div></div>
+  <div class="f-vs done"><div class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></div><div><h4>Evidence</h4><p>6 files &middot; 2 site updates</p></div></div>
+  <div class="f-vs now"><div class="c">3</div><div><h4>Verification</h4><p>Pending &middot; Vanessa G. &middot; requested by Ruth 1 d ago &middot; site not visited yet</p></div></div>
+  <div class="f-vs blk"><div class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><div><h4>Approval</h4><p>Locked until the decision is &ldquo;verified&rdquo;</p></div></div>
+  <div class="f-vs part"><div class="c">5</div><div><h4>Funding</h4><p>$11,667 of $16,667 received &middot; Part 4 ($5,000) expected</p></div></div>
+  <div class="f-vs"><div class="c">6</div><div><h4>Release</h4><p>No release recorded.</p></div></div>
+ </div>
+ <p class="f-xs f-mut" style="padding:0 14px 12px">Tap a step to open its detail: substages, evidence files, every verification, funding parts.</p>
+</div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script></body></html>

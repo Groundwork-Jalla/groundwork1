@@ -1,0 +1,108 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin &middot; workspace &middot; Team &middot; mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css"><style>
+.f-body{padding:18px 28px 40px}
+.f-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px 0}
+.f-h h2{font-size:15px;font-weight:700}
+.f-h .r{display:flex;gap:8px;align-items:center}
+.f-sub{font-size:12px;color:var(--mid);padding:3px 18px 12px}
+.f-eyebrow{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f-mut{color:var(--mid)}
+.f-sm{font-size:12px}.f-xs{font-size:11.5px}
+.f-num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-row{display:flex;align-items:center;gap:10px}
+.f-sp{flex:1;min-width:0}
+.f-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.f-dot.ok{background:var(--complete)}.f-dot.warn{background:var(--held)}.f-dot.bad{background:var(--alert)}.f-dot.mute{background:var(--muted)}.f-dot.act{background:#2a6f9e}
+.f-lock{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--mid);padding:8px 12px;border-radius:10px;background:var(--canvas);border:1px dashed var(--rule)}
+.f-lock b{color:var(--ink);font-weight:600}
+.f-lock .ico{margin-top:1px;color:var(--muted)}
+.f-btn-dis{opacity:.42}
+.f-bd{border-top:1px solid var(--rule)}
+.f-li{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.f-li small{display:block;font-size:11.5px;color:var(--mid);margin-top:2px}
+.f-thumb{border-radius:10px;background:linear-gradient(135deg,#cfc9bd,#a9a294);position:relative;overflow:hidden}
+.f-thumb.t2{background:linear-gradient(160deg,#bfc6c2,#8d9893)}.f-thumb.t3{background:linear-gradient(120deg,#d9cfbf,#b7a487)}.f-thumb.t4{background:linear-gradient(140deg,#c5c0b6,#7f786c)}.f-thumb.t5{background:linear-gradient(170deg,#d6d3cb,#9fa59b)}.f-thumb.t6{background:linear-gradient(110deg,#c9bfae,#958a78)}
+.f-thumb:after{content:'';position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.18))}
+.f-thumb .ico{position:absolute;left:8px;bottom:7px;color:#fff;z-index:1;width:14px;height:14px}
+.f-thumb.un{background:var(--pale);border:1px dashed var(--rule)}.f-thumb.un:after{display:none}.f-thumb.un .ico{color:var(--muted)}
+.f-kbd{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.f-ov{position:fixed;inset:0;background:rgba(10,10,10,.5)}
+.f-cap{position:absolute;top:24px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(10,10,10,.75);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:999px;z-index:3}
+.f-dlg{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+.f-dlg .dh{padding:18px 22px 12px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.f-dlg .dh h3{font-size:17px;font-weight:800;font-family:var(--sans);letter-spacing:-.2px}
+.f-dlg .dh p{font-size:12.5px;color:var(--mid);margin-top:4px;line-height:1.5}
+.f-dlg .db{padding:4px 22px 16px}
+.f-dlg .df{padding:14px 22px;border-top:1px solid var(--rule);display:flex;justify-content:flex-end;gap:8px;background:var(--canvas)}
+.f-lbl{font-size:12.5px;font-weight:600;display:block;margin-top:12px}
+.f-in{margin-top:5px;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;background:#fff;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f-in.ph{color:var(--muted)}
+.f-in.ta{min-height:64px;align-items:flex-start}
+.f-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:12px}
+.f-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--rule);flex-shrink:0;margin-top:1px;display:grid;place-items:center}
+.f-box.on{background:var(--green);border-color:var(--green);color:#fff}
+.f-box.on .ico{width:12px;height:12px;stroke-width:3}
+.f-err{font-size:12px;color:var(--alert);margin-top:10px}
+.f-help{font-size:11.5px;color:var(--mid);margin-top:4px;line-height:1.45}
+
+.f-tm{display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start}
+.f-rg{padding:14px 18px;border-top:1px solid var(--rule)}
+.f-rg>h3{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.f-rg>h3 .ico{width:14px;height:14px}
+.f-pp{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:8px 0}
+.f-pp+.f-pp{border-top:1px dashed var(--rule)}
+.f-pp b{font-size:13.5px;font-weight:600}
+.f-pp small{display:block;font-size:12px;color:var(--mid);margin-top:1px}
+.f-star{display:inline-flex;gap:4px;align-items:center;font-size:11px;font-weight:700;color:var(--green);background:#e9f0ec;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.f-star .ico{width:11px;height:11px;fill:currentColor}
+.f-pay{margin:6px 0 4px 48px;border:1px solid var(--rule);border-radius:12px;background:var(--canvas);padding:10px 12px}
+.f-pay h4{font-size:12px;font-weight:700;display:flex;gap:6px;align-items:center}
+.f-pay h4 .ico{width:14px;height:14px;color:var(--mid)}
+.f-pd{display:grid;grid-template-columns:215px 1fr auto;gap:10px;align-items:center;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.f-pd:first-of-type{border-top:0}
+.f-x{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--mid);border:1px solid var(--rule);background:#fff}
+.f-asg{margin:0 18px 14px;border:1.5px solid var(--green);border-radius:12px;padding:12px 14px;background:#f3f6f4}
+.f-hist .f-hi{display:grid;grid-template-columns:16px 1fr;gap:10px;padding:8px 18px;position:relative;font-size:12.5px}
+.f-hist .f-hi:before{content:'';position:absolute;left:25px;top:22px;bottom:-8px;width:2px;background:var(--pale)}
+.f-hist .f-hi:last-child:before{display:none}
+.f-hist .f-hi i{width:10px;height:10px;border-radius:50%;margin-top:4px;border:2px solid var(--green);background:#fff;position:relative;z-index:1}
+.f-hist .f-hi i.rm{border-color:var(--muted)}
+.f-hist small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.f-vw{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);font-size:12.5px}
+
+.f-mtabs{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin:10px -16px 0;padding:0 16px 10px;border-bottom:1px solid var(--rule)}
+.f-mtabs .more{color:var(--muted);font-size:12px;align-self:center}
+</style></head><body data-active="/admin/projects">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+<span class="link" style="font-size:13px">&larr; Back to projects</span>
+<h1 style="margin-top:6px">Mbala Residence</h1><p class="sub">Claire Mbala &middot; Jalla Verify &middot; Douala</p>
+<p style="font-size:12.5px;margin-top:6px"><i class="dotc" style="background:var(--complete)"></i> Active &middot; Stage 5 of 10 &middot; <span style="color:var(--held);font-weight:600">Under review</span></p>
+<div class="scrollx"><span class="btn o s">Assign verifier</span><span class="btn o s">Jalla message</span><span class="btn o s"><span style="color:#25D366">&#9679;</span> WhatsApp &#9662;</span><span class="btn o s">Homeowner view</span></div>
+<div class="f-mtabs"><span class="chip">Activity</span><span class="chip on">Team</span></div>
+<div class="f-row" style="margin-top:12px"><span class="btn o s" style="flex:1">Assign contractor</span><span class="btn o s" style="flex:1">Assign verifier</span></div>
+<div class="mcard">
+ <div class="mh"><h2>Homeowner</h2></div>
+ <div class="mrow f-row"><span class="av sm c1">CM</span><span class="f-sp">Claire Mbala<small>Project creator &middot; Primary homeowner</small></span></div>
+ <div class="mrow f-row"><span class="av sm">JM</span><span class="f-sp">jean.mbala@gmail.com<small>Observer</small></span><span class="btn o s">Make primary</span></div>
+</div>
+<div class="mcard">
+ <div class="mh"><h2>Contractors</h2></div>
+ <div class="mrow"><div class="f-row"><span class="av sm c2">BO</span><span class="f-sp">Bob Ousmane <span class="f-star"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6 7.1 19.2 8 13.7 4 9.8l5.5-.8z"/></svg> Paid</span><small>Accepted &middot; 19 d ago</small></span></div>
+  <div style="margin-top:8px;padding:8px 10px;background:var(--canvas);border-radius:10px;font-size:12px">
+   <p>Mobile money &middot; <span class="f-num">&bull;&bull;&bull;&bull; 4821</span> <span class="tag ok" style="float:right">Checked</span></p>
+   <p style="margin-top:6px">Bank &middot; <span class="f-num">&bull;&bull;&bull;&bull; 0912</span> <span class="link f-xs" style="float:right">Mark as checked</span></p>
+  </div></div>
+ <div class="mrow f-row"><span class="av sm c6">SN</span><span class="f-sp">Samuel Ndjock<small>Accepted &middot; 3 d ago</small></span><span class="btn o s">Pay this contractor</span></div>
+ <div class="mrow f-row"><span class="av sm">ET</span><span class="f-sp">Eric Tchoua<small>Invited</small></span></div>
+</div>
+<div class="mcard">
+ <div class="mh"><h2>Verifiers</h2></div>
+ <div class="mrow f-row"><span class="av sm c3">VG</span><span class="f-sp">Vanessa G.<small>civil &middot; active</small></span><span class="f-x"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+ <div class="mrow f-row" style="opacity:.6"><span class="av sm">PE</span><span class="f-sp">Paul Eyenga<small>electrical &middot; removed</small></span></div>
+</div>
+<div class="mcard"><div class="mh"><h2>Assignment history</h2><span>5 &rsaquo;</span></div></div>
+</div>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept &middot; illustrative data</p>
+<script src="sidebar.js"></script></body></html>

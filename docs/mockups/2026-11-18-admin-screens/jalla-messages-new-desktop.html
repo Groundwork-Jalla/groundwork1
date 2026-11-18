@@ -1,0 +1,159 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Jalla Messages · new message · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.c-panes{display:grid;grid-template-columns:300px 1fr 268px;gap:0;margin-top:16px;height:704px;background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.c-list{border-right:1px solid var(--rule);display:flex;flex-direction:column;min-width:0}
+.c-lh{padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap}
+.c-lh .chip{padding:5px 10px;font-size:12px}
+.c-r{display:grid;grid-template-columns:8px 1fr auto;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule)}
+.c-r.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.c-r i{width:7px;height:7px;border-radius:50%;margin-top:6px}
+.c-r .pj{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-r .who{font-size:12px;color:var(--mid);margin-top:1px}
+.c-r .pv{font-size:12px;color:var(--ink);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:215px}
+.c-r .pv u{text-decoration:none;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mid);margin-right:4px}
+.c-r .st{font-size:11px;color:var(--muted);margin-top:3px}
+.c-r .t{font-size:11px;color:var(--muted);white-space:nowrap}
+.c-th{display:flex;flex-direction:column;min-width:0;background:#fbfbfa}
+.c-thh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--rule);background:#fff}
+.c-thh h2{font-size:15px;font-weight:700}
+.c-thh .s{font-size:12px;color:var(--mid);margin-top:2px;display:flex;gap:6px;align-items:center}
+.c-sel{border:1px solid var(--rule);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:600;display:inline-flex;gap:6px;align-items:center;background:#fff}
+.c-msgs{flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.c-day{align-self:center;font-size:11px;color:var(--mid);background:var(--pale);border-radius:99px;padding:2px 10px}
+.c-b{max-width:78%;border-radius:16px;padding:9px 13px;font-size:13px;line-height:1.45}
+.c-b.in{background:#fff;border:1px solid var(--rule);align-self:flex-start;border-bottom-left-radius:5px}
+.c-b.out{background:var(--green);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+.c-b small{display:block;font-size:10.5px;margin-top:4px;color:var(--muted)}
+.c-b.out small{color:rgba(255,255,255,.65)}
+.c-note{border:1px dashed #d8c7a4;background:#fbf8f2;border-radius:10px;padding:8px 11px;font-size:12.5px}
+.c-note b{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--held);display:flex;gap:5px;align-items:center;margin-bottom:2px}
+.c-att{display:flex;width:fit-content;gap:8px;align-items:center;margin-top:6px;background:rgba(0,0,0,.04);border:1px solid var(--rule);border-radius:9px;padding:5px 8px;font-size:12px}
+.c-att .th{width:34px;height:26px;border-radius:5px;background:linear-gradient(135deg,#c9b89a,#8f7a5a)}
+.c-comp{border-top:1px solid var(--rule);padding:12px 16px;background:#fff}
+.c-ta{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);min-height:50px}
+.c-pend{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--rule);border-radius:8px;padding:3px 8px;font-size:11.5px;margin-top:8px}
+.c-ca{display:flex;align-items:center;gap:8px;margin-top:9px}
+.c-ib{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--mid);border:1px solid var(--rule)}
+.c-rail{border-left:1px solid var(--rule);padding:16px;overflow:hidden}
+.c-rail h4{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+.c-rail h4:first-child{margin-top:0}
+.c-kv{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0}.c-kv span:first-child{color:var(--mid)}
+.c-pc{border:1px solid var(--rule);border-radius:12px;padding:11px 12px}
+.c-pc b{font-size:13.5px}
+.c-pc p{font-size:12px;color:var(--mid);margin-top:2px}
+.c-stg{display:flex;gap:3px;margin-top:9px}.c-stg i{flex:1;height:5px;border-radius:3px;background:var(--pale)}.c-stg i.d{background:var(--green)}.c-stg i.c{background:#8fb39d}
+</style></head><body data-active="/admin/inbox?channel=jalla">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph2">
+   <div><h1>Jalla Messages</h1><p class="lead">In-app threads on each project, with the homeowner.</p></div>
+   <div class="acts"><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New message</span></div>
+  </div>
+
+  <div class="c-panes">
+   <div class="c-list">
+    <div class="c-lh"><span class="chip on">All <b>9</b></span><span class="chip">Needs reply <b>3</b></span><span class="chip">Waiting on them</span><span class="chip">Resolved</span></div>
+    <div class="c-r on"><i style="background:var(--held)"></i><div style="min-width:0"><div class="pj">Mbala Residence</div><div class="who">Claire Mbala · Douala</div><div class="pv">Can the roofing start before part 4 is in?</div><div class="st">Waiting on us · Ruth</div></div><span class="t">14 min</span></div>
+    <div class="c-r"><i style="background:var(--held)"></i><div style="min-width:0"><div class="pj">Tabe duplex</div><div class="who">Joseph Tabe · Yaoundé</div><div class="pv">I uploaded the photos of the slab.</div><div class="st">Waiting on us · Unassigned</div></div><span class="t">2 h</span></div>
+    <div class="c-r"><i style="background:var(--held)"></i><div style="min-width:0"><div class="pj">Ngassa family home</div><div class="who">Marie Ngassa · Bafoussam</div><div class="pv">When does the verifier come?</div><div class="st">Waiting on us · Bob</div></div><span class="t">5 h</span></div>
+    <div class="c-r"><i style="background:var(--muted)"></i><div style="min-width:0"><div class="pj">Kouam house</div><div class="who">Ama Kouam · Buea</div><div class="pv"><u>You:</u>The budget is ready for your review.</div><div class="st">Waiting on them</div></div><span class="t">1 d</span></div>
+    <div class="c-r"><i style="background:var(--complete)"></i><div style="min-width:0"><div class="pj">Etoa villa</div><div class="who">Samuel Etoa · Kribi</div><div class="pv"><u>Internal note:</u>Called him, all settled.</div><div class="st">Resolved</div></div><span class="t">3 d</span></div>
+   </div>
+
+   <div class="c-th">
+    <div class="c-thh">
+     <div><h2>Claire Mbala</h2><div class="s"><span class="dotc" style="background:var(--held)"></span>Waiting on us · Groundwork</div></div>
+     <div style="display:flex;gap:8px;align-items:center"><span class="c-sel">Ruth <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span><span class="btn o s">Assign</span><span class="btn o s"><svg class="ico" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>Resolve</span></div>
+    </div>
+    <div class="c-msgs">
+     <span class="c-day">Today</span>
+     <div class="c-b in">Good morning. The contractor says the roof timber is on site. Can the roofing start before part 4 is in?<div class="c-att"><span class="th"></span>roof-timber.jpg</div><small>Claire Mbala · 09:02</small></div>
+     <div class="c-note"><b><svg class="ico" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/></svg>Internal note · Ruth · 09:10</b>Stage 5 is not verified yet. Check with Paul before answering.</div>
+     <div class="c-b out">Morning Claire. Stage 5 needs its verification first; Paul visits Thursday. I will message you right after.<small>Ruth · 09:18</small></div>
+     <div class="c-b in">OK. And can I pay part 4 by Mobile Money?<small>Claire Mbala · 09:31</small></div>
+    </div>
+    <div class="c-comp">
+     <div class="c-ta">Write to the homeowner…</div>
+     <span class="c-pend"><svg class="ico" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M21 12l-9 9a5 5 0 0 1-7-7l9-9a3 3 0 0 1 4 4l-9 9a1 1 0 0 1-2-2l8-8"/></svg>payment-steps.pdf<svg class="ico" style="width:12px;height:12px;color:var(--muted)" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+     <div class="c-ca">
+      <span class="c-ib" title="Attach"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12l-9 9a5 5 0 0 1-7-7l9-9a3 3 0 0 1 4 4l-9 9a1 1 0 0 1-2-2l8-8"/></svg></span>
+      <span class="c-ib" title="Voice note"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+      <span class="hint" style="flex:1">Internal notes stay with staff — never sent, never shown to the homeowner or contractor.</span>
+      <span class="btn o s">Internal note</span><span class="btn g s">Send</span>
+     </div>
+    </div>
+   </div>
+
+   <div class="c-rail">
+    <h4>Homeowner</h4>
+    <div style="display:flex;gap:10px;align-items:center"><div class="av c1">CM</div><div><b style="font-size:13.5px">Claire Mbala</b><div class="muted" style="font-size:12px">claire.mbala@mail.cm</div></div></div>
+    <h4>Project</h4>
+    <div class="c-pc"><b>Mbala Residence</b><p>Stage 5 · Active · Douala, CM</p>
+     <div class="c-stg"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i></div>
+     <div style="margin-top:10px"><span class="link">Open project</span></div></div>
+    <h4>This thread</h4>
+    <div class="c-kv"><span>Channel</span><span>Groundwork (in-app)</span></div>
+    <div class="c-kv"><span>Owner</span><span>Ruth</span></div>
+    <div class="c-kv"><span>Started</span><span>2 Nov</span></div>
+    <div class="c-kv"><span>Last message</span><span>14 min ago</span></div>
+    <p class="hint" style="margin-top:12px;line-height:1.45">Delivered inside Groundwork. Nothing is sent by WhatsApp or email from this thread.</p>
+   </div>
+  </div>
+ </div>
+</div></div>
+<style>
+.d-ov{position:fixed;inset:0;z-index:50;background:rgba(10,10,10,.38);display:flex;justify-content:center;align-items:flex-start;padding-top:96px}
+.d-m{width:760px;background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.25);overflow:hidden}
+.d-h{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px 14px;border-bottom:1px solid var(--rule)}
+.d-h h2{font-size:18px;font-weight:800}
+.d-h p{font-size:12.5px;color:var(--mid);margin-top:3px;max-width:560px}
+.d-s{padding:12px 22px;border-bottom:1px solid var(--rule)}
+.d-s .field{width:100%;padding:10px 12px}
+.d-cols{display:grid;grid-template-columns:1fr 1fr;height:300px}
+.d-col{overflow:hidden}
+.d-col+.d-col{border-left:1px solid var(--rule);background:#fbfbfa}
+.d-ch{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:11px 18px 6px;display:flex;justify-content:space-between}
+.d-a{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--rule);font-size:13px}
+.d-a small{display:block;color:var(--mid);font-size:11.5px}
+.d-a .n{font-size:11.5px;color:var(--mid);white-space:nowrap}
+.d-a.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.d-a.off{opacity:.5}
+.d-p{display:flex;gap:10px;align-items:flex-start;padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.d-p .rd{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--rule);margin-top:2px;flex-shrink:0;background:#fff}
+.d-p.on{background:#fff}.d-p.on .rd{border:5px solid var(--green)}
+.d-p small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.d-p.off{opacity:.5}
+.d-f{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 22px;border-top:1px solid var(--rule)}
+.d-steps{display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--mid);font-weight:600}
+.d-steps i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10.5px;background:var(--green);color:#fff}
+</style>
+<div class="d-ov"><div class="d-m">
+ <div class="d-h"><div><div class="d-steps"><i>1</i>Homeowner <span style="color:var(--rule)">——</span> <i>2</i>Project</div><h2 style="margin-top:8px">Start a Jalla conversation</h2><p>Choose the project. The homeowner is whoever owns it — Groundwork reads that off the project itself.</p></div>
+  <span class="c-ib" style="border:0"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+ <div class="d-s"><span class="field"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg><span style="color:var(--ink)">ngassa</span><span class="muted" style="margin-left:auto;font-size:11.5px">Search by project, homeowner or place</span></span></div>
+ <div class="d-cols">
+  <div class="d-col">
+   <div class="d-ch">Homeowners <span>3 match</span></div>
+   <div class="d-a on"><div><b>Marie Ngassa</b><small>marie.ngassa@mail.cm</small></div><span class="n">2 projects</span></div>
+   <div class="d-a"><div><b>Paul Ngassa</b><small>p.ngassa@yahoo.fr</small></div><span class="n">3 projects</span></div>
+   <div class="d-a off"><div><b>Rose Ngassa-Bell</b><small>rose.bell@mail.cm</small></div><span class="n">No projects</span></div>
+   <p class="hint" style="padding:14px 18px;line-height:1.5">Other states: “There are no accounts yet.” · “No project matches that.” · “Projects could not be read.” A failed start shows its reason above the search.</p>
+  </div>
+  <div class="d-col">
+   <div class="d-ch">Which project is this about? <span>Marie Ngassa</span></div>
+   <div class="d-p on"><span class="rd"></span><div><b>Ngassa family home</b><small>Bafoussam · Active · Stage 4</small></div></div>
+   <div class="d-p"><span class="rd"></span><div><b>Ngassa rental block</b><small>Dschang · On hold · Stage 2</small></div></div>
+   <div class="d-p off"><span class="rd"></span><div><b>Ngassa shop (draft)</b><small>No homeowner on this project · Bafoussam</small></div></div>
+  </div>
+ </div>
+ <div class="d-f"><span style="font-size:12.5px;color:var(--mid)"><b style="color:var(--ink)">Ngassa family home</b> — with Marie Ngassa</span>
+  <div style="display:flex;gap:8px"><span class="btn o">Cancel</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h12v8H7l-4 3zM9 15v2h8l4 3V9h-4"/></svg>Open conversation</span></div></div>
+</div></div>
+
+<p class="caption" style="z-index:60;color:#ddd;top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>

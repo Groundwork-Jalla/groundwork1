@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Admin · Jalla Messages · mobile</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="m.css">
+<style>
+.jm-r{display:grid;grid-template-columns:8px 1fr auto;gap:10px;padding:12px 14px;border-top:1px solid var(--rule);font-size:13px}
+.jm-r:first-child{border-top:0}
+.jm-r i{width:7px;height:7px;border-radius:50%;margin-top:6px}
+.jm-r b{font-weight:600}
+.jm-r small{display:block;color:var(--mid);font-size:12px;margin-top:1px}
+.jm-r .pv{color:var(--ink);font-size:12.5px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.jm-r .pv u{text-decoration:none;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mid);margin-right:4px}
+.jm-r .t{font-size:11px;color:var(--muted)}
+.jm-fab{position:fixed;right:16px;bottom:78px;background:var(--green);color:#fff;border-radius:999px;padding:12px 18px;font-weight:700;font-size:13.5px;display:flex;gap:8px;align-items:center;box-shadow:0 8px 20px rgba(31,77,54,.3)}
+</style></head><body data-active="/admin/inbox?channel=jalla">
+<div class="phonebar" data-phonebar></div>
+<div class="mp">
+ <h1>Jalla Messages</h1><p class="sub">In-app threads on each project, with the homeowner.</p>
+ <div class="scrollx"><span class="chip on">All <b>9</b></span><span class="chip">Needs reply <b>3</b></span><span class="chip">Waiting on them</span><span class="chip">Resolved</span></div>
+ <div class="mcard">
+  <div class="jm-r"><i style="background:var(--held)"></i><div style="min-width:0"><b>Mbala Residence</b><small>Claire Mbala · Waiting on us · Ruth</small><div class="pv">Can the roofing start before part 4 is in?</div></div><span class="t">14 min</span></div>
+  <div class="jm-r"><i style="background:var(--held)"></i><div style="min-width:0"><b>Tabe duplex</b><small>Joseph Tabe · Waiting on us</small><div class="pv">I uploaded the photos of the slab.</div></div><span class="t">2 h</span></div>
+  <div class="jm-r"><i style="background:var(--held)"></i><div style="min-width:0"><b>Ngassa family home</b><small>Marie Ngassa · Waiting on us · Bob</small><div class="pv">When does the verifier come?</div></div><span class="t">5 h</span></div>
+  <div class="jm-r"><i style="background:var(--muted)"></i><div style="min-width:0"><b>Kouam house</b><small>Ama Kouam · Waiting on them</small><div class="pv"><u>You:</u>The budget is ready for your review.</div></div><span class="t">1 d</span></div>
+  <div class="jm-r"><i style="background:var(--complete)"></i><div style="min-width:0"><b>Etoa villa</b><small>Samuel Etoa · Resolved</small><div class="pv"><u>Internal note:</u>Called him, all settled.</div></div><span class="t">3 d</span></div>
+  <div class="jm-r"><i style="background:#2a6f9e"></i><div style="min-width:0"><b>Fouda apartments</b><small>Lucie Fouda · Open</small><div class="pv"><u>You:</u>Welcome to Groundwork, Lucie.</div></div><span class="t">4 d</span></div>
+ </div>
+ <p class="hint" style="margin-top:10px">Tap a thread to open it full screen: the same header (assign, resolve), messages and composer as on desktop, with the project card under the header.</p>
+</div>
+<span class="jm-fab"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New message</span>
+<nav class="ptab" data-ptab></nav>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script></body></html>
