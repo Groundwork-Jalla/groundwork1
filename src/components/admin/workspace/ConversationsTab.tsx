@@ -77,7 +77,9 @@ export function ConversationsTab({ loaded, conversationId, onChanged }: { loaded
   }
 
   return (
-    <div className="flex flex-col gap-5 p-5 sm:p-6 2xl:p-8">
+    // Three panes (18 Nov redesign): threads · the open thread · the decision log, so a
+    // decision is read beside the conversation that produced it. Below xl they stack.
+    <div className={cn('grid items-start gap-4 p-4 sm:p-6 2xl:p-8', state !== 'empty' && 'xl:grid-cols-[17rem_minmax(0,1fr)_20rem]')}>
       {state === 'empty' ? (
         <div className="rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           <EmptyState
@@ -94,17 +96,20 @@ export function ConversationsTab({ loaded, conversationId, onChanged }: { loaded
           {startError && <p role="alert" className="px-6 pb-5 text-center text-xs text-state-alert">{startError}</p>}
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <>
           {/* ── Threads ───────────────────────────────────────────────────────────── */}
-          <aside className="min-w-0 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e] lg:self-start">
+          <aside className="min-w-0 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="flex items-center justify-between border-b border-brand-border-grey px-4 py-3 text-sm font-bold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              {t('admin.workspace.ui.threads')}<span className="text-xs font-normal tabular-nums text-brand-mid-grey">{ws.conversations.length}</span>
+            </h2>
             <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
               {ws.conversations.map(c => {
                 const active = c.id === selected?.id;
                 return (
                   <li key={c.id}>
                     <Link to={workspaceHref(ws.project.id, { tab: 'conversations', conversationId: c.id })} replace aria-current={active ? 'true' : undefined}
-                      className={cn('block px-4 py-3 transition-colors', active ? 'bg-brand-off-white dark:bg-[#252525]' : 'hover:bg-brand-off-white dark:hover:bg-[#252525]')}>
-                      <p className="flex items-center gap-2 text-sm font-medium text-brand-near-black dark:text-white">
+                      className={cn('block px-4 py-3 transition-colors', active ? 'bg-[#f3f6f4] shadow-[inset_3px_0_0_var(--color-brand-green)] dark:bg-[#1c2620]' : 'hover:bg-brand-off-white dark:hover:bg-[#252525]')}>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
                         <span className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT[c.status])} />
                         <span className="truncate">{c.subject || t(`admin.workspace.conversations.channel.${c.channel}` as TKey)}</span>
                       </p>
@@ -135,7 +140,7 @@ export function ConversationsTab({ loaded, conversationId, onChanged }: { loaded
               />
             )}
           </section>
-        </div>
+        </>
       )}
 
       {/* ── Decisions taken on this project ───────────────────────────────────────── */}
@@ -159,7 +164,10 @@ function DecisionsList({ ws, loaded, name }: { ws: Workspace; loaded: LoadedWork
   return (
     <section className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <header className="border-b border-brand-border-grey px-5 py-3.5 dark:border-[#2c2c2c]">
-        <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('admin.decision.listTitle')}</h2>
+        <h2 className="flex items-center justify-between gap-2 text-sm font-bold text-brand-near-black dark:text-white">
+          {t('admin.decision.listTitle')}
+          {ws.decisions.length > 0 && <span className="text-xs font-normal tabular-nums text-brand-mid-grey">{ws.decisions.length}</span>}
+        </h2>
         <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.decision.listSub')}</p>
       </header>
       {state === 'unavailable' || state === 'error' ? (
@@ -169,19 +177,21 @@ function DecisionsList({ ws, loaded, name }: { ws: Workspace; loaded: LoadedWork
       ) : (
         <ol className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
           {ws.decisions.map(d => (
-            <li key={d.id} className="px-5 py-3">
-              <p className="text-sm font-medium text-brand-near-black dark:text-white">{d.subject}</p>
-              <p className="mt-0.5 whitespace-pre-wrap text-xs text-brand-near-black dark:text-white">{d.decision}</p>
-              <p className="mt-1 text-[11px] text-brand-mid-grey">
-                {related(d)}
-                {' · '}{t('admin.decision.recordedBy', { name: name(d.recordedBy) || t('admin.workspace.header.unknownAccount'), when: formatRelative(d.recordedAt) })}
-                {d.approvedBy && ` · ${t('admin.decision.approvedBy', { name: name(d.approvedBy) || t('admin.workspace.header.unknownAccount'), when: formatRelative(d.approvedAt) })}`}
-                {d.costImpactUsd != null && ` · ${t('admin.decision.costImpact', { amount: formatUSDFull(d.costImpactUsd) })}`}
-                {d.scheduleImpactDays != null && ` · ${t('admin.decision.scheduleImpact', { days: d.scheduleImpactDays })}`}
+            <li key={d.id} className="px-5 py-3.5">
+              <p className="text-sm font-bold text-brand-near-black dark:text-white">{d.subject}</p>
+              <p className="mt-1 whitespace-pre-wrap text-[13px] text-brand-near-black dark:text-white">{d.decision}</p>
+              {/* Each fact as its own chip, so a long line never hides the one you need. */}
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-brand-mid-grey">
+                <Fact>{related(d)}</Fact>
+                <Fact>{t('admin.decision.recordedBy', { name: name(d.recordedBy) || t('admin.workspace.header.unknownAccount'), when: formatRelative(d.recordedAt) })}</Fact>
+                {d.approvedBy && <Fact>{t('admin.decision.approvedBy', { name: name(d.approvedBy) || t('admin.workspace.header.unknownAccount'), when: formatRelative(d.approvedAt) })}</Fact>}
+                {d.costImpactUsd != null && <Fact>{t('admin.decision.costImpact', { amount: formatUSDFull(d.costImpactUsd) })}</Fact>}
+                {d.scheduleImpactDays != null && <Fact>{t('admin.decision.scheduleImpact', { days: d.scheduleImpactDays })}</Fact>}
+                {d.supersedesId && <Fact>{t('admin.decision.supersedes')}</Fact>}
                 {d.conversationId && (
-                  <> · <Link to={workspaceHref(ws.project.id, { tab: 'conversations', conversationId: d.conversationId })} className="hover:underline">{t('admin.decision.openThread')}</Link></>
+                  <Link to={workspaceHref(ws.project.id, { tab: 'conversations', conversationId: d.conversationId })}
+                    className="font-semibold text-brand-green underline underline-offset-2 dark:text-state-complete">{t('admin.decision.openThread')}</Link>
                 )}
-                {d.supersedesId && ` · ${t('admin.decision.supersedes')}`}
               </p>
             </li>
           ))}
@@ -189,4 +199,8 @@ function DecisionsList({ ws, loaded, name }: { ws: Workspace; loaded: LoadedWork
       )}
     </section>
   );
+}
+
+function Fact({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-md bg-brand-off-white px-1.5 py-0.5 dark:bg-[#252525]">{children}</span>;
 }
