@@ -23,11 +23,13 @@ import { cn } from '@/lib/utils';
 // =========================================================
 // The operations command centre.
 //
-// Composition is the layout agreed 14 Sep 2026: hero, eight metrics, a main body that
-// answers "where are the projects · how are applications progressing · where are the
-// contractors · what needs me", and a right-hand operational rail. The visual language
-// is the dark concept's; both themes wear it, including the sidebar, which follows the
-// theme like everything else.
+// Composition is the 18 Nov 2026 redesign (docs/mockups/2026-11-18-admin-screens/
+// overview-desktop.png): what needs me first — a hero carrying the Action Center's counts
+// by priority, beside today's date and the integration's health — then the eight metrics
+// in two named bands (Building · People & growth), then "Needs your attention" wide beside
+// recent activity, then map · funnel · trades, then support · GoHighLevel · inspections.
+// Every card, link, empty and partial state of the 14 Sep layout is still here, and the
+// 14 Sep rule still holds: rows are `items-start`, so no card is stretched to a neighbour.
 //
 // A KPI IS A DATASET, NOT A SHORTCUT (Favour, 14 Sep 2026). Clicking "Projects at risk —
 // 3" lands on exactly those three, because the destination filters with the same call
@@ -159,7 +161,7 @@ export default function AdminOverview() {
       </div>
 
       {/* ── What is waiting · what just happened ─────────────────────────────────── */}
-      <div className={cn('grid xl:grid-cols-[minmax(0,1fr)_23.75rem]', DASHBOARD_GAP)}>
+      <div className={cn('grid items-start xl:grid-cols-[minmax(0,1fr)_23.75rem]', DASHBOARD_GAP)}>
         <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo={SEE_ALL_LINKS.attention}>
           {counts && actions && actions.items.length > 0 && <PriorityBar counts={counts} total={actions.items.length} />}
           {!actions ? (
@@ -208,7 +210,7 @@ export default function AdminOverview() {
       </div>
 
       {/* ── Where the work is · what is coming in · who does it ──────────────────── */}
-      <div className={cn('grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]', DASHBOARD_GAP)}>
+      <div className={cn('grid items-start lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]', DASHBOARD_GAP)}>
         <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo={SEE_ALL_LINKS.locations}>
           {!data?.locations.length
             ? <CardEmpty messageKey="admin.map.empty" />
@@ -229,7 +231,7 @@ export default function AdminOverview() {
       </div>
 
       {/* ── The system: support · the integration · inspections ──────────────────── */}
-      <div className={cn('grid lg:grid-cols-3', DASHBOARD_GAP)}>
+      <div className={cn('grid items-start lg:grid-cols-3', DASHBOARD_GAP)}>
         <Card titleKey="admin.supportCard.title" subtitleKey="admin.supportCard.subtitle" viewAllTo={SEE_ALL_LINKS.support}>
           {!data?.tickets.length
             ? <CardEmpty messageKey="admin.supportCard.empty" />
