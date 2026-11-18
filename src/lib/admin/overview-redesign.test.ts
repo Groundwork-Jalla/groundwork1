@@ -71,7 +71,7 @@ const DATA = {
   tickets: [{ id: 't1', subject: 'Cannot upload receipt', who: 'Joseph Tabe', status: 'in_progress', createdAt: '2026-11-17T08:00:00Z' }],
   crm: { status: { apiToken: true, locationId: true, conversationProvider: true, inboundSecret: true, stageMapValid: false }, backlog: 0, failures: 0, lastInboundAt: '2026-11-18T09:00:00Z', lastOutboundAt: null },
 };
-const item = (key: string, priority: string, to: string) => ({ key, kind: 'verification_overdue', priority, since: '2026-11-12T08:00:00Z', to, projectName: 'Mbala Residence', personName: 'Claire Mbala', stageNumber: 4 });
+const item = (key: string, priority: string, to: string) => ({ key, kind: 'verification_due', priority, since: '2026-11-12T08:00:00Z', to, projectName: 'Mbala Residence', personName: 'Claire Mbala', stageNumber: 4 });
 const ACTIONS = {
   items: [item('i1', 'critical', '/admin/projects/a?tab=stages'), item('i2', 'high', '/admin/reviews'), item('i3', 'high', '/admin/budgets'), item('i4', 'medium', '/admin/applications?status=pending')],
   available: { verifications: true, siteUpdates: true, ledger: true, conversations: true }, loadedAt: '',
