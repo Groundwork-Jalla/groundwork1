@@ -298,7 +298,8 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
                 : t('admin.workspace.stagesView.nextNone')}
             </p>
             <div className="flex flex-wrap gap-2">
-              {offered.map(a => (
+              {/* A held act with a reason is the locked line below, not a dead button. */}
+              {offered.filter(a => a.enabled || !a.reasonKey).map(a => (
                 <button
                   key={a.kind}
                   type="button"

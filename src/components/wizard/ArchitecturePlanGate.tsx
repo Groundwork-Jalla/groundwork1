@@ -97,6 +97,8 @@ export function ArchitecturePlanGate({
   const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
   const [selectedHasPlan, setSelectedHasPlan] = useState<boolean | null>(null);
   const [floorPlans, setFloorPlans] = useState<File[]>([]);
+  /** The person confirmed an upload with no sign of a drawing IS their floor plan. Reset per upload. */
+  const [planVouched, setPlanVouched] = useState(false);
   const [bq, setBq] = useState<File | null>(null);
   const [reading, setReading] = useState<BqReading | null>(null);
   const [lineItems, setLineItems] = useState<BqLineItem[]>([]);
@@ -337,6 +339,7 @@ export function ArchitecturePlanGate({
             readRequests.invalidate('floorPlan');
             setLooking(false);
             setFloorPlans(chosen);
+            setPlanVouched(false);
             setFloorPlanFacts([]);
             if (chosen.length) void inspectFloorPlans(chosen);
           }}
@@ -466,7 +469,19 @@ export function ArchitecturePlanGate({
           <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">{t('planGate.notADrawingBody')}</p>
         </div>
       )}
-      {!scanning && !looking && floorPlans.length > 0 && uploadReading.unreadable && (
+      {/* No sign of a drawing at all (18 Nov): flagged, and the person must say it IS their
+          floor plan before the wizard carries on. Replaces the quiet "could not read" note. */}
+      {!scanning && !looking && floorPlans.length > 0 && uploadReading.noPlanEvidence && (
+        <div role="alert" data-plan-unproven className="mt-4 rounded-xl border border-state-held/50 bg-[#fbf8f2] px-4 py-3 dark:bg-[#231f17]">
+          <p className="text-xs font-semibold text-brand-near-black dark:text-white">{t('planGate.noEvidenceTitle')}</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">{t('planGate.noEvidenceBody')}</p>
+          <label className="mt-2.5 flex items-start gap-2 text-xs font-medium text-brand-near-black dark:text-white">
+            <input type="checkbox" checked={planVouched} onChange={e => setPlanVouched(e.target.checked)} className="mt-0.5 size-4 accent-brand-green" />
+            {t('planGate.noEvidenceConfirm')}
+          </label>
+        </div>
+      )}
+      {!scanning && !looking && floorPlans.length > 0 && uploadReading.unreadable && !uploadReading.noPlanEvidence && (
         <p className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
           {t('planGate.noFloorPlanUnreadable')}
         </p>
@@ -518,8 +533,8 @@ export function ArchitecturePlanGate({
         <motion.button
           type="button" whileTap={{ scale: 0.99 }}
           // A pending bill must finish or the person explicitly chooses manual entry.
-          disabled={!floorPlans.length || !bq || heldByRead || boqScanning}
-          onClick={() => { if (!uploadReading.notADrawing) onAnswered({
+          disabled={!floorPlans.length || !bq || heldByRead || boqScanning || (uploadReading.noPlanEvidence && !planVouched)}
+          onClick={() => { if (!uploadReading.notADrawing && !(uploadReading.noPlanEvidence && !planVouched)) onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
           }); }}
           className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"

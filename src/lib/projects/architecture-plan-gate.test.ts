@@ -191,7 +191,7 @@ describe('the question itself', () => {
     // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
     // stops holding the button once the grace period is out. Both documents are still
     // required, which is what this assertion is about.
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning\}/);
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning \|\| \(uploadReading\.noPlanEvidence && !planVouched\)\}/);
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
@@ -202,7 +202,7 @@ describe('the question itself', () => {
    */
   it('refuses to continue from a document that is not a drawing, and says how to carry on without a plan', () => {
     expect(gate).toMatch(/<fieldset disabled=\{uploadReading\.notADrawing\}/);
-    expect(gate).toMatch(/onClick=\{\(\) => \{ if \(!uploadReading\.notADrawing\) onAnswered\(/);
+    expect(gate).toMatch(/onClick=\{\(\) => \{ if \(!uploadReading\.notADrawing && !\(uploadReading\.noPlanEvidence && !planVouched\)\) onAnswered\(/);
     expect(gate).toContain("t('planGate.notADrawingTitle')");
     expect(gate).toContain("t('planGate.notADrawingBody')");
     // The slow-bill shortcut must not be a way round it.
@@ -390,5 +390,16 @@ describe('the summary comes prefilled from the documents', () => {
 
   it('refuses a storey count no building has', () => {
     expect(readStatedFloors('G+99').value).toBeNull();
+  });
+});
+
+describe('an upload with no sign of a floor plan (18 Nov testing)', () => {
+  it('is flagged, and Continue waits until the person confirms it is their floor plan', () => {
+    expect(gate).toContain('uploadReading.noPlanEvidence && (');
+    expect(gate).toContain("t('planGate.noEvidenceConfirm')");
+    expect(gate).toContain('checked={planVouched} onChange={e => setPlanVouched(e.target.checked)}');
+  });
+  it('a new upload asks again', () => {
+    expect(gate).toMatch(/setFloorPlans\(chosen\);\s*setPlanVouched\(false\);/);
   });
 });

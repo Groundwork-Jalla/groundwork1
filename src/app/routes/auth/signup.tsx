@@ -28,6 +28,11 @@ export default function Signup() {
   const inviteEmail    = searchParams.get("email")  ?? "";
   const invitationRole = useProjectInvitationRole(searchParams.toString());
   const isInviteFlow   = !!invitationRole.invitation;
+  // The email is locked only when the invitation brought one (18 Nov testing). A homeowner
+  // invitation (?share=) and a remembered invitation carry no address, and locking an empty
+  // field left the invitee unable to type their own email at all. The server still checks
+  // the address on acceptance; the lock was only ever a convenience.
+  const emailLocked    = isInviteFlow && inviteEmail.trim() !== '';
   const accountType = signupAccountType(searchParams);
   const returnPath = safeAuthReturn(searchParams.get('redirect'));
   const loginPath = withProjectInvitation('/auth/login' + (returnPath ? `?redirect=${encodeURIComponent(returnPath)}` : ''), readProjectInvitation(searchParams.toString()));
@@ -297,7 +302,7 @@ export default function Signup() {
 
         <div className="space-y-1.5">
           <Label htmlFor="email">{t('auth.signup.email')}</Label>
-          {isInviteFlow ? (
+          {emailLocked ? (
             <div className="relative">
               <Input
                 id="email"

@@ -22,11 +22,13 @@ const TAB = 'src/components/admin/workspace/FinancialsTab.tsx';
 const WS_DIR = 'src/components/admin/workspace';
 
 describe('the six sections, in order', () => {
-  it('renders funding, releases, disbursements, compensation, reconciliation, then budget', () => {
+  // 18 Nov redesign: the per-stage table (journey, lifecycle and the release act, which
+  // replaced the separate Releases table) leads, because "where is the money" comes first.
+  it('renders the stage money table, funding, disbursements, compensation, reconciliation, then budget', () => {
     const c = code(TAB);
     const order = [
+      '<MoneyFlow',
       "t('admin.ledger.funding')",
-      "t('admin.ledger.releases')",
       "t('admin.workspace.financials.disbursements')",
       "t('admin.workspace.financials.compensation')",
       "t('admin.workspace.financials.reconciliation')",

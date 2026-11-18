@@ -82,7 +82,7 @@ describe('5a.2–4 — the tabs read the model and write nothing', () => {
   it('Site Updates is ws.siteUpdates, files through the evidence reader, no submit path', () => {
     const c = code(UPDATES);
     expect(c).toContain('ws.siteUpdates.map(');
-    expect(c).toContain('<EvidenceList paths={u.evidencePaths} />');
+    expect(c).toContain('<EvidenceList paths={u.evidencePaths} thumbnails />');   // 18 Nov: photos, same reader
     expect(code(EVIDENCE)).toContain('getSignedEvidenceUrl(p)');
     expect(c).not.toMatch(/<form|<textarea|<input/);
   });

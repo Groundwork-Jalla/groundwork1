@@ -153,7 +153,7 @@ describe('the contractor project header and tabs', () => {
   });
 
   it('"Message homeowner" goes to Messages', async () => {
-    const view = await press(await open(), 'Message homeowner');
+    const view = await press(await open(), 'Message Homeowner');
     expect(activeTab(view)).toBe('messages');
     expect(view.some(node => node.type === 'mock-ProjectConversations')).toBe(true);
   });
@@ -163,7 +163,7 @@ describe('the Work tab', () => {
   it('leads with the receipt to confirm, and its button opens "Did this payment arrive?" on that receipt', async () => {
     let view = await open();
     expect(find(view, node => node.props?.['data-next-step'])?.props['data-next-step']).toBe('receipt');
-    expect(text(find(view, node => node.props?.['data-next-step']))).toContain('Confirm the homeowner’s payment for Part 3 · Part name 3');
+    expect(text(find(view, node => node.props?.['data-next-step']))).toContain('Confirm the Homeowner’s payment for Part 3 · Part name 3');
     view = await press(view, 'Review receipt');
     expect(dialog(view)?.props['data-receipt-decision']).toBe('r3');
     expect(text(dialog(view))).toContain('Did this payment arrive?');

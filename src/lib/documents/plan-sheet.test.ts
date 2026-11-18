@@ -218,7 +218,7 @@ describe('readUpload — what the whole upload amounts to', () => {
   });
 
   it('says nothing at all about an empty upload', () => {
-    expect(readUpload([])).toEqual({ hasFloorPlan: false, insteadFound: [], unreadable: false, notADrawing: false });
+    expect(readUpload([])).toEqual({ hasFloorPlan: false, insteadFound: [], unreadable: false, notADrawing: false, noPlanEvidence: false });
   });
 
   it('leaves out sheets it could not identify', () => {
@@ -278,3 +278,24 @@ describe('readUpload — a document that is not a drawing at all is refused', ()
   });
 });
 
+
+describe('noPlanEvidence — a picture with nothing of a drawing in it (18 Nov testing)', () => {
+  it('an unreadable image with no model answer has no evidence', () => {
+    expect(readUpload([{}]).noPlanEvidence).toBe(true);
+  });
+  it('an image the text reader could not place, and no model, has no evidence', () => {
+    expect(readUpload([{ isFloorPlan: false, fromOcr: true, sheets: [{ kind: 'unknown', basis: [] }] }]).noPlanEvidence).toBe(true);
+  });
+  it('a vision model that recognised a drawing sheet is evidence', () => {
+    expect(readUpload([{ isFloorPlan: false, fromOcr: true, sheets: [{ kind: 'unknown', basis: [] }], model: { sheets: ['elevation'] } }]).noPlanEvidence).toBe(false);
+  });
+  it('a recognised floor plan, or another drawing sheet, is not flagged', () => {
+    expect(readUpload([{ isFloorPlan: true, sheets: [{ kind: 'floor_plan', basis: ['bedroom'] }] }]).noPlanEvidence).toBe(false);
+    expect(readUpload([{ isFloorPlan: false, sheets: [{ kind: 'site_plan', basis: ['site plan'] }] }]).noPlanEvidence).toBe(false);
+  });
+  it('a document that is plainly not a drawing stays a refusal, not a question', () => {
+    const out = readUpload([{ isFloorPlan: false, sheets: [{ kind: 'unknown', basis: [], prose: true }] }]);
+    expect(out.notADrawing).toBe(true);
+    expect(out.noPlanEvidence).toBe(false);
+  });
+});

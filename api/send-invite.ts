@@ -88,7 +88,7 @@ export default async function handler(req: any, res: any) {
       inviter?.preferred_lang ?? null,
       uiLang === 'en' || uiLang === 'fr' ? uiLang : null,
     );
-    const inviterName = inviter?.full_name?.trim() || 'A Groundwork homeowner';
+    const inviterName = inviter?.full_name?.trim() || 'A Groundwork Homeowner';
     const projectName = project?.name?.trim() || 'a Groundwork project';
 
     const subject = inviteSubject(lang, inviterName);

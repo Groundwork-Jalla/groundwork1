@@ -248,6 +248,16 @@ export interface UploadReading {
   insteadFound: NamedSheetKind[];
   /** True when nothing could be read at all — a scan, a photograph, a flattened export. */
   unreadable: boolean;
+  /**
+   * Nothing in the upload shows any sign of being a drawing: no scale, no dimension
+   * strings, no room names, no sheet title, and no vision model that recognised a sheet.
+   *
+   * 18 Nov testing: a random picture went through as the floor plan and a project was
+   * created from it, because an unreadable image was only ever a quiet notice. It is not a
+   * refusal (a hand-drawn plan or a phone photo of a real sheet can look exactly like
+   * this), so the wizard asks the person to confirm it is a floor plan before continuing.
+   */
+  noPlanEvidence: boolean;
 }
 
 /**
@@ -272,11 +282,14 @@ export function readUpload(
   readings: UploadedDrawingReading[],
 ): UploadReading {
   const answered = readings.filter(r => r.isFloorPlan != null);
+  // A vision model that recognised ANY drawing sheet is evidence, even when the text was empty.
+  const modelSawDrawing = readings.some(r => (r.model?.sheets ?? []).some(kind => kind !== 'other'));
   if (!readings.length || !answered.length) {
-    return { hasFloorPlan: false, insteadFound: [], unreadable: readings.length > 0, notADrawing: false };
+    return { hasFloorPlan: false, insteadFound: [], unreadable: readings.length > 0, notADrawing: false,
+      noPlanEvidence: readings.length > 0 && !modelSawDrawing };
   }
   if (answered.some(r => r.isFloorPlan)) {
-    return { hasFloorPlan: true, insteadFound: [], unreadable: false, notADrawing: false };
+    return { hasFloorPlan: true, insteadFound: [], unreadable: false, notADrawing: false, noPlanEvidence: false };
   }
   const insteadFound: NamedSheetKind[] = [];
   for (const reading of answered) {
@@ -286,11 +299,13 @@ export function readUpload(
       }
     }
   }
+  const notADrawing = insteadFound.length === 0 && readings.every(isNotADrawing);
   return {
     hasFloorPlan: false, insteadFound, unreadable: false,
     // Refused only when nothing in the upload is any kind of drawing AND every file gives
     // a positive reason to say so. One file we merely could not place keeps the upload open.
-    notADrawing: insteadFound.length === 0 && readings.every(isNotADrawing),
+    notADrawing,
+    noPlanEvidence: !notADrawing && insteadFound.length === 0 && !modelSawDrawing,
   };
 }
 
