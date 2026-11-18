@@ -44,6 +44,9 @@ export function EvidenceList({ paths, thumbnails = false }: { paths: string[]; t
                     : <span className="grid size-full place-items-center text-brand-mid-grey"><FileImage className="size-6" /></span>}
                   <FileImage aria-hidden className="absolute bottom-2 left-2 size-3.5 text-white drop-shadow" />
                 </a>
+              ) : url === undefined ? (
+                // Still being signed: a quiet tile, not a failure.
+                <span aria-hidden className={cn(tile, 'animate-pulse')} />
               ) : (
                 // Marked, never dropped: the record says a file was here.
                 <span title={p} className={cn(tile, 'opacity-50', 'grid place-items-center border-dashed text-center text-xs text-brand-mid-grey')}>

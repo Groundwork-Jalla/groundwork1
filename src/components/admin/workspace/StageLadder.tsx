@@ -3,6 +3,7 @@ import type { StageView } from '@/lib/admin/workspace';
 import { workspaceHref, type WorkspaceTab } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { useStageLabels } from '@/lib/stage-labels';
+import { formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -15,12 +16,14 @@ import { cn } from '@/lib/utils';
 // here reads `payment_status` or decides a state; the ladder is the lifecycle, listed.
 // =========================================================
 
-export function StageLadder({ projectId, stages, selectedId, tab = 'overview' }: {
+export function StageLadder({ projectId, stages, selectedId, tab = 'overview', showMilestone = false }: {
   projectId: string;
   stages: StageView[];
   selectedId: string | null;
   /** The tab a row selects within — the Overview by default, the Stages tab on itself. */
   tab?: WorkspaceTab;
+  /** The Stages tab shows each stage's milestone on the right (18 Nov redesign). */
+  showMilestone?: boolean;
 }) {
   const { stageLabel } = useStageLabels();
   return (
@@ -56,6 +59,11 @@ export function StageLadder({ projectId, stages, selectedId, tab = 'overview' }:
                 </span>
                 <StageLifecycleBadge lifecycle={view.lifecycle} size="small" className="mt-0.5" />
               </span>
+              {showMilestone && (view.stage.payment_milestone_usd ?? 0) > 0 && (
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-brand-near-black dark:text-white">
+                  {formatUSDFull(view.stage.payment_milestone_usd as number)}
+                </span>
+              )}
             </Link>
           </li>
         );
