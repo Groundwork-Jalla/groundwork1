@@ -55,8 +55,8 @@ describe('actual payout figures on both project views', () => {
     h.fetch.mockResolvedValue(new Map([['stage', receipt]]));
     await load();
     const html = render();
-    expect(html).toContain('$80.125');
-    expect(html).toContain('$19.875');
+    expect(html).toContain('$80.13');
+    expect(html).toContain('$19.88');
     expect(html).toContain('project.costing.payouts');
   });
 
@@ -82,15 +82,15 @@ describe('actual payout figures on both project views', () => {
     await load();
     const html = render();
     expect(html).toContain('project.costing.receiptAmountsMissing');
-    expect(html).not.toContain('$80.125');
-    expect(html).not.toContain('$19.875');
+    expect(html).not.toContain('$80.13');
+    expect(html).not.toContain('$19.88');
   });
 
   it('does not expose the previous project’s money while loading another project', async () => {
     h.fetch.mockResolvedValue(new Map([['stage', receipt]]));
     await load();
-    expect(render()).toContain('$80.125');
-    expect(render({ ...project, id: 'different-project' })).not.toContain('$80.125');
+    expect(render()).toContain('$80.13');
+    expect(render({ ...project, id: 'different-project' })).not.toContain('$80.13');
   });
 
   it('shows an explicit budget overrun when a confirmed negotiated payment exceeds the budget', async () => {
@@ -106,6 +106,6 @@ describe('actual payout figures on both project views', () => {
     if (typeof cleanup === 'function') cleanup();
     finish(new Map([['stage', receipt]]));
     await Promise.resolve(); await Promise.resolve();
-    expect(render()).not.toContain('$80.125');
+    expect(render()).not.toContain('$80.13');
   });
 });

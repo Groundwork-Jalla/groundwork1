@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Projects · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.fbar{display:flex;gap:8px;margin-top:16px;align-items:center;flex-wrap:wrap}
+.inp{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;color:var(--mid);display:inline-flex;gap:8px;align-items:center}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.tile{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600}
+.tile b{font-family:var(--mono);font-size:18px}
+.tile.on{border:1.5px solid var(--green);background:#f3f6f4;color:var(--green)}
+.rb{font-size:10px;font-weight:700;text-transform:uppercase;border-radius:5px;padding:1px 5px;background:var(--pale);color:var(--mid);margin-left:6px}
+.st{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px}
+.st.a{background:#e9f0ec;color:var(--complete)}.st.h{background:#f4eee2;color:var(--held)}.st.c{background:var(--pale);color:var(--mid)}
+.hl{font-size:12px;font-weight:600;display:inline-flex;gap:5px;align-items:center}
+.acts{display:flex;gap:4px;justify-content:flex-end}
+.acts span{width:30px;height:30px;border-radius:8px;border:1px solid var(--rule);display:grid;place-items:center;color:var(--mid)}
+.acts svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar data-open="Work"></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph"><div><h1>All Projects</h1><p>48 total</p></div><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Create for a homeowner</span></div>
+  <div class="fbar">
+   <span class="inp" style="width:280px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search projects…</span>
+   <span class="inp">Created from · dd/mm/yyyy</span><span class="inp">Created through · dd/mm/yyyy</span>
+   <span class="inp">All project origins ▾</span><span class="inp">All owners ▾</span>
+   <span class="link" style="margin-left:4px">Clear filters</span>
+  </div>
+  <div class="tiles"><div class="tile on">All projects<b>48</b></div><div class="tile">Active<b>31</b></div><div class="tile">On hold<b>4</b></div><div class="tile">Completed<b>13</b></div></div>
+
+  <section class="card" style="margin-top:12px;overflow:hidden">
+   <table class="tbl">
+    <thead><tr><th>Project</th><th>Owner</th><th>Plan</th><th>Status</th><th>Health</th><th style="width:150px">Stage</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+     <tr><td><b>Mbala Residence</b><div class="muted" style="font-size:11.5px">Douala</div></td><td>Claire Mbala<span class="rb">Homeowner</span></td><td>Jalla Verify</td><td><span class="st a">Active</span></td><td><span class="hl" style="color:var(--alert)"><i class="dotc" style="background:var(--alert)"></i>At risk</span></td><td><span class="mono" style="font-size:12px">5 / 10</span><div class="bar5" style="margin-top:4px"><i style="width:45%"></i></div></td><td class="muted">30 Oct 2026</td><td><div class="acts" data-acts></div></td></tr>
+     <tr><td><b>Kouam house</b><div class="muted" style="font-size:11.5px">Buea</div></td><td>Ama Kouam<span class="rb">Homeowner</span></td><td>Self Verify</td><td><span class="st a">Active</span></td><td><span class="hl" style="color:var(--held)"><i class="dotc" style="background:var(--held)"></i>Needs attention</span></td><td><span class="mono" style="font-size:12px">5 / 10</span><div class="bar5" style="margin-top:4px"><i style="width:45%"></i></div></td><td class="muted">12 Oct 2026</td><td><div class="acts" data-acts></div></td></tr>
+     <tr><td><b>Nkeng villa</b><div class="muted" style="font-size:11.5px">Yaoundé</div></td><td>Benoit Nkeng<span class="rb">Contractor</span></td><td>Jalla Verify</td><td><span class="st a">Active</span></td><td><span class="hl" style="color:var(--complete)"><i class="dotc" style="background:var(--complete)"></i>On track</span></td><td><span class="mono" style="font-size:12px">3 / 10</span><div class="bar5" style="margin-top:4px"><i style="width:25%"></i></div></td><td class="muted">2 Oct 2026</td><td><div class="acts" data-acts></div></td></tr>
+     <tr><td><b>Tabe duplex</b><div class="muted" style="font-size:11.5px">Limbe</div></td><td>Joseph Tabe<span class="rb">Homeowner</span></td><td>Management</td><td><span class="st h">On hold</span></td><td><span class="hl" style="color:var(--mid)"><i class="dotc" style="background:var(--muted)"></i>Not started</span></td><td><span class="mono" style="font-size:12px">0 / 10</span><div class="bar5" style="margin-top:4px"><i style="width:0%"></i></div></td><td class="muted">28 Sep 2026</td><td><div class="acts" data-acts></div></td></tr>
+     <tr><td><b>Ndi bungalow</b><div class="muted" style="font-size:11.5px">Bamenda</div></td><td>Amina Ndi<span class="rb">Homeowner</span></td><td>Free</td><td><span class="st c">Completed</span></td><td><span class="hl" style="color:var(--complete)"><i class="dotc" style="background:var(--complete)"></i>Completed</span></td><td><span class="mono" style="font-size:12px">10 / 10</span><div class="bar5" style="margin-top:4px"><i style="width:100%"></i></div></td><td class="muted">14 Aug 2026</td><td><div class="acts" data-acts></div></td></tr>
+    </tbody>
+   </table>
+  </section>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+<script>
+const A = { con:'<path d="M3 18h18M5 18v-3a7 7 0 0 1 14 0v3M10 8V5h4v3"/>', ver:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>', view:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>', del:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>' };
+const T = { con:'Assign contractor', ver:'Assign verifier', view:'View project (homeowner view)', del:'Delete project' };
+document.querySelectorAll('[data-acts]').forEach(el => el.innerHTML = Object.keys(A).map(k => `<span title="${T[k]}" style="${k==='del'?'color:var(--alert)':''}"><svg viewBox="0 0 24 24">${A[k]}</svg></span>`).join(''));
+</script>
+</body></html>

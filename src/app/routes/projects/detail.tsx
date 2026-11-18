@@ -23,6 +23,8 @@ import {
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+import { projectMoneyBasis } from '@/lib/budget/project-money';
+import { ProjectPaymentHistory } from '@/components/project/ProjectPaymentHistory';
 import { projectStagesAfterApproval } from '@/lib/projects/stage-progression';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { ProjectContractorConnection } from '@/components/project/ProjectContractorConnection';
@@ -203,6 +205,15 @@ export default function ProjectDetail() {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       if (tab === 'overview') next.delete('tab'); else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  /** The payment history's way to a stage: the Stages tab, opened on that stage. */
+  const openStage = useCallback((stageId: string | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'stages'); next.delete('stage');
+      if (stageId) next.set('stage_id', stageId); else next.delete('stage_id');
       return next;
     }, { replace: true });
   }, [setSearchParams]);
@@ -623,6 +634,13 @@ export default function ProjectDetail() {
           {activeTab === 'costing' && (
             <div className="min-w-0 space-y-4">
               <StagePricingPanel project={project} onChanged={loadAll} payments={payments} />
+              {/* 17 Nov session: the contractor had a payment history and the homeowner
+                  had none. Same receipts, same component, read-only. */}
+              <ProjectPaymentHistory stagePayments={payments} projectCurrency={projectMoneyBasis(project).code} audience="client"
+                layout="full" stages={stages} substages={substages} projectRate={projectMoneyBasis(project).rate}
+                onOpenStage={openStage} canReplace={teamAccess?.primaryClient === true}
+                onAddReceipt={teamAccess?.primaryClient === true ? () => openStage(null) : undefined}
+                stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} />
               <div className="min-w-0 overflow-x-auto"><BudgetView project={project} stages={stages} payments={payments} /></div>
             </div>
           )}
@@ -655,6 +673,15 @@ export default function ProjectDetail() {
                 stages={stages}
                 canUpload={isOwner || isContractor}
               />
+              {/* Financial records under Documents (17 Nov session): the receipts live
+                  on their stages, and this is where a homeowner looks for paperwork. */}
+              <section aria-labelledby="financial-records-title" className="mt-8 space-y-2">
+                <h2 id="financial-records-title" className="text-base font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.financialRecords')}</h2>
+                <p className="text-xs leading-relaxed text-brand-mid-grey">{t('project.clientUi.financialRecordsHelp')}</p>
+                <ProjectPaymentHistory stagePayments={payments} projectCurrency={projectMoneyBasis(project).code} audience="client" titleId="documents-payment-history-title"
+                  stages={stages} substages={substages} onOpenStage={openStage} canReplace={teamAccess?.primaryClient === true}
+                  stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} />
+              </section>
 
             </div>
           )}

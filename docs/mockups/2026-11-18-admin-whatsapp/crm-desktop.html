@@ -1,0 +1,130 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · WhatsApp CRM · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.head{padding:16px 24px 0;background:#fff;border-bottom:1px solid var(--rule)}
+.hrow{display:flex;justify-content:space-between;align-items:center}
+.h1{font-family:var(--sans);font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px}
+.conn{font-size:12px;font-weight:600;color:var(--wa-dark);background:#e3f7e9;border-radius:999px;padding:3px 10px;display:inline-flex;gap:6px;align-items:center}
+.conn i{width:7px;height:7px;border-radius:50%;background:var(--wa)}
+.panes{flex:1;display:grid;grid-template-columns:330px minmax(0,1fr) 316px;min-height:0}
+.list{border-right:1px solid var(--rule);background:#fff;display:flex;flex-direction:column;min-height:0}
+.lsearch{margin:12px;border:1px solid var(--rule);border-radius:10px;padding:8px 12px;color:var(--muted);font-size:13px;display:flex;gap:8px;align-items:center}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px}.filters .chip{padding:5px 10px;font-size:12px}
+.row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;padding:11px 14px;border-top:1px solid var(--rule)}
+.row.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.row .nm{font-size:13.5px;font-weight:600;display:flex;gap:6px;align-items:center}
+.row .pv{font-size:12.5px;color:var(--mid);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.row .tm{font-size:11px;color:var(--muted);text-align:right}
+.unread{display:inline-block;margin-top:5px;background:var(--wa);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:700;border-radius:999px;padding:0 6px}
+.conv{display:flex;flex-direction:column;min-height:0;background:#f4f3ef}
+.chead{background:#fff;border-bottom:1px solid var(--rule);padding:10px 18px;display:flex;align-items:center;gap:12px}
+.chead .nm{font-size:15px;font-weight:700}.chead .sub{font-size:12px;color:var(--mid)}
+.msgs{flex:1;padding:16px 22px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+.day{align-self:center;font-size:11px;font-weight:600;color:var(--mid);background:#fff;border-radius:8px;padding:3px 10px}
+.b{max-width:62%;border-radius:12px;padding:8px 11px 6px;font-size:13.5px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.b.in{background:#fff;align-self:flex-start;border-top-left-radius:4px}
+.b.out{background:var(--wa-bubble);align-self:flex-end;border-top-right-radius:4px}
+.b .meta{font-size:10.5px;color:var(--muted);text-align:right;margin-top:3px;display:flex;justify-content:flex-end;gap:4px;align-items:center}
+.b .who{font-size:11px;font-weight:700;color:var(--wa-dark);margin-bottom:2px}
+.tick{color:#34b7f1;font-weight:700;letter-spacing:-3px}
+.event{align-self:center;display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 14px;font-size:12.5px}
+.event .t{font-weight:600}.event .s{color:var(--mid);font-size:11.5px}
+.window{align-self:center;font-size:11.5px;color:var(--wa-dark);font-weight:600}
+.comp{background:#fff;border-top:1px solid var(--rule);padding:10px 16px 12px}
+.quick{display:flex;gap:6px;margin-bottom:8px}
+.qr{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--mid);font-weight:600;background:#fff}
+.inp{display:flex;gap:8px;align-items:center}
+.box{flex:1;border:1px solid var(--rule);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13.5px}
+.ibtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--rule);display:grid;place-items:center;color:var(--mid);background:#fff}
+.sendb{width:40px;height:40px;border-radius:50%;background:var(--wa);display:grid;place-items:center;color:#06341b}
+.crm{border-left:1px solid var(--rule);background:#fff;overflow:hidden}
+.crm section{padding:14px 16px;border-bottom:1px solid var(--rule)}
+.crm h4{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;gap:10px}.kv span:first-child{color:var(--mid)}
+.toggle{width:30px;height:17px;border-radius:999px;background:var(--green);position:relative;display:inline-block}.toggle:after{content:'';position:absolute;right:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff}
+.proj{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:12.5px}
+.act{display:flex;gap:9px;font-size:12px;padding:4px 0}.act i{width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0}
+.caption{top:auto;bottom:8px;left:250px;right:auto}
+</style></head><body>
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top"><div class="search"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search projects and people</div><div style="display:flex;gap:16px;align-items:center;color:var(--mid);font-weight:600">EN<svg class="ico" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><div class="av sm c1">RU</div></div></div>
+ <div class="head">
+  <div class="hrow">
+   <div><p class="h1"><svg class="ico" viewBox="0 0 24 24" style="width:24px;height:24px;color:var(--wa)"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4.4 4.4l1-1.1 1.8.8-.3 1.6c-3.3.2-7.2-3.5-7.1-6.9l1.6-.3.8 1.8z"/></svg>WhatsApp <span class="conn"><i></i>Connected · +237 6 99 00 00 00</span></p></div>
+   <div style="display:flex;gap:8px"><span class="btn o"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>New call</span><span class="btn g"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New chat</span></div>
+  </div>
+  <div class="tabs2" style="margin-top:10px;border:0"><span class="on">Chats<b>14</b></span><span>Calls<b>6</b></span><span>Templates<b>9</b></span><span>Broadcasts</span><span>Settings</span></div>
+ </div>
+
+ <div class="panes">
+  <section class="list">
+   <div class="lsearch"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search name, number or project</div>
+   <div class="filters"><span class="chip on">All<b>14</b></span><span class="chip">Unread<b>3</b></span><span class="chip">Needs reply<b>2</b></span><span class="chip">New numbers<b>1</b></span></div>
+   <div class="row on"><div class="av c1">CM</div><div><p class="nm">Claire Mbala <span class="role h">Homeowner</span></p><p class="pv">Thank you. Can I pay part 4 by MoMo?</p></div><div class="tm">09:31<br><span class="unread">1</span></div></div>
+   <div class="row"><div class="av c2">BO</div><div><p class="nm">Bob Ousmane <span class="role c">Contractor</span></p><p class="pv">✓✓ Photos for the blockwork are up</p></div><div class="tm">08:40</div></div>
+   <div class="row"><div class="av c4">?</div><div><p class="nm">+237 677 12 34 56 <span class="role u">New</span></p><p class="pv">Hello, I want to build a house in Buea</p></div><div class="tm">Yesterday<br><span class="unread">2</span></div></div>
+   <div class="row"><div class="av c3">AK</div><div><p class="nm">Ama Kouam <span class="role h">Homeowner</span></p><p class="pv" style="color:var(--alert)">Missed WhatsApp call</p></div><div class="tm">Mon</div></div>
+   <div class="row"><div class="av c2">BN</div><div><p class="nm">Benoit Nkeng <span class="role c">Contractor</span></p><p class="pv">You: Your stage 3 payment is confirmed</p></div><div class="tm">Sun</div></div>
+   <div class="row"><div class="av c1">JT</div><div><p class="nm">Joseph Tabe <span class="role h">Homeowner</span></p><p class="pv">Template sent · window closed</p></div><div class="tm">12 Nov</div></div>
+  </section>
+
+  <section class="conv">
+   <div class="chead">
+    <div class="av c1">CM</div>
+    <div style="flex:1"><p class="nm">Claire Mbala <span class="role h">Homeowner</span></p><p class="sub">+237 699 12 34 56 · Mbala Residence</p></div>
+    <span class="btn o s"><svg class="ico" viewBox="0 0 24 24" style="color:var(--wa-dark)"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>WhatsApp call</span>
+    <span class="btn o s">Mark done</span>
+   </div>
+   <div class="msgs">
+    <span class="day">Today</span>
+    <div class="b in">Good morning, I sent the receipt for part 3 this morning. Can you check that Bob received it?<p class="meta">09:02</p></div>
+    <div class="b out"><p class="who">Ruth · Groundwork</p>Morning Claire! Bob has your receipt and will confirm today. I'll message you once it's done.<p class="meta">09:10 <span class="tick">✓✓</span></p></div>
+    <div class="event"><svg class="ico" viewBox="0 0 24 24" style="color:var(--wa-dark)"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><div><p class="t">WhatsApp call · Ruth → Claire · 4 min 12 s</p><p class="s">Note: site visit agreed for Friday 10:00 · 09:24</p></div></div>
+    <div class="b in">Thank you. Can I pay part 4 by MoMo?<p class="meta">09:31</p></div>
+    <p class="window">Reply window open · 23 h 40 min left</p>
+   </div>
+   <div class="comp">
+    <div class="quick"><span class="qr">Receipt received</span><span class="qr">Site visit booked</span><span class="qr">Share project link</span><span class="qr">+ Template</span></div>
+    <div class="inp">
+     <span class="ibtn"><svg class="ico" viewBox="0 0 24 24"><path d="M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/></svg></span>
+     <span class="box">Yes, Mobile Money works. Send the receipt to your stage 5 page once…</span>
+     <span class="sendb"><svg class="ico" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg></span>
+    </div>
+   </div>
+  </section>
+
+  <aside class="crm">
+   <section style="display:flex;gap:12px;align-items:center"><div class="av c1" style="width:44px;height:44px;font-size:14px">CM</div><div><p style="font-weight:700;font-size:15px">Claire Mbala</p><p class="muted" style="font-size:12px">Homeowner · Douala · English</p></div></section>
+   <section>
+    <h4>Contact</h4>
+    <div class="kv"><span>WhatsApp</span><span>+237 699 12 34 56</span></div>
+    <div class="kv"><span>Consent</span><span style="color:var(--complete);font-weight:600">Given 2 Nov</span></div>
+    <div class="kv"><span>Automatic messages</span><span class="toggle"></span></div>
+    <div class="kv"><span>Owner</span><span style="font-weight:600">Ruth ▾</span></div>
+   </section>
+   <section>
+    <h4>Project</h4>
+    <div class="proj"><p style="font-weight:700">Mbala Residence</p><p class="muted" style="margin-top:2px">Stage 5 of 10 · Part 3 receipt to confirm</p><p style="margin-top:8px;display:flex;justify-content:space-between"><span class="link" style="font-size:12px">Open project</span><span class="link" style="font-size:12px">Message contractor</span></p></div>
+   </section>
+   <section>
+    <h4>Follow-up</h4>
+    <div class="kv"><span>Next contact</span><span style="font-weight:600">Fri 21 Nov · 10:00</span></div>
+    <div class="kv"><span>Reason</span><span>Site visit, Part 4 payment</span></div>
+    <span class="btn o s" style="margin-top:8px;width:100%">Add a note</span>
+   </section>
+   <section style="border:0">
+    <h4>Activity</h4>
+    <div class="act"><i></i><div>Call · 4 min 12 s<p class="muted" style="font-size:11px">Today 09:24 · Ruth</p></div></div>
+    <div class="act"><i></i><div>Receipt uploaded · Part 3<p class="muted" style="font-size:11px">Today 08:55</p></div></div>
+    <div class="act"><i style="background:var(--muted)"></i><div>Invited contractor<p class="muted" style="font-size:11px">30 Oct</p></div></div>
+   </section>
+  </aside>
+ </div>
+</div>
+</div>
+<p class="caption">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

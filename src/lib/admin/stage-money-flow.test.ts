@@ -169,7 +169,8 @@ describe('EN and FR parity', () => {
       expect(f, key).toBeTypeOf('string');
       expect(e, `${key} is not translated`).not.toBe(f);
     }
-    // The two arrow legs are the same words in both languages by design.
-    expect(lookup(en, 'admin.flow.leg.funding')).toBe('Client → Groundwork');
+    // 17 Nov 2026: 'client' became 'homeowner' everywhere a person reads it.
+    expect(lookup(en, 'admin.flow.leg.funding')).toBe('Homeowner → Groundwork');
+    expect(lookup(fr, 'admin.flow.leg.funding')).toBe('Propriétaire → Groundwork');
   });
 });

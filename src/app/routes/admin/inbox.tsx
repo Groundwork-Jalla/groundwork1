@@ -7,6 +7,7 @@ import { listProjectsForPeople, type InboxProject } from '@/lib/supabase/inbox-c
 import { personLabel, projectContext, type ProjectContext } from '@/lib/admin/inbox-context';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
 import { NewJallaMessage } from '@/components/admin/NewJallaMessage';
+import { WhatsAppCrm } from '@/components/admin/whatsapp/WhatsAppCrm';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -143,6 +144,14 @@ export default function AdminInbox() {
   const preview = (id: string) => previews.get(id) ?? null;
   const projectName = (projectId: string, personId: string | null) =>
     (personId ? projectsByPerson.get(personId) ?? [] : []).find(p => p.id === projectId)?.name ?? '';
+
+  // The sidebar's WhatsApp entry (this page, ?channel=whatsapp) is the WhatsApp CRM
+  // (18 Nov): the same rows, laid out as chats, the conversation and the person.
+  if (channelFilter === 'whatsapp' && rows !== null && !error && available) {
+    return <WhatsAppCrm rows={shown} previews={previews} projectsByPerson={projectsByPerson} people={people} staff={staff} staffName={staffName} title={title}
+      selectedId={selectedId} onChanged={load}
+      onSelect={id => setParams(prev => { const next = new URLSearchParams(prev); if (id) next.set('conversation', id); else next.delete('conversation'); return next; }, { replace: true })} />;
+  }
 
   return (
     <div className="space-y-5">

@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Project workspace · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1180px;overflow:hidden;position:relative}
+.app{height:1180px}
+.wh{background:#fff;border-bottom:1px solid var(--rule);padding:16px 28px 0}
+.back{font-size:13px;color:var(--green);font-weight:600}
+.wh h1{font-family:var(--sans);font-size:26px;font-weight:800;letter-spacing:-.4px;margin-top:6px}
+.facts{display:flex;gap:22px;font-size:12.5px;color:var(--mid);margin-top:6px}.facts b{color:var(--ink);font-weight:600}
+.status{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--mid);margin-top:8px;flex-wrap:wrap}
+.lc{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;background:#f4eee2;color:var(--held)}
+.wacts{display:flex;gap:6px;flex-shrink:0}
+.wa{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:7px 11px;font-weight:600;font-size:13px;border:1px solid var(--rule);background:#fff}
+.wtabs{display:flex;gap:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.wtabs span{padding:10px 0}.wtabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+.body{padding:18px 28px;display:grid;grid-template-columns:330px 1fr;gap:14px}
+.ladder div{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--rule);font-size:13px}
+.ladder div.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600}
+.n.d{background:var(--green);color:#fff}.n.a{border:2px solid var(--green);color:var(--green)}.n.l{border:1px solid var(--rule);color:var(--muted)}
+.lb{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px}
+.lb.done{background:#e9f0ec;color:var(--complete)}.lb.rev{background:#f4eee2;color:var(--held)}.lb.lock{background:var(--pale);color:var(--mid)}
+.rcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sel{padding:0 18px 16px}
+.facts2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+.fc{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:12.5px}
+.fc h5{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fin{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 18px 16px}
+.fin div{border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--mid)}
+.fin b{display:block;font-family:var(--mono);font-size:15px;color:var(--ink);margin-top:3px}
+.fin .em{border:1.5px solid var(--green);background:#f3f6f4}
+.blk div,.act div{padding:9px 18px;border-top:1px solid var(--rule);font-size:12.5px;display:flex;justify-content:space-between;gap:10px}
+.blk small,.act small{display:block;color:var(--mid);font-size:11.5px}
+.sub{font-size:11.5px;color:var(--mid);padding:0 18px 10px;margin-top:-6px}
+.va{font-size:12px;font-weight:600;color:var(--green)}
+</style></head><body data-active="/admin/projects">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="wh">
+  <span class="back">← Back to projects</span>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+   <div>
+    <h1>Mbala Residence</h1>
+    <div class="facts"><span>Homeowner <b>Claire Mbala</b></span><span>Plan <b>Jalla Verify</b></span><span>Location <b>Douala, Cameroon</b></span></div>
+    <div class="status"><span style="display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-weight:600"><i class="dotc" style="background:var(--complete)"></i>Active</span><span>Stage 5 of 10 · Structure &amp; walls</span><span>Tracking since 30 Oct 2026</span><span>Last activity 2 h ago</span><span class="lc">Under review</span></div>
+   </div>
+   <div class="wacts">
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Assign verifier</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>Jalla message</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24" style="color:#25D366"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/></svg>WhatsApp ▾</span>
+    <span class="wa"><svg class="ico" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>Open homeowner view</span>
+   </div>
+  </div>
+  <div class="wtabs"><span class="on">Overview</span><span>Stages</span><span>Financials</span><span>Site updates</span><span>Documents</span><span>Conversations</span><span>Activity</span><span>Team</span></div>
+ </div>
+
+ <div class="body">
+  <div style="display:flex;flex-direction:column;gap:14px">
+   <section class="card ladder">
+    <div class="sec-h" style="display:flex;padding:14px 16px 4px;border:0"><h2>Stages</h2><span class="va">View all</span></div>
+    <p class="sub" style="padding:0 16px 10px;display:block;border:0">Every stage by its derived state — computed now, stored nowhere</p>
+    <div><span class="n d">✓</span><span>Land secured</span><span class="lb done">Approved</span></div>
+    <div><span class="n d">✓</span><span>Design completed</span><span class="lb done">Approved</span></div>
+    <div><span class="n d">✓</span><span>Site preparation</span><span class="lb done">Approved</span></div>
+    <div><span class="n d">✓</span><span>Foundation</span><span class="lb done">Approved</span></div>
+    <div class="on"><span class="n a">5</span><span><b>Structure &amp; walls</b></span><span class="lb rev">Under review</span></div>
+    <div><span class="n l">6</span><span class="muted">Roofing</span><span class="lb lock">Locked</span></div>
+    <div><span class="n l">7</span><span class="muted">Electrical &amp; plumbing</span><span class="lb lock">Locked</span></div>
+    <div><span class="n l">8</span><span class="muted">Finishing</span><span class="lb lock">Locked</span></div>
+   </section>
+   <section class="card" style="padding:14px 16px">
+    <h2 style="font-size:15px;font-weight:700">Progress</h2>
+    <p style="font-size:12.5px;margin-top:6px">4 of 10 stages complete</p>
+    <div class="bar5" style="margin-top:6px"><i style="width:40%"></i></div>
+    <p class="muted" style="font-size:12px;margin-top:6px">Planned 30 Oct 2026 → 15 Jun 2027</p>
+   </section>
+  </div>
+
+  <div class="rcol">
+   <section class="card">
+    <div class="sec-h"><div><p class="muted" style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700">Selected stage · Stage 5</p><h2 style="font-size:18px;margin-top:2px">Structure &amp; walls <span class="lb rev" style="vertical-align:middle">Under review</span></h2></div><span class="va">Open in Stages →</span></div>
+    <p class="sub">What this stage needs next</p>
+    <div class="sel"><div class="facts2">
+     <div class="fc"><h5>Substages</h5><p><i class="dotc" style="background:var(--complete)"></i> Columns and ring beam</p><p><i class="dotc" style="background:var(--complete)"></i> Blockwork to lintel</p><p><i class="dotc" style="background:var(--held)"></i> Lintel and upper blockwork</p></div>
+     <div class="fc"><h5>Evidence</h5><p class="link" style="font-size:12px">ring-beam-1.jpg</p><p class="link" style="font-size:12px">blockwork-north.jpg</p><p class="link" style="font-size:12px">+ 4 files</p></div>
+     <div class="fc"><h5>Latest site update</h5><p>Upper blockwork started on the north side.</p><p class="muted" style="font-size:11.5px">by Bob Ousmane · 3 h ago · 2 files</p></div>
+     <div class="fc"><h5>Latest verification</h5><p>Pending · Vanessa G. · requested 1 d ago</p><p class="muted" style="font-size:11.5px">Site not visited yet</p></div>
+     <div class="fc"><h5>Milestone</h5><p class="mono" style="font-weight:600">$16,667</p><p class="muted" style="font-size:11.5px">10,000,000 XAF</p></div>
+     <div class="fc"><h5>Funding · Release</h5><p>Funded · $11,667</p><p class="muted" style="font-size:11.5px">No release recorded.</p></div>
+    </div></div>
+   </section>
+
+   <div class="two">
+    <section class="card blk">
+     <div class="sec-h"><h2>Blockers</h2></div>
+     <p class="sub">Every reason a stage cannot move, worst first</p>
+     <div><span>Verification pending<small>Stage 5 · Structure &amp; walls · Under review</small></span><span class="muted">›</span></div>
+     <div><span>Awaiting funding (Part 4)<small>Stage 5 · Structure &amp; walls · Under review</small></span><span class="muted">›</span></div>
+    </section>
+    <section class="card act">
+     <div class="sec-h"><h2>Recent activity</h2><span class="va">View all</span></div>
+     <div><span><b>Bob Ousmane</b> submitted a site update<small>Stage 5</small></span><span class="muted">3h</span></div>
+     <div><span><b>Bob Ousmane</b> confirmed a receipt · 4,000,000 XAF<small>Stage 5 · Part 2</small></span><span class="muted">1d</span></div>
+     <div><span><b>Ruth</b> requested verification<small>Stage 5 · Vanessa G.</small></span><span class="muted">1d</span></div>
+    </section>
+   </div>
+
+   <section class="card">
+    <div class="sec-h"><h2>Financial summary</h2><span class="va">View all</span></div>
+    <p class="sub">Funded by the homeowner, released to the contractor — held and moved by the provider, recorded here</p>
+    <div class="fin"><div>Budget<b>$100,000</b></div><div>Funded<b>$39,333</b></div><div class="em">Available to release<b>$11,667</b></div><div>Authorised<b>$0</b></div><div>In transit<b>$0</b></div><div>Disbursed<b>$27,667</b></div></div>
+   </section>
+
+   <section class="card" style="padding:14px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:15px;font-weight:700">Duplicate-project review</h2><span class="muted" style="font-size:12.5px">No duplicate flag</span></div>
+    <p class="muted" style="font-size:12px;margin-top:4px">Record the team's decision after reviewing this project.</p>
+    <div style="display:flex;gap:10px;margin-top:10px;align-items:center"><span class="inp" style="flex:1;border:1px solid var(--rule);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--muted)">Review reason</span><span class="btn o">Save duplicate flag</span></div>
+   </section>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

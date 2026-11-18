@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+:root{
+  --green:#1f4d36;--green-hover:#173c2a;--ink:#0a0a0a;--mid:#5a5a57;--muted:#9a9a96;--rule:#e4e3df;
+  --canvas:#f7f7f5;--pale:#f2f1ee;--white:#fff;--held:#8a6a2c;--alert:#6e1f2b;--complete:#1f4d36;
+  --sans:"Plus Jakarta Sans",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+h1,h2,h3,.sans{font-family:var(--sans)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--mid)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill .dot{width:7px;height:7px;border-radius:50%}
+.p-received{background:#e9f0ec;color:var(--complete)}.p-received .dot{background:var(--complete)}
+.p-pending{background:#f4eee2;color:var(--held)}.p-pending .dot{background:var(--held)}
+.p-flagged{background:#f3e6e8;color:var(--alert)}.p-flagged .dot{background:var(--alert)}
+.p-replaced{background:var(--pale);color:var(--mid)}.p-replaced .dot{background:var(--muted)}
+.link{color:var(--green);font-weight:600;text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--mid);white-space:nowrap}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip b{font-family:var(--mono);font-weight:600;margin-left:4px;opacity:.75}
+.note{border-left:3px solid var(--alert);background:#fbf6f7;padding:8px 10px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--ink);margin-top:8px;line-height:1.45}
+.note.held{border-color:var(--held);background:#fbf8f2}
+.caption{position:fixed;right:14px;bottom:8px;font-size:10.5px;font-style:italic;color:var(--muted)}

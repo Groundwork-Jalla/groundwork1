@@ -52,19 +52,37 @@ beforeEach(() => {
 afterEach(() => { h.cleanups.forEach(cleanup => cleanup?.()); vi.unstubAllGlobals(); });
 
 describe('stage payment plans and separate progression permission', () => {
-  const openSplit = async (context = base, overrides: Partial<typeof props> = {}) => {
+  // Two installments can no longer be started (20261118000200). The form only opens to
+  // revise a stage that is already on them, which is what every one of these exercises.
+  const existing: StagePaymentPlanContext = { ...split, can_edit: true, can_decide: false };
+  const openSplit = async (context = existing, overrides: Partial<typeof props> = {}) => {
     await load(context, overrides);
-    button(render(overrides), 'Pay in two installments instead').props.onClick();
+    button(render(overrides), 'Change the payment plan').props.onClick();
     return render(overrides);
   };
   const input = (view: Node[]) => view.find(node => node.type === 'input')!;
 
-  it('assumes full payment when no plan exists, with no plan fields and the split one link away', async () => {
+  it('assumes full payment when no plan exists, and points to paying part by part instead of two installments', async () => {
     const view = await load();
     expect(text(view)).toContain('Full stage payment. You can attach several vendor receipts.');
     expect(view.some(node => node.type === 'input' || node.type === 'select')).toBe(false);
-    expect(button(view, 'Pay in two installments instead')).toBeTruthy();
+    expect(view.some(node => node.type === 'button' && text(node) === 'Pay in two installments instead')).toBe(false);
+    expect(text(view)).toContain('Your contractor can propose a price for each part of the work');
     expect(h.installment).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it('does not show the part-by-part note to a contractor or on a read-only project', async () => {
+    expect(text(await load(base, { isContractor: true }))).not.toContain('propose a price for each part');
+    expect(text(await load(base, { readOnly: true }))).not.toContain('propose a price for each part');
+  });
+
+  it('says plainly when the database refuses a new installment plan', async () => {
+    await openSplit();
+    h.save.mockRejectedValue(new Error('installments_retired'));
+    input(render()).props.onChange({ target: { value: '20000' } });
+    button(render(), 'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(dialog(render()).props.error).toContain('Paying in two installments is no longer available');
   });
 
   it('opens the split on its own, asks the receipt form to step aside, and puts everything back on cancel', async () => {
@@ -96,7 +114,7 @@ describe('stage payment plans and separate progression permission', () => {
     dialog(render()).props.onCancel(); expect(h.save).not.toHaveBeenCalled();
     button(render(), 'Review payment plan').props.onClick();
     await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base, 'two_installments', '20000'); expect(h.changed).toHaveBeenCalledOnce();
+    expect(h.save).toHaveBeenCalledWith(existing, 'two_installments', '20000'); expect(h.changed).toHaveBeenCalledOnce();
     expect(h.editing).toHaveBeenLastCalledWith(false);
   });
 

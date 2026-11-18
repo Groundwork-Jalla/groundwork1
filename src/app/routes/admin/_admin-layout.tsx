@@ -53,6 +53,8 @@ export default function AdminLayout() {
       nav={ADMIN_NAV}
       displayName={displayName}
       badge={t('nav.admin')}
+      // The admin sidebar in the new theme (18 Nov): green highlight, dropdown groups.
+      sidebarStyle="calm"
       onLogout={handleLogout}
       // The support (074) and inquiry (076) triggers have written admin notifications
       // since they shipped; without this the only place an admin could see them was the

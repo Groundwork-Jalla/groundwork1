@@ -36,8 +36,9 @@ export function nextInstallment(context: Pick<StagePaymentPlanContext, 'stage_am
  * The two amounts are different facts (what was agreed, and what one receipt proves), so
  * both stay, but never on screen together:
  *
- *   · no plan: full payment is assumed and the receipt form is the whole screen; splitting
- *     into two installments is one link away;
+ *   · no plan: full payment is assumed and the receipt form is the whole screen. Two
+ *     installments can no longer be started (18 Nov, 20261118000200); paying in parts is
+ *     the sub-stage price breakdown, so the client is pointed there instead;
  *   · while the client sets a split: only the plan, in the stage currency, with one amount
  *     field (an amount, never a percentage: 17 Nov stand-up) and the remainder worked out;
  *     the receipt form steps aside;
@@ -129,7 +130,8 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
       await callbacks.current.onChanged();
     } catch (failure) {
       if (current.current !== stageId) return;
-      setError(t(/stale/.test((failure as Error)?.message ?? '') ? 'project.paymentPlan.stale' : 'project.paymentPlan.failed'));
+      const message = (failure as Error)?.message ?? '';
+      setError(t(/installments_retired/.test(message) ? 'project.paymentPlan.installmentsRetired' : /stale/.test(message) ? 'project.paymentPlan.stale' : 'project.paymentPlan.failed'));
     } finally { mutation.current = false; if (current.current === stageId) setWorking(false); }
   }
   function choose(value: 1 | 2) {
@@ -183,7 +185,13 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
         {split.stage_amount !== context.stage_amount && Number(split.stage_amount) !== due && <p>{t('project.paymentPlan.priceChanged')}</p>}
         {editable && <button type="button" className={link} onClick={() => edit({ stage: stageId, first: split.first_amount })}>
           {t(split.status === 'declined' ? 'project.paymentPlan.revisePlan' : 'project.paymentPlan.changePlan')}</button>}
-      </> : <p>{t('project.paymentPlan.fullSummary')}{editable && <> <button type="button" className={link} onClick={() => edit({ stage: stageId, first: '' })}>{t('project.paymentPlan.payInInstallments')}</button></>}</p>}
+      </> : <>
+        {/* Two installments are retired (20261118000200). Paying in parts now means a price
+            for each part of the work, which the contractor proposes and the homeowner
+            approves; a stage already on two installments keeps them, above. */}
+        <p>{t('project.paymentPlan.fullSummary')}</p>
+        {editable && <p data-parts-hint className="text-brand-mid-grey">{t('project.paymentPlan.partsHint')}</p>}
+      </>}
       {Number(context.carried_in ?? 0) > 0 && <p role="status" className="font-semibold text-brand-green dark:text-[#b4d8bf]">{t('project.paymentPlan.carriedIn', { amount: amount(context.carried_in), remaining: amount(context.remaining) })}</p>}
       {Number(context.carried_out ?? 0) > 0 && <p role="status">{t('project.paymentPlan.carriedOut', { amount: amount(context.carried_out) })}</p>}
       {Number(context.unused_credit ?? 0) > 0 && <p role="status">{t('project.paymentPlan.unusedCredit', { amount: amount(context.unused_credit) })}</p>}

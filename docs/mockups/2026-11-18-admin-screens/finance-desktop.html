@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Finance · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.kpis{grid-template-columns:repeat(4,1fr);margin-top:16px}
+.kpi.g .v{color:var(--complete)}
+.banner{margin-top:12px;display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--alert);background:#fbf6f7;border-radius:14px;padding:12px 16px;font-size:13.5px}
+.mv{display:grid;grid-template-columns:28px 1.2fr 1.6fr 120px 140px 90px;gap:12px;align-items:center;padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.mv small{display:block;color:var(--mid);font-size:11.5px}
+.arr{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700}
+.arr.in{background:#e9f0ec;color:var(--complete)}.arr.out{background:#f4eee2;color:var(--held)}
+.state{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;justify-self:start}
+.s1{background:#e9f0ec;color:var(--complete)}.s2{background:#f4eee2;color:var(--held)}.s3{background:#f3e6e8;color:var(--alert)}.s4{background:var(--pale);color:var(--mid)}
+</style></head><body data-active="/admin/finance">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph"><div><h1>Finance</h1><p>What actually happened to the money. Budgets and fees are the plan; this is the ledger.</p></div></div>
+  <div class="kpis">
+   <a class="kpi g"><p class="l"><i class="dotc" style="background:var(--complete)"></i>Confirmed inflows</p><p class="v">$212,400</p><p class="s">Funded and reconciled</p></a>
+   <a class="kpi held"><p class="l"><i class="dotc" style="background:var(--held)"></i>Approved for release</p><p class="v">$18,500</p><p class="s">Authorised, processing or reconciling</p></a>
+   <a class="kpi g"><p class="l"><i class="dotc" style="background:var(--complete)"></i>Disbursed</p><p class="v">$161,900</p><p class="s">Paid to contractors</p></a>
+   <div class="kpi"><p class="l">Available project funding</p><p class="v">$32,000</p><p class="s">After approved releases</p></div>
+  </div>
+  <div class="banner"><span><b>2 payments need a person</b> <span class="muted">· failed or under review</span></span><span class="link">Open disbursements</span></div>
+  <section class="card" style="margin-top:12px">
+   <div class="sec-h"><h2>Recent money movement</h2><span class="muted" style="font-size:12px">Latest 12</span></div>
+   <div class="mv"><span class="arr in">↓</span><span>Inflow<small>Claire Mbala</small></span><span>Mbala Residence<small>Stage 5 · Structure &amp; walls</small></span><b class="mono">$3,333</b><span class="state s1">Funding confirmed</span><span class="muted">18 Nov</span></div>
+   <div class="mv"><span class="arr out">↑</span><span>Disbursement<small>Bob Ousmane</small></span><span>Mbala Residence<small>Stage 4 · Foundation</small></span><b class="mono">$10,000</b><span class="state s1">Paid</span><span class="muted">16 Nov</span></div>
+   <div class="mv"><span class="arr out">↑</span><span>Disbursement<small>Benoit Nkeng</small></span><span>Nkeng villa<small>Stage 2 · Design completed</small></span><b class="mono">$4,200</b><span class="state s3">Payment issue</span><span class="muted">15 Nov</span></div>
+   <div class="mv"><span class="arr in">↓</span><span>Inflow<small>Ama Kouam</small></span><span>Kouam house<small>Stage 5 · Structure &amp; walls</small></span><b class="mono">$5,000</b><span class="state s2">Awaiting funding</span><span class="muted">14 Nov</span></div>
+   <div class="mv"><span class="arr out">↑</span><span>Disbursement<small>Grace Fon</small></span><span>Fon duplex<small>Stage 3 · Site preparation</small></span><b class="mono">$2,000</b><span class="state s2">Release approved</span><span class="muted">13 Nov</span></div>
+   <div class="mv"><span class="arr out">↑</span><span>Disbursement<small>Peter Ngu</small></span><span>Ngu residence<small>Stage 5 · Structure &amp; walls</small></span><b class="mono">$6,500</b><span class="state s4">Under review</span><span class="muted">12 Nov</span></div>
+   <div class="mv"><span class="arr in">↓</span><span>Inflow<small>Joseph Tabe</small></span><span>Tabe duplex<small>Purpose not recorded</small></span><b class="mono">$1,500</b><span class="state s1">Funding confirmed</span><span class="muted">10 Nov</span></div>
+  </section>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

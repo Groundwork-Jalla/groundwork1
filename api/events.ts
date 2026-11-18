@@ -6,6 +6,7 @@ import { handler as crmInbound }  from './_handlers/inbound.js';
 import { handler as profileGeo }  from './_handlers/profile-geo.js';
 import { handler as adminSettings } from './_handlers/admin-settings.js';
 import { handler as projectWhatsApp } from './_handlers/project-whatsapp.js';
+import { handler as personWhatsApp } from './_handlers/person-whatsapp.js';
 import { handler as swychrCallback } from './_handlers/swychr-callback.js';
 import { handler as lifecycleRun } from './_handlers/lifecycle-run.js';
 import { handler as communicationReply } from './_handlers/communication-reply.js';
@@ -73,7 +74,7 @@ type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
-  | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
+  | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'person-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
   | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt'
   | 'communication-reply' | 'communication-unsubscribe' | 'communication-status'
   | 'whatsapp-admin' | 'whatsapp-profile' | 'whatsapp-webhook';
@@ -111,6 +112,8 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'profile-geo': profileGeo,
   'admin-settings': adminSettings,
   'project-whatsapp': projectWhatsApp,
+  // The WhatsApp CRM's New chat, choosing a contractor or any user directly (18 Nov).
+  'person-whatsapp': personWhatsApp,
   'swychr-callback': swychrCallback,
   'swychr-poll': swychrPoll,
   'swychr-attach': swychrAttach,

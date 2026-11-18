@@ -92,8 +92,13 @@ describe('both participants read the same actual receipt payouts', () => {
     for (const path of [
       'src/components/project/OverviewTab.tsx',
       'src/components/project/BudgetView.tsx',
-      'src/app/routes/work/projects.detail.tsx',
     ]) expect(code(path), path).toContain('<ProjectPayoutSummary');
+    // The contractor's Money tab (18 Nov redesign) reads the same receipts through
+    // paymentOverview, the rule behind the homeowner's payment history, and lists them
+    // with the same ProjectPaymentHistory component.
+    const work = code('src/app/routes/work/projects.detail.tsx');
+    expect(work).toContain('paymentOverview(stages, stagePayments');
+    expect(work).toContain('<ProjectPaymentHistory');
 
     const overview = code('src/components/project/OverviewTab.tsx');
     // Neither fee status nor the value of a completed stage is a receipt amount.

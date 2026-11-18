@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Contractor project · Confirm a receipt · mobile</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:390px;height:844px;overflow:hidden;position:relative;background:#fff}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--rule)}
+.wrap{padding:16px}
+.paper{background:#fff;border:1px solid var(--rule);border-radius:12px;height:200px;padding:16px;font-size:10.5px;color:#333;position:relative;background:linear-gradient(#fff,#fff)}
+.paper .bk{font-weight:800;color:var(--green);font-size:13px}.paper .ln{height:6px;background:#e6e5e1;border-radius:3px;margin-top:8px}
+.paper .tot{margin-top:16px;border-top:1px dashed #ccc;padding-top:9px;display:flex;justify-content:space-between;font-family:var(--mono);font-weight:600;font-size:12px}
+.zoom{position:absolute;right:8px;bottom:8px;background:rgba(10,10,10,.75);color:#fff;font-size:10.5px;font-weight:600;border-radius:8px;padding:4px 8px}
+.figs{margin-top:14px;border:1px solid var(--rule);border-radius:14px}
+.figs div{display:flex;justify-content:space-between;padding:11px 14px;font-size:13px}.figs div+div{border-top:1px solid var(--rule)}
+.figs b{font-family:var(--mono);font-weight:600}
+.opt{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:9px}
+.opt .btn{width:100%;padding:13px;font-size:14px}
+.caption{top:auto;bottom:4px;right:12px;position:absolute}
+</style></head><body>
+<div class="hd"><span style="font-size:13px;color:var(--green);font-weight:600">← Back</span><span style="font-size:13.5px;font-weight:700">Confirm payment</span><span style="width:40px"></span></div>
+<div class="wrap">
+ <p class="eyebrow">Stage 5 · Part 3 · Lintel and upper blockwork</p>
+ <h2 style="font-family:var(--sans);font-size:21px;font-weight:800;margin:6px 0 12px;letter-spacing:-.3px">Did this payment arrive?</h2>
+ <div class="paper">
+  <p class="bk">Afriland First Bank</p><p style="margin-top:3px;color:#777">Transfer receipt · 18 Nov 2026</p>
+  <div class="ln" style="width:85%"></div><div class="ln" style="width:60%"></div>
+  <p style="margin-top:10px;color:#777">From <b style="color:#333">Claire Mbala</b> · To <b style="color:#333">Bob Ousmane</b></p>
+  <div class="ln" style="width:70%"></div>
+  <div class="tot"><span>Amount</span><span>2,000,000 XAF</span></div>
+  <span class="zoom">Tap to enlarge</span>
+ </div>
+ <div class="figs">
+  <div><span class="muted">On the receipt</span><b>2,000,000 XAF</b></div>
+  <div><span class="muted">Part 3 price</span><b>2,000,000 XAF</b></div>
+  <div><span class="muted">Still due after this</span><b>0 XAF</b></div>
+ </div>
+ <p style="font-size:12.5px;margin-top:12px;display:flex;gap:8px;align-items:center"><svg class="ico" viewBox="0 0 24 24" style="color:var(--held)"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Check your bank or Mobile Money account first.</p>
+</div>
+<div class="opt">
+ <span class="btn g">Yes, it arrived · start Part 3</span>
+ <span class="btn o">The amount is different</span>
+ <span class="btn o" style="color:var(--alert)">It hasn’t arrived</span>
+</div>
+<p class="caption">Design concept · illustrative data</p>
+</body></html>

@@ -7,6 +7,7 @@ import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib/payments/receipt-reading';
 import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
 import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
+import { receiptErrorText } from '@/lib/payments/receipt-error-text';
 import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentReceipt, signReceiptUrl,
   type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { DocumentViewer } from './DocumentViewer';
@@ -23,11 +24,15 @@ interface Props {
   parts?: SubstagePaymentContext | null;
   onChanged: () => void | Promise<void>;
   clientPresentation?: boolean;
+  /** The contractor's project screen reviews a receipt in its own dialog (18 Nov redesign). */
+  onReviewReceipt?: (receiptId: string) => void;
+  /** The parts are already listed beside the stage's work, so the panel does not repeat them. */
+  hideParts?: boolean;
 }
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
-  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null }: Props) {
+  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null, onReviewReceipt, hideParts = false }: Props) {
   const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
@@ -77,40 +82,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const format = (value: number | null, iso: string | null) => value == null ? t('project.receiptFlow.amountUnknown')
     : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
 
-  function errorText(error: unknown) {
-    const value = error as { code?: string; message?: string; amount?: string; currency?: string; reference?: string } | null;
-    const reason = `${value?.code ?? ''} ${value?.message ?? ''}`;
-    const support = (message: string) => value?.reference ? `${message} ${t('project.receiptFlow.checkReference', { reference: value.reference })}` : message;
-    if (/project_contractor_required/.test(reason)) return t('project.contractorConnection.paymentBlocked');
-    if (/amount_mismatch/.test(reason)) return t('project.receiptFlow.amountMismatch', { amount: `${value?.amount ?? ''} ${value?.currency ?? ''}` });
-    if (/currency_mismatch/.test(reason)) return t('project.receiptFlow.currencyMismatch', { currency: value?.currency ?? '' });
-    if (/receipt_file_size/.test(reason)) return t('project.receiptFlow.fileSize');
-    if (/receipt_file_type/.test(reason)) return t('project.receiptFlow.fileType');
-    if (/receipt_page_limit/.test(reason)) return t('project.receiptFlow.pageLimit');
-    if (/receipt_not_receipt/.test(reason)) return t('project.receiptFlow.notReceipt');
-    if (/receipt_payment_not_completed/.test(reason)) return t('project.receiptFlow.notCompleted');
-    if (/unreadable/.test(reason)) return t('project.receiptFlow.unreadable');
-    if (/receipt_reader_not_configured/.test(reason)) return support(t('project.receiptFlow.readerNeedsAttention'));
-    if (/receipt_reader_timeout/.test(reason)) return support(t('project.receiptFlow.readerTimeout'));
-    if (/receipt_reader_busy/.test(reason)) return support(t('project.receiptFlow.readerBusy'));
-    if (/receipt_reader_response_invalid|receipt_verification_unavailable/.test(reason)) return support(t('project.receiptFlow.processingFailed'));
-    if (/receipt_network_error/.test(reason)) return t('project.receiptFlow.connectionLost');
-    if (/sign_in_required/.test(reason)) return t('project.receiptFlow.signInRequired');
-    if (/receipt_access_denied/.test(reason)) return t('project.receiptFlow.receiptAccess');
-    if (/rate_limit/.test(reason)) return t('project.receiptFlow.rateLimit');
-    if (/reader_unavailable/.test(reason)) return support(t('project.receiptFlow.readerUnavailable'));
-    if (/receipt_rate_unavailable|receipt_conversion_required|receipt_rate_mismatch/.test(reason)) return support(t('project.receiptFlow.exchangeUnavailable'));
-    if (/receipt_currency_unsupported/.test(reason)) return t('project.receiptFlow.currencyUnsupported');
-    if (/payment_plan_review_required|payment_plan_declined/.test(reason)) return t('project.paymentPlan.reviewFirst');
-    if (/invalid_installment/.test(reason)) return t('project.paymentPlan.chooseInstallment');
-    if (/part_not_payable/.test(reason)) return t('project.parts.notPayable');
-    if (/substage_receipt_required|stage_not_split|stage_paid_by_part/.test(reason)) return t('project.parts.refresh');
-    if (/top_up_exceeds_balance/.test(reason)) return t('project.paymentPlan.topUpLimit');
-    if (/receipt_duplicate_on_stage/.test(reason)) return t('project.receiptFlow.duplicateOnStage');
-    if (/receipt_already_used/.test(reason)) return t('project.receiptFlow.alreadyUsed');
-    if (/stale_receipt|receipt_file_changed|receipt_reading_expired|receipt_decided|receipt_accepted|receipt_pending_review/.test(reason)) return t('project.receiptFlow.refreshReceipt');
-    return t('project.receiptFlow.tryAgain');
-  }
+  const errorText = (error: unknown) => receiptErrorText(t, error);
 
   async function upload(file: File | null = activeDraft.file) {
     if (!allowed || pendingWork.current === scope) return;
@@ -208,7 +180,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {!canUpload && !settled && <p role="status" data-payment-blocked className={clientPresentation && !isContractor
       ? 'rounded-lg border border-brand-border-grey bg-white p-3 text-sm leading-relaxed text-brand-near-black dark:bg-[#141414]'
       : 'text-xs text-brand-mid-grey'}>{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
-    {split && parts?.parts ? <section className={cn('space-y-2 rounded-xl border border-brand-border-grey p-3 text-xs', clientPresentation && 'bg-brand-off-white sm:p-4')} data-stage-parts>
+    {split && parts?.parts ? hideParts ? null : <section className={cn('space-y-2 rounded-xl border border-brand-border-grey p-3 text-xs', clientPresentation && 'bg-brand-off-white sm:p-4')} data-stage-parts>
       <h4 className="font-semibold">{t('project.parts.title')}</h4>
       <p className="text-brand-mid-grey">{t('project.parts.rule')}</p>
       <ol className="space-y-1.5">{parts.parts.map(part => <li key={part.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-border-grey bg-white px-3 py-2 dark:bg-[#141414]">
@@ -237,7 +209,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       {receipt.amountUsd != null && receipt.currency !== 'USD' && <p className="mt-1 font-mono text-brand-mid-grey">≈ ${receipt.amountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
       {receipt.projectAmount != null && receipt.projectCurrency !== receipt.currency && <p className="mt-1 font-mono text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: format(receipt.projectAmount, receipt.projectCurrency ?? code) })}</p>}
       <ReceiptExchangeRateNote receipt={receipt}/>
-      {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&!readOnly&&canUpload&&<button type="button" disabled={busy} onClick={()=>setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})} className="mt-2 ml-3 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
+      {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&!readOnly&&canUpload&&<button type="button" disabled={busy} onClick={()=>onReviewReceipt?onReviewReceipt(receipt.id):setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})} className="mt-2 ml-3 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
       {!isContractor&&!readOnly&&canUpload&&!receipt.replacedBy&&receipt.decision!=='received'&&<button type="button" disabled={busy} onClick={()=>correctReceipt(receipt)} className="mt-2 ml-3 rounded-lg border px-3 py-2 font-semibold">{t('project.receiptFlow.replaceReceipt')}</button>}
       {receipt.decisionNote && <p className="mt-1 whitespace-pre-wrap text-brand-mid-grey">{receipt.decisionNote}</p>}
       <button type="button" className="mt-2 font-semibold text-brand-green underline" onClick={() => { void openReceipt(receipt.path); }}>{t('project.stages.confirmView')}</button>

@@ -1,0 +1,143 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Overview · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:1240px;overflow:hidden;position:relative}
+.app{height:1240px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end}
+.hero .eb{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--mid);font-weight:700}
+.hero h1{font-family:var(--sans);font-size:28px;font-weight:800;letter-spacing:-.5px;margin-top:4px}
+.kpis{grid-template-columns:repeat(4,1fr);margin-top:18px}
+.kpi{display:block}
+.kpi .go{float:right;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr 330px;gap:14px;margin-top:14px}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sub{font-size:11.5px;color:var(--mid);padding:0 18px 10px;margin-top:-6px}
+.va{font-size:12px;font-weight:600;color:var(--green)}
+.map{margin:0 18px;height:190px;border-radius:12px;background:#f3f6f4;position:relative;overflow:hidden}
+.leg{padding:10px 18px 14px}
+.leg div{display:grid;grid-template-columns:34px 1fr auto 40px;gap:8px;font-size:12.5px;padding:5px 0;align-items:center;border-top:1px solid var(--rule)}
+.leg code{font-family:var(--mono);font-size:11px;background:var(--pale);border-radius:5px;padding:1px 5px;text-align:center}
+.leg small{display:block;color:var(--mid);font-size:11px}
+.trade{padding:0 18px 14px}
+.trade div{font-size:12.5px;margin-top:9px}
+.trade p{display:flex;justify-content:space-between}
+.fun{padding:0 18px 16px}
+.fun a{display:grid;grid-template-columns:90px 1fr 40px;gap:10px;align-items:center;font-size:12.5px;margin-top:9px}
+.fun i{display:block;height:20px;border-radius:6px;background:#cfe0d5}
+.att > div:not(.sec-h){display:grid;grid-template-columns:76px 1fr auto 12px;gap:10px;padding:10px 18px;border-top:1px solid var(--rule);font-size:12.5px;align-items:center}
+.pr{font-size:10.5px;font-weight:700;letter-spacing:.4px;display:flex;gap:5px;align-items:center}
+.pr.c{color:var(--alert)}.pr.h{color:var(--held)}.pr.m{color:#4b4370}
+.att small,.rail small{display:block;color:var(--mid);font-size:11.5px}
+.rail .row{padding:9px 18px;border-top:1px solid var(--rule);font-size:12.5px;display:flex;justify-content:space-between;gap:10px}
+.empty{padding:6px 18px 14px;font-size:12px;color:var(--mid)}
+.ghl{padding:0 18px 14px;font-size:12.5px}
+.ghl div{display:flex;justify-content:space-between;padding:4px 0}
+.ok{color:var(--complete);font-weight:600}.no{color:var(--alert);font-weight:600}
+</style></head><body data-active="/admin">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="hero"><div><p class="eb">Admin Overview</p><h1>Good morning, Ruth.</h1><p class="muted" style="font-size:13.5px;margin-top:3px">Here's what's happening across Groundwork today.</p></div><p class="muted" style="font-size:13px">Today · <b style="color:var(--ink)">Wed, 18 Nov 2026</b></p></div>
+
+  <div class="kpis">
+   <a class="kpi"><span class="go">›</span><p class="l">Total projects</p><p class="v">48</p><p class="s">Everything not archived</p></a>
+   <a class="kpi held"><span class="go">›</span><p class="l"><i class="dotc" style="background:var(--held)"></i>Pending reviews</p><p class="v">6</p><p class="s">Stages awaiting approval</p></a>
+   <a class="kpi"><span class="go">›</span><p class="l">Total users</p><p class="v">312</p><p class="s">Every account on Groundwork</p></a>
+   <a class="kpi"><span class="go">›</span><p class="l">Contractor applications</p><p class="v">9</p><p class="s">Awaiting a decision</p></a>
+   <a class="kpi"><span class="go">›</span><p class="l">Quote requests</p><p class="v">4</p><p class="s">Introductions still to make</p></a>
+   <a class="kpi held"><span class="go">›</span><p class="l"><i class="dotc" style="background:var(--held)"></i>Needs reply</p><p class="v">3</p><p class="s">Homeowners waiting on us</p></a>
+   <a class="kpi alert"><span class="go">›</span><p class="l"><i class="dotc" style="background:var(--alert)"></i>Projects at risk</p><p class="v">2</p><p class="s">By derived health, not a stored flag</p></a>
+   <a class="kpi held"><span class="go">›</span><p class="l"><i class="dotc" style="background:var(--held)"></i>Pending budgets</p><p class="v">1</p><p class="s">Management builds awaiting a budget</p></a>
+  </div>
+
+  <div class="grid">
+   <div class="col">
+    <section class="card">
+     <div class="sec-h"><h2>Map view</h2><span class="va">View all</span></div>
+     <p class="sub">Countries shaded by real project counts — Natural Earth boundaries, no project pins</p>
+     <div class="map"><svg viewBox="0 0 400 190" width="100%" height="100%"><g fill="#dfe7e1"><path d="M30 40c30-20 80-25 110-10s20 50-10 60-90 5-100-20z"/><path d="M60 110c20-10 50-5 60 15s-10 45-30 45-40-30-30-60z"/><path d="M170 30c40-15 120-10 170 5s30 40-20 50-140 0-150-20z"/><path d="M300 110c20-5 50 0 55 20s-30 25-45 15z"/></g><path d="M180 80c20-10 50-5 60 20s-5 55-25 65-35-10-40-35 0-40 5-50z" fill="#9cbfa8"/><path d="M196 104c5-3 12-2 14 4s-2 12-8 13-9-4-8-9z" fill="#1f4d36"/></svg></div>
+     <div class="leg">
+      <div><code>CM</code><span>Cameroon<small>Douala, Yaoundé, Buea, Limbe</small></span><b class="mono">41</b><span class="muted">85%</span></div>
+      <div><code>NG</code><span>Nigeria<small>Lagos, Abuja</small></span><b class="mono">4</b><span class="muted">8%</span></div>
+      <div><code>GA</code><span>Gabon<small>Libreville</small></span><b class="mono">2</b><span class="muted">4%</span></div>
+      <div><code>GB</code><span>United Kingdom<small>City not recorded</small></span><b class="mono">1</b><span class="muted">2%</span></div>
+     </div>
+    </section>
+    <section class="card">
+     <div class="sec-h"><h2>Contractors by trade</h2><span class="va">View all</span></div>
+     <p class="sub">Published directory entries, by the trade each one applied under</p>
+     <div class="trade">
+      <div><p><span>General contractor</span><span class="mono">14 · 47%</span></p><div class="bar5" style="margin-top:5px"><i style="width:47%"></i></div></div>
+      <div><p><span>Mason</span><span class="mono">6 · 20%</span></p><div class="bar5" style="margin-top:5px"><i style="width:20%"></i></div></div>
+      <div><p><span>Electrician</span><span class="mono">4 · 13%</span></p><div class="bar5" style="margin-top:5px"><i style="width:13%"></i></div></div>
+      <div><p><span>Plumber</span><span class="mono">3 · 10%</span></p><div class="bar5" style="margin-top:5px"><i style="width:10%"></i></div></div>
+     </div>
+    </section>
+   </div>
+
+   <div class="col">
+    <section class="card">
+     <div class="sec-h"><h2>Applications funnel</h2><span class="va">View all</span></div>
+     <p class="sub">Real contractor applications, by their own status</p>
+     <div class="fun">
+      <a><span>Waitlist</span><i style="width:100%"></i><b class="mono">38</b></a>
+      <a><span>Started</span><i style="width:58%"></i><b class="mono">22</b></a>
+      <a><span>Pending</span><i style="width:24%;background:#e9d9b5"></i><b class="mono">9</b></a>
+      <a><span>Reviewing</span><i style="width:10%;background:#e9d9b5"></i><b class="mono">4</b></a>
+      <a><span>Accepted</span><i style="width:31%;background:var(--green)"></i><b class="mono">12</b></a>
+     </div>
+    </section>
+    <section class="card att">
+     <div class="sec-h"><h2>Needs your attention</h2><span class="va">View all</span></div>
+     <p class="sub">Computed from live state — nothing is stored</p>
+     <div><span class="pr c"><i class="dotc" style="background:var(--alert)"></i>CRITICAL</span><span>Verification due · Stage 4<small>Mbala Residence · Claire Mbala</small></span><span class="muted">6d</span><span class="muted">›</span></div>
+     <div><span class="pr h"><i class="dotc" style="background:var(--held)"></i>HIGH</span><span>Stage ready to approve · Stage 5<small>Kouam house · Ama Kouam</small></span><span class="muted">20h</span><span class="muted">›</span></div>
+     <div><span class="pr h"><i class="dotc" style="background:var(--held)"></i>HIGH</span><span>Unanswered conversation<small>“Can I pay part 4 by MoMo?” · Claire · WhatsApp</small></span><span class="muted">2h</span><span class="muted">›</span></div>
+     <div><span class="pr h"><i class="dotc" style="background:var(--held)"></i>HIGH</span><span>Budget confirmation pending<small>Tabe duplex · Joseph Tabe</small></span><span class="muted">2d</span><span class="muted">›</span></div>
+     <div><span class="pr m"><i class="dotc" style="background:#4b4370"></i>MEDIUM</span><span>Application to decide<small>Amadou Bello · Mason</small></span><span class="muted">3d</span><span class="muted">›</span></div>
+    </section>
+   </div>
+
+   <div class="col rail">
+    <section class="card">
+     <div class="sec-h"><h2>Recent activity</h2><span class="va">View all</span></div>
+     <p class="sub">From the audit log</p>
+     <div class="row"><span><b>Ruth</b> approved a stage<small>Mbala Residence</small></span><span class="muted">1h</span></div>
+     <div class="row"><span><b>Bob Ousmane</b> submitted a site update<small>Mbala Residence</small></span><span class="muted">3h</span></div>
+     <div class="row"><span><b>Favour</b> assigned a verifier<small>Kouam house</small></span><span class="muted">5h</span></div>
+    </section>
+    <section class="card">
+     <div class="sec-h"><h2>Upcoming inspections</h2></div>
+     <p class="sub">Site visits scheduled ahead</p>
+     <p class="empty">Inspections are not part of Groundwork yet — there is nothing to show, and nothing is invented here.</p>
+    </section>
+    <section class="card">
+     <div class="sec-h"><h2>Open support tickets</h2><span class="va">View all</span></div>
+     <p class="sub">Open and in progress — cases Groundwork owes someone</p>
+     <div class="row"><span>Cannot upload receipt<small>Joseph Tabe · <i class="dotc" style="background:var(--held)"></i> In progress</small></span><span class="muted">1d</span></div>
+     <div class="row"><span>Change of phone number<small>Ama Kouam · <i class="dotc" style="background:#2a7fb8"></i> Open</small></span><span class="muted">2d</span></div>
+    </section>
+    <section class="card">
+     <div class="sec-h"><h2>GoHighLevel</h2><span class="va">View all</span></div>
+     <p class="sub">What the integration has actually done</p>
+     <div class="ghl">
+      <div><span>API credentials</span><span class="ok">Configured</span></div>
+      <div><span>Conversation provider</span><span class="ok">Configured</span></div>
+      <div><span>Inbound secret</span><span class="ok">Configured</span></div>
+      <div><span>Pipeline mapping</span><span class="no">Not configured</span></div>
+      <div style="border-top:1px solid var(--rule);margin-top:4px;padding-top:8px"><span>Outbox waiting</span><b class="mono">0</b></div>
+      <div><span>Sync failures</span><b class="mono">0</b></div>
+      <div><span>Last inbound event</span><span>12 min ago</span></div>
+      <div><span>Last queued message</span><span>1 h ago</span></div>
+     </div>
+    </section>
+   </div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

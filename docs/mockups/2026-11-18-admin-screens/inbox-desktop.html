@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Inbox · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.panes{display:grid;grid-template-columns:320px 1fr;gap:14px;margin-top:14px;height:690px}
+.list{overflow:hidden;display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:10px 1fr auto;gap:10px;padding:11px 16px;border-top:1px solid var(--rule)}
+.row.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.row .nm{font-size:13.5px;font-weight:600}.row .pv{font-size:12px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;margin-top:2px}
+.row .ln{font-size:11px;color:var(--muted);margin-top:2px}
+.ch{font-size:10px;font-weight:700;text-transform:uppercase;border-radius:5px;padding:1px 5px;margin-right:4px}
+.ch.wa{background:#e3f7e9;color:#128C4A}.ch.em{background:#eceaf4;color:#4b4370}.ch.ja{background:#e9f0ec;color:var(--green)}.ch.ca{background:var(--pale);color:var(--mid)}
+.thread{display:flex;flex-direction:column;overflow:hidden}
+.ctx{padding:12px 18px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;gap:16px}
+.ctrl{display:flex;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--rule);font-size:12.5px;color:var(--mid)}
+.sel{border:1px solid var(--rule);border-radius:9px;padding:6px 10px;font-size:12.5px;color:var(--ink);background:#fff}
+.msgs{flex:1;background:#f4f3ef;padding:16px 20px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.b{max-width:62%;border-radius:12px;padding:8px 11px;font-size:13px;line-height:1.45;background:#fff;align-self:flex-start}
+.b.out{background:#e9f0ec;align-self:flex-end}
+.b .m{font-size:10.5px;color:var(--muted);margin-top:3px}
+.note{align-self:stretch;background:#fbf8f2;border:1px dashed #d9c7a0;border-radius:10px;padding:8px 11px;font-size:12.5px;margin:0}
+.comp{padding:10px 16px;border-top:1px solid var(--rule)}
+.box{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);height:52px}
+</style></head><body data-active="/admin/inbox">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph"><div><h1>Inbox</h1><p>Every conversation — WhatsApp, email and platform — in one place.</p></div><span class="chip">Needs reply <b>3</b></span></div>
+  <div class="panes">
+   <section class="card list">
+    <div class="row on"><i class="dotc" style="background:var(--held);margin-top:6px"></i><div><p class="nm">Claire Mbala</p><p class="pv">Can I pay part 4 by MoMo?</p><p class="ln"><span class="ch wa">WhatsApp</span>Waiting on us · Mbala Residence</p></div><span class="muted" style="font-size:11px">2h</span></div>
+    <div class="row"><i class="dotc" style="background:#2a7fb8;margin-top:6px"></i><div><p class="nm">Joseph Tabe</p><p class="pv">You: The budget is ready for your review</p><p class="ln"><span class="ch ja">Groundwork</span>Open · Tabe duplex</p></div><span class="muted" style="font-size:11px">5h</span></div>
+    <div class="row"><i class="dotc" style="background:var(--muted);margin-top:6px"></i><div><p class="nm">Ama Kouam</p><p class="pv">Thanks, I'll check tonight</p><p class="ln"><span class="ch em">Email</span>Waiting on them · Kouam house</p></div><span class="muted" style="font-size:11px">1d</span></div>
+    <div class="row"><i class="dotc" style="background:var(--complete);margin-top:6px"></i><div><p class="nm">Benoit Nkeng</p><p class="pv">Internal note: call back after 4pm</p><p class="ln"><span class="ch ca">Call</span>Resolved</p></div><span class="muted" style="font-size:11px">2d</span></div>
+    <div class="row"><i class="dotc" style="background:var(--held);margin-top:6px"></i><div><p class="nm">Unidentified sender</p><p class="pv">Hello, I want to build a house in Buea</p><p class="ln"><span class="ch wa">WhatsApp</span>Waiting on us</p></div><span class="muted" style="font-size:11px">1d</span></div>
+   </section>
+   <section class="card thread">
+    <div class="ctx"><div><p style="font-size:15px;font-weight:700">Claire Mbala</p><p class="muted" style="font-size:12px">claire.mbala@mail.cm</p></div>
+     <div style="text-align:right;font-size:12.5px"><p class="muted" style="font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase">Account project</p><p><b>Mbala Residence</b> · <span class="muted">Stage 5 · Active · Douala, CM</span></p><p style="margin-top:4px"><span class="link" style="font-size:12px">Open project</span> · <span class="btn o s" style="padding:3px 8px">This conversation is about this</span></p></div></div>
+    <div class="ctrl"><span>WhatsApp · Waiting on us</span><span style="flex:1"></span><span class="sel">Ruth ▾</span><span class="btn o s">Assign</span><span class="btn o s">Resolve</span></div>
+    <div class="msgs">
+     <div class="b">Good morning, I sent the receipt for part 3. Can you check that Bob received it?<p class="m">Claire · Homeowner · 09:02 · WhatsApp</p></div>
+     <div class="b out">Morning Claire! Bob has your receipt and will confirm today.<p class="m">Ruth · Groundwork · 09:10 · WhatsApp</p></div>
+     <p class="note"><b>Internal note</b> · Ruth · Call logged · 4 min — site visit agreed for Friday 10:00.</p>
+     <div class="b">Thank you. Can I pay part 4 by MoMo?<p class="m">Claire · Homeowner · 09:31 · WhatsApp</p></div>
+    </div>
+    <div class="comp"><div class="box">Write to the homeowner…</div>
+     <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><span class="btn o s">Attach</span><span class="btn g s">Send</span><span class="btn o s">Internal note</span><span class="muted" style="font-size:11.5px">Internal notes stay with staff — never sent, never shown to the homeowner or contractor.</span></div></div>
+   </section>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

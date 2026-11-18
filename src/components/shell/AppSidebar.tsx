@@ -1,12 +1,13 @@
-import { Fragment } from 'react';
-import { NavLink, Link } from 'react-router';
-import { LogOut, User } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router';
+import { ChevronRight, LogOut, User } from 'lucide-react';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { NavItem } from './nav-config';
+import { activeNavItem, navGroups, OPEN_GROUPS_KEY } from './nav-groups';
 
 // =========================================================
 // The one sidebar.
@@ -46,6 +47,30 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const t = useT();
   const calm = appearance === 'calm';
+  const location = useLocation();
+  // One lit item, by the whole address: /admin/inbox and /admin/inbox?channel=whatsapp are
+  // different destinations, and NavLink's own check ignores the ?, which lit all five
+  // Communication items at once (18 Nov).
+  const activeTo = activeNavItem(nav, location.pathname, location.search);
+  const groups = useMemo(() => navGroups(nav), [nav]);
+  const activeGroup = groups.find(group => group.items.some(item => item.to === activeTo))?.section ?? null;
+  // Dropdown groups (Favour, 18 Nov): the group holding the current page is open; any other
+  // opens on a click and stays open for this browser. Read after mount, so the server and
+  // the first client render agree.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : []));
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(OPEN_GROUPS_KEY) ?? '[]');
+      if (Array.isArray(saved)) setOpen(prev => new Set([...prev, ...saved.filter((v): v is string => typeof v === 'string')]));
+    } catch { /* No storage: groups simply start closed. */ }
+  }, []);
+  useEffect(() => { if (activeGroup) setOpen(prev => prev.has(activeGroup) ? prev : new Set([...prev, activeGroup])); }, [activeGroup]);
+  const toggle = (section: string) => setOpen(prev => {
+    const next = new Set(prev);
+    if (next.has(section)) next.delete(section); else next.add(section);
+    try { window.localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify([...next])); } catch { /* Not remembered; still toggles. */ }
+    return next;
+  });
   const initials = displayName
     .split(' ').slice(0, 2)
     .map(w => w[0]?.toUpperCase() ?? '')
@@ -79,36 +104,49 @@ export function AppSidebar({
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
-        {nav.map(({ to, labelKey, icon: Icon, exact, section }, i) => (
-          <Fragment key={to}>
-            {calm && to === '/profile' && <div aria-hidden className="mt-auto border-t border-brand-border-grey pt-2" />}
-            {/* A heading above the first item of each section. The client nav has no
-                sections and renders exactly as before. */}
-            {section && nav[i - 1]?.section !== section && (
-              <p className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9a9a96] first:mt-0 dark:text-white/40">
-                {t(section)}
-              </p>
-            )}
-            <NavLink
-              to={to}
-              end={exact}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
-                  'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                  calm
-                    ? isActive ? 'bg-brand-green/8 text-brand-green dark:bg-white/10 dark:text-[#b4d8bf]' : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white'
-                    : isActive
-                    ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
-                    : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white',
-                )
-              }
-            >
-              <Icon className="size-4 shrink-0" />
-              {t(labelKey)}
-            </NavLink>
-          </Fragment>
-        ))}
+        {groups.map(group => {
+          const links = group.items.map(({ to, labelKey, icon: Icon }) => {
+            const isActive = to === activeTo;
+            return (
+              <Fragment key={to}>
+                {calm && to === '/profile' && <div aria-hidden className="mt-auto border-t border-brand-border-grey pt-2" />}
+                <Link
+                  to={to}
+                  onClick={onNavigate}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    calm
+                      ? isActive ? 'bg-brand-green/8 text-brand-green dark:bg-white/10 dark:text-[#b4d8bf]' : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white'
+                      : isActive
+                      ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
+                      : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white',
+                  )}
+                >
+                  <Icon className={cn('size-4 shrink-0', to.includes('channel=whatsapp') && 'text-[#25D366]')} />
+                  {t(labelKey)}
+                </Link>
+              </Fragment>
+            );
+          });
+          // The client nav has no sections and renders exactly as before; so do the
+          // admin's Overview group and its one-item groups (Support, Analytics).
+          if (!group.section || !group.collapsible) return <Fragment key={group.key}>{group.section && group.key !== groups[0].key && <div aria-hidden className="h-2" />}{links}</Fragment>;
+          const expanded = open.has(group.section);
+          const id = `nav-group-${group.key}`;
+          return (
+            <div key={group.key} className="mt-1">
+              <button type="button" onClick={() => toggle(group.section!)} aria-expanded={expanded} aria-controls={id} data-nav-group={group.section}
+                className={cn('flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-[#f7f7f5] dark:hover:bg-white/10',
+                  expanded || group.section === activeGroup ? 'text-brand-green dark:text-[#b4d8bf]' : 'text-[#0a0a0a] dark:text-white')}>
+                <span className="flex-1">{t(group.section)}</span>
+                <span className="font-mono text-[11px] font-normal text-[#9a9a96] dark:text-white/40">{group.items.length}</span>
+                <ChevronRight aria-hidden className={cn('size-3.5 text-[#9a9a96] transition-transform dark:text-white/40', expanded && 'rotate-90')} />
+              </button>
+              {expanded && <div id={id} className="mb-1 ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-[#e4e3df] pl-2 dark:border-white/10">{links}</div>}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="space-y-0.5 border-t border-[#e4e3df] px-3 py-4 dark:border-white/10">

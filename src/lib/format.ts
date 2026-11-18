@@ -62,6 +62,22 @@ export function formatMoney(
   }
 }
 
+/**
+ * How many decimals a currency really has: 0 for XAF/XOF, 2 for USD/EUR.
+ *
+ * A converted amount carries the exchange rate's six decimals (949,139.371425 XAF), and
+ * no one can pay a millionth of a franc. Summary figures stop at the currency's unit;
+ * editors that must add up exactly keep their own precision.
+ */
+export function currencyFractionDigits(currency: string | null | undefined): number {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' })
+      .resolvedOptions().maximumFractionDigits ?? 2;
+  } catch {
+    return 2;
+  }
+}
+
 export function formatNumber(
   value: number,
   locale: FormatLocale = currentLocale,

@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Homeowners · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+.ctl{display:flex;gap:8px;margin-top:16px}
+.inp{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;color:var(--mid);display:inline-flex;gap:8px;align-items:center}
+.wrap2{display:grid;grid-template-columns:1fr 380px;gap:14px;margin-top:14px}
+.hc{padding:14px 18px;border-top:1px solid var(--rule);display:grid;grid-template-columns:1fr 280px;gap:16px}
+.hc:first-of-type{border-top:0}
+.hc.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.nm{font-size:14.5px;font-weight:700}.meta{font-size:12px;color:var(--mid);margin-top:2px}
+.stats{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--mid)}.stats b{font-family:var(--mono);color:var(--ink);font-size:13px;margin-right:3px}
+.pr{border:1px solid var(--rule);border-radius:10px;padding:8px 10px;font-size:12.5px;background:#fff}
+.pr + .pr{margin-top:6px}.pr small{display:block;color:var(--mid);font-size:11.5px}
+.drawer h3{font-size:16px;font-weight:800}
+.dsec{padding:12px 18px;border-top:1px solid var(--rule)}
+.dsec h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0}.kv span:first-child{color:var(--mid)}
+</style></head><body data-active="/admin/clients">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph"><div><h1>Homeowners</h1><p>The people Groundwork builds for, and how their builds are going.</p></div></div>
+  <div class="ctl"><span class="inp" style="width:320px"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>Search homeowners or projects</span><span class="chip">Building now <b>31</b></span></div>
+  <div class="wrap2">
+   <section class="card" style="overflow:hidden">
+    <div class="hc on"><div><p class="nm">Claire Mbala</p><p class="meta">claire.mbala@mail.cm · joined 30 Oct · last seen 2 h ago</p><div class="stats"><span><b>1</b>Projects</span><span><b>2</b>Conversations</span><span><b>0</b>Open tickets</span></div></div>
+     <div><div class="pr"><b>Mbala Residence</b><small>Stage 5 of 10 · Jalla Verify · Active · Douala, CM</small></div></div></div>
+    <div class="hc"><div><p class="nm">Ama Kouam</p><p class="meta">ama.k@mail.cm · joined 12 Oct · last seen yesterday</p><div class="stats"><span><b>1</b>Projects</span><span><b>1</b>Conversations</span><span><b>1</b>Open tickets</span></div></div>
+     <div><div class="pr"><b>Kouam house</b><small>Stage 5 of 10 · Self Verify · Active · Buea, CM</small></div></div></div>
+    <div class="hc"><div><p class="nm">Joseph Tabe</p><p class="meta">j.tabe@mail.cm · joined 28 Sep · last seen 3 d ago</p><div class="stats"><span><b>2</b>Projects</span><span><b>1</b>Conversations</span><span><b>1</b>Open tickets</span></div></div>
+     <div><div class="pr"><b>Tabe duplex</b><small>No stages yet · Management · On hold · Limbe, CM</small></div><div class="pr"><b>Tabe shop</b><small>Stage 2 of 10 · Free · Active · Limbe, CM</small></div></div></div>
+    <div class="hc"><div><p class="nm">Amina Ndi</p><p class="meta">amina.ndi@mail.cm · joined 2 Nov · never signed in</p><div class="stats"><span><b>0</b>Projects</span><span><b>0</b>Conversations</span><span><b>0</b>Open tickets</span></div></div>
+     <div><p class="muted" style="font-size:12.5px">No project yet — this account has signed up but not started a build.</p></div></div>
+   </section>
+
+   <aside class="card drawer" style="height:fit-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px"><div><p class="muted" style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700">Signup details</p><h3>Claire Mbala</h3></div><span class="muted" style="font-size:18px">✕</span></div>
+    <div class="dsec"><h4>Contact</h4>
+     <div class="kv"><span>Email</span><span>claire.mbala@mail.cm</span></div>
+     <div class="kv"><span>Phone</span><span>+237 699 12 34 56</span></div>
+     <div style="display:flex;gap:6px;margin:6px 0"><span class="btn o s">Call</span><span class="btn o s"><span style="color:#25D366">●</span> Open in WhatsApp</span></div>
+     <div class="kv"><span>Language</span><span>English</span></div></div>
+    <div class="dsec"><h4>Account</h4>
+     <div class="kv"><span>Signed up from</span><span>Cameroon</span></div><div class="kv"><span>Joined</span><span>30 Oct 2026</span></div>
+     <div class="kv"><span>Plan</span><span>Jalla Verify</span></div><div class="kv"><span>Created by</span><span>Self sign-up</span></div>
+     <div class="kv"><span>Password</span><span>Own password</span></div><div class="kv"><span>CRM</span><span style="color:var(--complete);font-weight:600">Synced</span></div>
+     <div class="kv"><span>User ID</span><span class="mono" style="font-size:11px">8f2c…a91e</span></div></div>
+    <div class="dsec"><h4>Projects</h4><p class="link" style="font-size:13px">Mbala Residence</p></div>
+   </aside>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

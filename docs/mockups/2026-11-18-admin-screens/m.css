@@ -1,0 +1,15 @@
+body{width:390px;position:relative;padding-bottom:70px}
+.mp{padding:14px 16px}
+.mp h1{font-family:var(--sans);font-size:22px;font-weight:800;letter-spacing:-.3px}
+.mp .sub{font-size:12.5px;color:var(--mid);margin-top:2px}
+.mcard{background:#fff;border:1px solid var(--rule);border-radius:14px;margin-top:12px;overflow:hidden}
+.mrow{padding:11px 14px;border-top:1px solid var(--rule);font-size:13px}
+.mrow:first-child{border-top:0}
+.mrow small{display:block;color:var(--mid);font-size:11.5px;margin-top:1px}
+.mk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.mk div{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:10px 12px}
+.mk p{font-size:11.5px;color:var(--mid)}.mk b{display:block;font-family:var(--mono);font-size:18px;margin-top:3px}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 6px}
+.mh h2{font-size:14.5px;font-weight:700}.mh span{font-size:12px;font-weight:600;color:var(--green)}
+.scrollx{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin-top:10px}
+.caption{top:auto;bottom:66px;right:10px}

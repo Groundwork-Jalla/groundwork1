@@ -36,7 +36,8 @@ describe('who pays first', () => {
 describe('the payment screen on a stage paid by part', () => {
   const gate = readFileSync(resolve(__dirname, '../../components/project/StagePaymentGate.tsx'), 'utf8');
   it('shows the parts instead of the installment plan', () => {
-    expect(gate).toMatch(/\{split && parts\?\.parts \? <section[\s\S]*: <StagePaymentPlanPanel/);
+    // The contractor's Work tab lists the parts itself, so it may ask the panel not to repeat them.
+    expect(gate).toMatch(/\{split && parts\?\.parts \? hideParts \? null : <section[\s\S]*: <StagePaymentPlanPanel/);
   });
   it('files the receipt under the part being paid', () => {
     expect(gate).toContain('...(split && payingPart ? { substageId: payingPart.id }');

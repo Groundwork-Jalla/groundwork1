@@ -6,6 +6,7 @@ import { receiptPayoutSummary } from '@/lib/payments/receipt-payouts';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { projectBudget } from '@/lib/budget';
 import { projectMoneyBasis } from '@/lib/budget/project-money';
+import { currencyFractionDigits } from '@/lib/format';
 
 interface Props {
   project: ProjectRow;
@@ -59,7 +60,8 @@ export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'defa
   const number = (amount: number, digits = 6) => amount.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: digits });
   const basis = projectMoneyBasis(project);
   const currency = summary?.currency ?? basis.code;
-  const format = (amount: number) => currency === 'USD' ? `$${number(amount)}` : `${number(amount)} ${currency}`;
+  // A converted figure carries the rate's decimals; a summary stops at the currency's unit.
+  const format = (amount: number) => currency === 'USD' ? `$${number(amount, 2)}` : `${number(amount, currencyFractionDigits(currency))} ${currency}`;
   const metrics = [
     { key: 'payouts' as const, value: summary && summary.missingConfirmedCount === 0 ? summary.payouts : null },
     { key: 'pendingReceipts' as const, value: summary && summary.missingPendingCount === 0 ? summary.pending : null },

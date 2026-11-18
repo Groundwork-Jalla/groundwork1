@@ -141,7 +141,7 @@ describe('the client alone sets their password from an email link', () => {
     const copy = block.slice(0, block.indexOf('\n  },'));
     expect(copy).toMatch(/secure link/);
     expect(copy).toMatch(/create their own password before they can access their account/);
-    expect(copy).toMatch(/Only your client chooses and knows their password/);
+    expect(copy).toMatch(/Only the homeowner chooses and knows their password/);
   });
 
   it('the invite email opens password setup on the client device using a token hash', () => {

@@ -83,7 +83,7 @@ describe('closing out a project', () => {
   it('tells somebody who cannot close it who can', async () => {
     const view = await load({ ...settled, can_close: false });
     expect(button(view, 'Close project')).toBeUndefined();
-    expect(text(view)).toContain('The client, the primary contractor or Jalla can close this project.');
+    expect(text(view)).toContain('The homeowner, the primary contractor or Jalla can close this project.');
   });
 
   it('closes a settled project only after an explicit confirmation', async () => {

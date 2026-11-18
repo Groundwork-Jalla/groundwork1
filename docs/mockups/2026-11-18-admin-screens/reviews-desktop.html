@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · Reviews &amp; Approvals · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:960px;overflow:hidden;position:relative}
+.app{height:960px}
+.cols{display:grid;grid-template-columns:330px 1fr;gap:14px;margin-top:16px}
+.q div{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;padding:11px 16px;border-top:1px solid var(--rule);font-size:13px}
+.q div.on{background:#f3f6f4;box-shadow:inset 3px 0 0 var(--green)}
+.q small{display:block;color:var(--mid);font-size:11.5px}
+.pill2{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px;background:#f4eee2;color:var(--held);letter-spacing:.4px}
+.det{padding:18px 20px}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.blk{margin-top:16px;border:1px solid var(--rule);border-radius:12px}
+.blk h4{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:12px 14px 4px}
+.blk .r{display:grid;grid-template-columns:1fr auto;gap:10px;padding:9px 14px;border-top:1px solid var(--rule);font-size:13px;align-items:center}
+.ths{display:flex;gap:6px}.ths span{width:40px;height:40px;border-radius:8px;border:1px solid var(--rule);background:#e3e8e2;overflow:hidden}
+.ver{margin-top:16px;border:1.5px solid var(--held);background:#fbf8f2;border-radius:12px;padding:14px}
+.foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;border-top:1px solid var(--rule);padding-top:14px}
+.sel2{border:1px solid var(--rule);background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;flex:1}
+</style></head><body data-active="/admin/reviews">
+<div class="app">
+<aside class="side" data-sidebar></aside>
+<div class="main">
+ <div class="top" data-topbar></div>
+ <div class="page">
+  <div class="ph"><div><h1>Stage Reviews</h1><p>Jalla Verify stages awaiting your approval</p></div><span class="muted" style="font-size:13px"><b class="mono" style="color:var(--ink)">6</b> waiting</span></div>
+  <div class="cols">
+   <section class="card q">
+    <div class="sec-h" style="display:flex;border:0"><h2>Waiting for approval</h2></div>
+    <div class="on"><span><b>Stage 5 · Structure &amp; walls</b><small>Mbala Residence · Claire Mbala</small></span><span class="pill2">IN REVIEW</span></div>
+    <div><span><b>Stage 5 · Structure &amp; walls</b><small>Kouam house · Ama Kouam</small></span><span class="pill2">IN REVIEW</span></div>
+    <div><span><b>Stage 3 · Site preparation</b><small>Nkeng villa · Benoit Nkeng</small></span><span class="pill2">IN REVIEW</span></div>
+    <div><span><b>Stage 2 · Design completed</b><small>Ewane house · Paul Ewane</small></span><span class="pill2">IN REVIEW</span></div>
+    <div><span><b>Stage 4 · Foundation</b><small>Fon duplex · Grace Fon</small></span><span class="pill2">IN REVIEW</span></div>
+    <div><span><b>Stage 6 · Roofing</b><small>Ngu residence · Peter Ngu</small></span><span class="pill2">IN REVIEW</span></div>
+   </section>
+
+   <section class="card det">
+    <div class="dh"><div><p style="display:flex;gap:8px;align-items:center"><span class="pill2">IN REVIEW</span><span class="muted" style="font-size:12.5px;font-weight:600">Stage 5</span></p>
+      <h2 style="font-size:22px;font-weight:800;margin-top:6px">Structure &amp; walls</h2>
+      <p class="muted" style="font-size:13px;margin-top:4px"><span class="link">Mbala Residence</span> · Claire Mbala · <span class="link">Open workspace</span></p></div></div>
+
+    <div class="blk"><h4>Substages and evidence</h4>
+     <div class="r"><span>Columns and ring beam</span><span class="ths"><span></span><span></span><span></span></span></div>
+     <div class="r"><span>Blockwork to lintel</span><span class="ths"><span></span><span></span></span></div>
+     <div class="r"><span>Lintel and upper blockwork</span><span class="ths"><span></span></span></div>
+     <div class="r"><span>Curing and sign-off</span><span class="muted" style="font-size:12.5px">No evidence uploaded</span></div>
+    </div>
+
+    <div class="blk"><h4>Site updates</h4>
+     <div class="r"><span>Bob Ousmane · 3 h ago · 2 files<small class="muted" style="display:block;font-size:12px">Upper blockwork started on the north side.</small></span></div>
+     <div class="r"><span>Bob Ousmane · 2 d ago · 3 files<small class="muted" style="display:block;font-size:12px">Ring beam poured and cured.</small></span></div>
+    </div>
+
+    <div class="ver">
+     <p style="font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--held);font-weight:700">Independent verification</p>
+     <p style="font-size:13.5px;font-weight:600;margin-top:4px">Awaiting Vanessa G.</p>
+     <p class="muted" style="font-size:12.5px;margin-top:2px">Approval is locked until the verifier's decision is “verified”.</p>
+     <div style="display:flex;gap:8px;margin-top:10px"><span class="btn o">Record the verifier's decision</span></div>
+    </div>
+
+    <div class="foot"><span class="btn o">Request changes</span><span class="btn g" style="opacity:.45">Approve stage</span></div>
+   </section>
+  </div>
+ </div>
+</div>
+</div>
+<p class="caption" style="top:auto;bottom:8px;left:250px;right:auto">Design concept · illustrative data</p>
+<script src="sidebar.js"></script>
+</body></html>

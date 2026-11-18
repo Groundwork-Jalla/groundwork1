@@ -1,0 +1,5 @@
+// Illustrative site-photo and receipt thumbnails (drawn, not real files).
+const SITE=(h)=>`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#dfe6df"/><rect y="40" width="60" height="20" fill="#b9a585"/><path d="M8 40V22h${h}v18z" fill="#c9b892" stroke="#7d6e55" stroke-width="1"/><path d="M8 22l${h/2} -8 ${h/2} 8" fill="#d8ccb0" stroke="#7d6e55" stroke-width="1"/><rect x="12" y="27" width="6" height="6" fill="#8a9b8a"/><rect x="${8+h-12}" y="27" width="6" height="6" fill="#8a9b8a"/></svg>`;
+const RECEIPT=`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><rect x="8" y="7" width="26" height="4" fill="#1f4d36"/><g fill="#c8c8c4"><rect x="8" y="17" width="44" height="2.5"/><rect x="8" y="23" width="34" height="2.5"/><rect x="8" y="29" width="40" height="2.5"/><rect x="8" y="38" width="44" height="2.5"/></g><rect x="8" y="46" width="44" height="6" fill="#333"/></svg>`;
+document.querySelectorAll('[data-site]').forEach(el=>el.innerHTML=SITE(+el.dataset.site||40));
+document.querySelectorAll('[data-receipt]').forEach(el=>el.innerHTML=RECEIPT);

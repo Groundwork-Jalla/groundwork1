@@ -32,6 +32,9 @@ export interface AppShellProps {
   topBarSearch?: ReactNode;
   /** The approved client-home treatment; other workspaces keep their own shell. */
   sidebarAppearance?: 'default' | 'calm';
+  /** The sidebar's own look, when it differs from the shell's (the admin, 18 Nov: green
+   *  sidebar in the new theme, pages still on the canvas). Defaults to sidebarAppearance. */
+  sidebarStyle?: 'default' | 'calm';
   headerTitle?: string;
   children: ReactNode;
 }
@@ -39,13 +42,13 @@ type AppShellPropsCaption = Parameters<ReturnType<typeof useT>>[0];
 
 export function AppShell({
   nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, topBarSearch,
-  sidebarAppearance = 'default', headerTitle, children,
+  sidebarAppearance = 'default', sidebarStyle, headerTitle, children,
 }: AppShellProps) {
   const { pathname } = useLocation();
   const [drawer, setDrawer] = useState(false);
   const t = useT();
 
-  const sidebar = (onNavigate?: () => void, appearance: 'default' | 'calm' = sidebarAppearance) => (
+  const sidebar = (onNavigate?: () => void, appearance: 'default' | 'calm' = sidebarStyle ?? sidebarAppearance) => (
     <AppSidebar
       nav={nav}
       displayName={displayName}
@@ -61,7 +64,7 @@ export function AppShell({
   return (
     <div className={cn('flex h-screen overflow-hidden font-sans dark:bg-[#141414]', sidebarAppearance === 'calm' ? 'h-dvh bg-[#ffffff]' : 'bg-[#f7f7f5]')}>
 
-      <div className="hidden shrink-0 md:block">{sidebar(undefined, sidebarAppearance)}</div>
+      <div className="hidden shrink-0 md:block">{sidebar(undefined, sidebarStyle ?? sidebarAppearance)}</div>
 
       <AnimatePresence>
         {drawer && (

@@ -131,6 +131,13 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261118000100_substage_payments.sql'),
     read('supabase/migrations/20261118000100_substage_payments.sql'),
     read('scripts/fixtures/substage-payments.sql'),
+    `RESET ROLE;`,
+    read('supabase/migrations/20261118000200_installments_retired.sql'),
+    read('supabase/migrations/20261118000200_installments_retired.sql'),
+    read('scripts/fixtures/installments-retired.sql'),
+    read('supabase/migrations/20261118000300_price_change_needs_reason.sql'),
+    read('supabase/migrations/20261118000300_price_change_needs_reason.sql'),
+    read('scripts/fixtures/price-change-reason.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -143,7 +150,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK') || !output.includes('CONTRACTOR_BEFORE_PAYMENT_OK') || !output.includes('OVERPAYMENT_CLOSEOUT_OK') || !output.includes('OVERPAYMENT_REPLAY_OK') || !output.includes('STAGE_BREAKDOWN_OK') || !output.includes('SUBSTAGE_PAYMENTS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK') || !output.includes('CONTRACTOR_BEFORE_PAYMENT_OK') || !output.includes('OVERPAYMENT_CLOSEOUT_OK') || !output.includes('OVERPAYMENT_REPLAY_OK') || !output.includes('STAGE_BREAKDOWN_OK') || !output.includes('SUBSTAGE_PAYMENTS_OK') || !output.includes('INSTALLMENTS_RETIRED_OK') || !output.includes('PRICE_CHANGE_REASON_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

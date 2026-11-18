@@ -44,3 +44,21 @@ export async function openProjectWhatsApp(
 /** The original call, kept so existing callers do not change meaning. */
 export const openClientWhatsApp = (projectId: string): Promise<WhatsAppShortcut> =>
   openProjectWhatsApp(projectId, 'client');
+
+/**
+ * "Message this person on WhatsApp", with no project in between (18 Nov) — a contractor or
+ * any user who signed up. The server finds their one thread or opens it through the
+ * provider, exactly as the project path does once it knows who.
+ */
+export async function openPersonWhatsApp(personId: string): Promise<WhatsAppShortcut> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('not signed in');
+  const r = await fetch('/api/events?action=person-whatsapp', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ personId }),
+  });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) return { ok: false, reason: 'error', detail: String(json?.error ?? `http_${r.status}`) };
+  return json as WhatsAppShortcut;
+}

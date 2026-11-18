@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin sidebar · every item and where it goes</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;background:var(--canvas);padding:32px 40px;display:flex;gap:40px;align-items:flex-start}
+.side{width:236px;height:auto;border:1px solid var(--rule);border-radius:16px}
+.side .navscroll{overflow:visible;-webkit-mask-image:none}
+.spec{width:620px;background:#fff;border:1px solid var(--rule);border-radius:16px}
+.spec .side{border:0;width:100%;border-radius:16px}
+.explain{flex:1;font-size:14px;line-height:1.55}
+.explain h1{font-family:var(--sans);font-size:24px;font-weight:800}
+.explain p{margin-top:10px;color:var(--mid)}
+.explain b{color:var(--ink)}
+.lbl{font-size:12px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+</style></head><body>
+<div><p class="lbl">As it opens on the WhatsApp page</p><aside class="side" data-sidebar></aside><p class="lbl" style="margin-top:24px">With People opened too</p><aside class="side" data-sidebar data-open="People"></aside></div>
+<div class="spec"><p class="lbl" style="padding:16px 20px 0">Every item inside the dropdowns, and where it goes</p><aside class="side" data-sidebar data-routes data-expand-all></aside></div>
+<div class="explain">
+ <h1>The admin sidebar, in dropdowns</h1>
+ <p>All <b>38 items</b> stay, with the same labels, order and destinations as today (src/components/shell/nav-config.ts). They now sit in dropdowns, so the sidebar fits the screen without scrolling.</p>
+ <p><b>How it opens:</b> the group holding the page you are on opens by itself, so on WhatsApp, Communication is open and WhatsApp is lit. Click any other group to open it. Overview and Action Center stay at the top, and Support and Analytics, one item each, stay as plain links.</p>
+ <p><b>One fix:</b> an item is lit only when its whole address matches, including <b>?channel=</b>. Today Inbox, WhatsApp, Jalla Messages, Email and Calls all light up at once.</p>
+ <p class="muted" style="font-size:12px;margin-top:18px;font-style:italic">Design concept</p>
+</div>
+<script src="sidebar.js"></script>
+</body></html>

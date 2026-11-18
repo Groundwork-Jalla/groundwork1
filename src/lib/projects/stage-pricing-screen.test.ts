@@ -33,10 +33,11 @@ describe('stage price proposals and client decisions', () => {
     expect(render().some(e => e.props.name === 'stage-price-land')).toBe(false);
     render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '72000' } });
     expect(text(render())).toContain('192,000 XAF');
+    render().find(e => e.type === 'textarea')!.props.onChange({ target: { value: 'Homeowner added a boys quarters' } });
     render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
     await Promise.resolve(); await Promise.resolve();
     expect(h.propose).not.toHaveBeenCalled();render().find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();await Promise.resolve();await Promise.resolve();
-    expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'stage', amount: '72000' }], 'version', '');
+    expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'stage', amount: '72000' }], 'version', 'Homeowner added a boys quarters');
     expect(h.decide).not.toHaveBeenCalled();
   });
   it('lets the client approve the same pending proposal without offering a price editor', async () => {
@@ -68,13 +69,33 @@ describe('stage price proposals and client decisions', () => {
     render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '90000' } });
     render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '60000' } });
     render().find(e => e.props.name === 'stage-price-land')!.props.onChange({ target: { value: '6000' } });
+    render().find(e => e.type === 'textarea')!.props.onChange({ target: { value: 'Homeowner added a boys quarters' } });
     render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
     const dialog = render().find(e => e.type === ConfirmModal && e.props.open)!;
     expect(dialog.props.description).toContain('Land: 0 XAF → 6,000 XAF');
     expect(dialog.props.description).not.toContain('90,000');
     expect(h.propose).not.toHaveBeenCalled();
     await dialog.props.onConfirm();
-    expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'land', amount: '6000' }], 'version', '');
+    expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'land', amount: '6000' }], 'version', 'Homeowner added a boys quarters');
+  });
+
+  it('will not send a revised price without saying what changed and why (change orders, 18 Nov)', async () => {
+    await load(); render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.propose')!.props.onClick();
+    render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '72000' } });
+    expect(render().find(e => e.type === 'textarea')!.props.required).toBe(true);
+    expect(render().find(e => e.type === 'button' && text(e).includes('project.priceChanges.send'))!.props.disabled).toBe(true);
+    render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
+    expect(render().some(e => e.type === ConfirmModal && e.props.open)).toBe(false);
+    render().find(e => e.type === 'textarea')!.props.onChange({ target: { value: '   ' } });
+    render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
+    expect(render().some(e => e.type === ConfirmModal && e.props.open)).toBe(false);
+    expect(h.propose).not.toHaveBeenCalled();
+  });
+
+  it('shows the homeowner the reason inside the approval dialog', async () => {
+    await load({ ...context, can_propose: false, can_approve: true, history: [proposal] });
+    render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')!.props.onClick();
+    expect(render().find(e => e.type === ConfirmModal && e.props.open)!.props.description).toContain('project.priceChanges.reasonLabel');
   });
 
   it('does not submit prices when either confirmation is cancelled', async () => {

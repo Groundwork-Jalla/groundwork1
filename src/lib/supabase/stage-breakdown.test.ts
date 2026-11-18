@@ -40,4 +40,13 @@ describe('where the breakdown appears', () => {
     const panel = readFileSync(resolve(__dirname, '../../components/project/StageBreakdownPanel.tsx'), 'utf8');
     expect(panel).toContain("review?.kind === 'approved' ? 'project.clientUi.confirmApproval'");
   });
+  it('on the contractor\'s own stage view too, since each part must be priced before it is paid (18 Nov)', () => {
+    const work = readFileSync(resolve(__dirname, '../../app/routes/work/projects.detail.tsx'), 'utf8');
+    expect(work).toContain("import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';");
+    expect(work).toContain("const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;");
+    // The redesigned Work tab shows one stage at a time, so the panel sits in that
+    // stage's detail, open or upcoming; there is no per-row toggle any more.
+    expect(work).toMatch(/const breakdown = priceable\s*\?\s*<div[\s\S]{0,200}<StageBreakdownPanel/);
+    expect(work.match(/\{breakdown\}/g)).toHaveLength(1);
+  });
 });

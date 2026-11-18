@@ -21,7 +21,7 @@ import { describe, expect, it } from 'vitest';
  */
 
 const SOURCE = readFileSync('src/app/routes/work/projects.detail.tsx', 'utf8');
-const MONEY = SOURCE.slice(SOURCE.indexOf('function MoneyTab'), SOURCE.indexOf('function Figure('));
+const MONEY = SOURCE.slice(SOURCE.indexOf('function MoneyTab'), SOURCE.indexOf('function PeopleTab('));
 
 describe('the Money tab separates the schedule from the ledger', () => {
   it('takes "released" from the ledger, not from completed stages', () => {
@@ -40,8 +40,12 @@ describe('the Money tab separates the schedule from the ledger', () => {
     expect(MONEY).toMatch(/ledgerCodes\.size === 1/);
   });
 
-  it('excludes pre-existing stages from what Groundwork approved', () => {
-    expect(MONEY).toMatch(/s\.status === 'complete' && s\.pre_existing !== true/);
+  it('counts money received from confirmed receipts, never from approved stages (18 Nov redesign)', () => {
+    // "Confirmed received" replaced the approved-stages figure: it is the receipts the
+    // contractor confirmed, by the rule the stage cards and the homeowner's payment
+    // history use, so a stage approved and unpaid, or built before Groundwork, adds nothing.
+    expect(MONEY).toMatch(/const overview = paymentOverview\(stages, stagePayments, money\.code, money\.budgetRate \?\? money\.rate\)/);
+    expect(MONEY).not.toMatch(/sum\(approved\)/);
   });
 
   it('counts what is still to come from the stages that are not complete', () => {

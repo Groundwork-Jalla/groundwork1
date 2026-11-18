@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verifications';
-import { confirmedInProjectCurrency, paymentHistoryRows } from './payment-history';
+import { confirmedInProjectCurrency, paymentHistoryRows, paymentOverview } from './payment-history';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
 
@@ -76,5 +76,48 @@ describe('the payment history a contractor reads on the Money tab', () => {
     for (const key of ['paymentHistory', 'paymentHistoryHelp', 'paymentHistoryEmpty', 'paymentHistoryConfirmed']) {
       expect(typeof (en as any).contractorMoney[key], key).toBe('string'); expect(typeof (fr as any).contractorMoney[key], key).toBe('string');
     }
+  });
+});
+
+describe('where each stage stands, for the homeowner payment history (18 Nov mock-up)', () => {
+  const stages = [
+    { id: 's2', stage_number: 2, milestone_amount: 900000, pre_existing: true },
+    { id: 's4', stage_number: 4, milestone_amount: 6000000 },
+    { id: 's3', stage_number: 3, milestone_amount: 1200000 },
+    { id: 's6', stage_number: 6, milestone_amount: 8400000 },
+  ];
+  const xaf = (patch: Partial<StagePaymentReceipt>) => receipt({ currency: 'XAF', projectCurrency: 'XAF', fxRate: null, amountUsd: null, ...patch });
+  const payments = new Map<string, StagePayment>([
+    ['s2', tranche('s2', [xaf({ id: 'old', amount: 900000, projectAmount: 900000 })])],
+    ['s3', tranche('s3', [xaf({ id: 'f', decision: 'flagged', amount: 1200000, projectAmount: 1200000 }), xaf({ id: 'x', replacedBy: 'f', amount: 1100000, projectAmount: 1100000 })])],
+    ['s4', tranche('s4', [receipt({ id: 'usd', stageId: 's4', amount: 2500, currency: 'USD', projectAmount: 1500000 }), xaf({ id: 'b', stageId: 's4', amount: 4500000, projectAmount: 4500000 })])],
+    ['s6', tranche('s6', [], { state: 'expected' })],
+  ]);
+
+  it('uses the stage cards’ rule: flagged and replaced receipts count for nothing', () => {
+    const overview = paymentOverview(stages, payments, 'XAF', 600);
+    expect(overview.stages.map(row => [row.stageNumber, row.standing, row.received, row.due]))
+      .toEqual([[3, 'flagged', 0, 1200000], [4, 'paid', 6000000, 6000000], [6, 'unpaid', 0, 8400000]]);
+    expect(overview).toMatchObject({ received: 6000000, pending: 0, due: 15600000, remaining: 9600000 });
+  });
+
+  it('leaves out a stage built before Groundwork, and keeps a waiting receipt apart from paid', () => {
+    const waiting = new Map(payments).set('s6', tranche('s6', [xaf({ id: 'w', stageId: 's6', decision: 'pending', amount: 3000000, projectAmount: 3000000 })], { state: 'receipt_submitted' }));
+    const overview = paymentOverview(stages, waiting, 'XAF', 600);
+    expect(overview.stages.some(row => row.stageId === 's2')).toBe(false);
+    expect(overview.stages.find(row => row.stageId === 's6')).toMatchObject({ standing: 'pending', received: 0, pending: 3000000 });
+    expect(overview).toMatchObject({ received: 6000000, pending: 3000000, remaining: 9600000 });
+  });
+
+  it('withholds a total it cannot complete rather than print a smaller one', () => {
+    const unknown = new Map(payments).set('s6', tranche('s6', [receipt({ id: 'n', stageId: 's6', amount: null, currency: null, amountUsd: null, projectAmount: null, projectCurrency: null })]));
+    const overview = paymentOverview(stages, unknown, 'XAF', 600);
+    expect(overview.received).toBeNull(); expect(overview.remaining).toBeNull();
+    expect(overview.due).toBe(15600000);
+  });
+
+  it('records which part of a stage a receipt pays for', () => {
+    const rows = paymentHistoryRows(new Map([['s5', tranche('s5', [receipt({ id: 'p', substageId: 'sub-1' })])]]));
+    expect(rows[0].substageId).toBe('sub-1');
   });
 });

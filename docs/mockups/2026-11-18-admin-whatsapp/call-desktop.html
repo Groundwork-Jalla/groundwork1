@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin · WhatsApp call · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;overflow:hidden;position:relative}
+iframe{position:absolute;inset:0;width:1440px;height:900px;border:0}
+.callbar{position:absolute;left:574px;right:328px;top:222px;background:#0f2a1c;color:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.cr{display:flex;align-items:center;gap:14px}
+.pulse{width:46px;height:46px;border-radius:50%;background:#1f4d36;display:grid;place-items:center;font-weight:700;box-shadow:0 0 0 6px rgba(37,211,102,.25)}
+.timer{font-family:var(--mono);font-size:20px;font-weight:600;margin-left:auto}
+.ctrls{display:flex;gap:10px;margin-top:14px}
+.cb{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#cfe3d6}
+.cb span{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center}
+.cb.end span{background:#d93a4a}
+.notes{margin-top:14px;background:rgba(255,255,255,.08);border-radius:12px;padding:10px 12px;font-size:13px;color:#e8f2ec;min-height:66px}
+.notes p.l{font-size:11px;color:#9fc0ab;font-weight:600;margin-bottom:4px}
+.after{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.after .chip{background:transparent;border-color:rgba(255,255,255,.25);color:#e8f2ec}
+.caption{color:var(--muted)}
+</style></head><body>
+<iframe src="crm-desktop.html"></iframe>
+<div class="callbar">
+ <div class="cr"><div class="pulse">CM</div><div><p style="font-weight:700;font-size:15px">Claire Mbala</p><p style="font-size:12px;color:#9fc0ab;display:flex;gap:6px;align-items:center"><i style="width:7px;height:7px;border-radius:50%;background:var(--wa);display:inline-block"></i>WhatsApp call · connected</p></div><span class="timer">03:12</span></div>
+ <div class="ctrls">
+  <div class="cb"><span><svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M3 3l18 18"/></svg></span>Mute</div>
+  <div class="cb"><span><svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></span>Speaker</div>
+  <div class="cb"><span><svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M12 5v14M5 12h14"/></svg></span>Add note</div>
+  <div class="cb end"><span><svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px;transform:rotate(135deg)"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg></span>End</div>
+ </div>
+ <div class="notes"><p class="l">Call notes · saved to Claire's timeline</p>Wants to pay Part 4 by MoMo. Agreed site visit Friday 10:00 with Bob.</div>
+ <div class="after"><span class="chip">Set follow-up</span><span class="chip">Link to Mbala Residence</span><span class="chip">Mark resolved</span></div>
+</div>
+</body></html>

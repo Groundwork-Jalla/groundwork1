@@ -1,0 +1,107 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Payment history · desktop</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{width:1440px;height:900px;display:flex;overflow:hidden}
+aside{width:232px;background:#fff;border-right:1px solid var(--rule);padding:22px 14px;display:flex;flex-direction:column}
+.logo{font-family:var(--sans);font-weight:800;font-size:22px;color:var(--green);padding:0 10px}.logo small{display:block;font-size:12px;color:var(--mid);font-weight:600}
+nav{margin-top:26px;display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+nav a.on{background:var(--pale);font-weight:600}
+nav svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8}
+.me{margin-top:auto;border-top:1px solid var(--rule);padding:14px 10px 0;display:flex;gap:10px;align-items:center;font-size:13px}
+.av{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:700}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+.top{height:56px;border-bottom:1px solid var(--rule);background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:13.5px}
+.crumb{color:var(--mid)}.crumb b{color:var(--ink);font-weight:600}
+.content{padding:22px 32px 0;overflow:hidden}
+.head{display:flex;justify-content:space-between;align-items:flex-end}
+.head h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.tabs{display:flex;gap:4px;margin-top:16px;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.tabs span{padding:7px 14px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mid)}
+.tabs span.on{background:var(--green);color:#fff}
+.grid{display:grid;grid-template-columns:1fr 340px;gap:22px;margin-top:20px}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr)}
+.sum div{padding:16px 20px}.sum div+div{border-left:1px solid var(--rule)}
+.sum dt{font-size:12px;color:var(--mid);display:flex;gap:7px;align-items:center}.sum dd{font-family:var(--mono);font-weight:600;font-size:21px;margin-top:6px}
+.sum .sub{font-size:11.5px;color:var(--mid);margin-top:4px}
+.listhead{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 12px}
+.listhead h2{font-size:16px;font-weight:700}
+.filters{display:flex;gap:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;text-align:left;padding:9px 20px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--canvas)}
+td{padding:12px 20px;white-space:normal;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.muted,.link{white-space:nowrap}
+tr.flag td{border-bottom:0;padding-bottom:6px}
+tr.noterow td{padding-top:0}
+.amt{font-family:var(--mono);font-weight:600;font-size:14.5px}.eq{font-family:var(--mono);font-size:11.5px;color:var(--mid);margin-top:3px}
+.stage b{font-weight:600}.stage div{font-size:12px;color:var(--mid);margin-top:3px}
+.r{text-align:right}
+.side h3{font-size:14.5px;font-weight:700;padding:16px 18px 4px}
+.side p.h{font-size:12px;color:var(--mid);padding:0 18px 10px;line-height:1.45}
+.srow{padding:11px 18px;border-top:1px solid var(--rule);font-size:13px}
+.srow .t{display:flex;justify-content:space-between;gap:10px}.srow .t b{font-weight:600}
+.bar{height:6px;border-radius:9px;background:var(--pale);margin-top:8px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.srow .f{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--mid);margin-top:6px}
+.cta{margin:14px 18px 18px;display:block;text-align:center;background:var(--green);color:#fff;border-radius:11px;padding:11px;font-weight:600;font-size:13.5px}
+</style></head><body>
+<aside>
+ <div class="logo">Groundwork<small>by Jalla</small></div>
+ <nav>
+  <a><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</a>
+  <a class="on"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>My Projects</a>
+  <a><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>Documents</a>
+  <a><svg viewBox="0 0 24 24"><path d="M4 5h7v15H4zM13 5h7v15h-7z"/></svg>Resources</a>
+  <a style="margin-top:14px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</a>
+  <a><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></svg>Help</a>
+ </nav>
+ <div class="me"><div class="av">CM</div><div><b>Claire Mbala</b><div class="muted" style="font-size:11.5px">View profile</div></div></div>
+</aside>
+<main>
+ <div class="top"><div class="crumb">My Projects / <b>Mbala Residence</b></div><div style="display:flex;gap:18px;align-items:center" class="muted"><span style="font-weight:600">EN</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><div class="av">CM</div></div></div>
+ <div class="content">
+  <div class="head"><div><h1>Mbala Residence</h1><p class="muted" style="font-size:13.5px;margin-top:4px">Douala, Cameroon · Stage 5 of 10 · Structure &amp; walls</p></div>
+   <p style="font-size:13.5px" class="muted">Project budget · <b class="mono" style="color:var(--ink)">60,000,000 XAF</b></p></div>
+  <div class="tabs"><span>Overview</span><span>Stages</span><span>Team</span><span class="on">Costing</span><span>Timeline</span><span>Documents</span><span>Messages</span></div>
+
+  <div class="grid">
+   <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <dl class="card sum">
+     <div><dt><span class="pill p-received" style="padding:0;background:none"><span class="dot"></span></span>Confirmed received</dt><dd>6,000,000 XAF</dd><p class="sub">Confirmed by your contractor</p></div>
+     <div><dt><span class="pill p-pending" style="padding:0;background:none"><span class="dot"></span></span>Awaiting contractor review</dt><dd>3,000,000 XAF</dd><p class="sub">1 receipt · not yet counted</p></div>
+     <div><dt>Still to pay on the project</dt><dd>54,000,000 XAF</dd><p class="sub">Of 60,000,000 XAF agreed</p></div>
+    </dl>
+
+    <section class="card">
+     <div class="listhead"><div><h2>Payment history</h2><p class="muted" style="font-size:12.5px;margin-top:3px">Every receipt you have uploaded, newest first. To add or replace one, open its stage.</p></div>
+      <div class="filters"><span class="chip on">All<b>5</b></span><span class="chip">Received<b>2</b></span><span class="chip">Awaiting<b>1</b></span><span class="chip">To review<b>1</b></span></div></div>
+     <table>
+      <thead><tr><th style="width:20%">Amount</th><th>Stage</th><th style="width:13%">Uploaded</th><th style="width:25%">Status</th><th class="r" style="width:11%">Proof</th></tr></thead>
+      <tbody>
+       <tr><td><div class="amt">3,000,000 XAF</div></td><td class="stage"><b>5 · Structure &amp; walls</b><div>Part 1 · Columns and ring beam</div></td><td class="muted">14 Nov 2026</td><td><span class="pill p-pending"><span class="dot"></span>Awaiting contractor review</span></td><td class="r"><span class="link">View receipt</span></td></tr>
+       <tr><td><div class="amt">2,500 USD</div><div class="eq">≈ 1,500,000 XAF at 600</div></td><td class="stage"><b>4 · Foundation</b><div>Paid in full</div></td><td class="muted">6 Nov 2026</td><td><span class="pill p-received"><span class="dot"></span>Received</span></td><td class="r"><span class="link">View receipt</span></td></tr>
+       <tr><td><div class="amt">4,500,000 XAF</div></td><td class="stage"><b>4 · Foundation</b><div>Paid in full</div></td><td class="muted">28 Oct 2026</td><td><span class="pill p-received"><span class="dot"></span>Received</span></td><td class="r"><span class="link">View receipt</span></td></tr>
+       <tr class="flag"><td><div class="amt">1,200,000 XAF</div></td><td class="stage"><b>3 · Site preparation</b><div>Paid in full</div></td>
+        <td class="muted">15 Oct 2026</td><td><span class="pill p-flagged"><span class="dot"></span>Receipt to review</span><div style="margin-top:7px"><span class="link">Open stage 3 to replace it</span></div></td><td class="r"><span class="link">View receipt</span></td></tr>
+       <tr class="noterow"><td colspan="5"><div class="note" style="margin-top:0"><b>Your contractor:</b> “The amount on this receipt reads 1,100,000. Please upload the receipt for the full payment.”</div></td></tr>
+       <tr><td><div class="amt" style="color:var(--mid)">1,100,000 XAF</div></td><td class="stage"><b style="color:var(--mid)">3 · Site preparation</b><div>Replaced by the receipt above</div></td><td class="muted">12 Oct 2026</td><td><span class="pill p-replaced"><span class="dot"></span>Replaced — kept in history</span></td><td class="r"><span class="link">View receipt</span></td></tr>
+      </tbody>
+     </table>
+    </section>
+   </div>
+
+   <aside class="card side" style="width:auto;padding:0;border-right:1px solid var(--rule);height:fit-content">
+    <h3>By stage</h3><p class="h">What each stage costs, and how much of it your contractor has confirmed.</p>
+    <div class="srow"><div class="t"><b>3 · Site preparation</b><span class="pill p-flagged" style="font-size:11px">Receipt to review</span></div><div class="bar"><i style="width:0%;background:var(--complete)"></i></div><div class="f"><span>0 confirmed</span><span>1,200,000 XAF</span></div></div>
+    <div class="srow"><div class="t"><b>4 · Foundation</b><span class="pill p-received" style="font-size:11px">Paid</span></div><div class="bar"><i style="width:100%;background:var(--complete)"></i></div><div class="f"><span>6,000,000 confirmed</span><span>6,000,000 XAF</span></div></div>
+    <div class="srow"><div class="t"><b>5 · Structure &amp; walls</b><span class="pill p-pending" style="font-size:11px">Awaiting review</span></div><div class="bar"><i style="width:0%;background:var(--complete)"></i><i style="width:30%;background:#d9c7a0"></i></div><div class="f"><span>3,000,000 awaiting</span><span>10,000,000 XAF</span></div></div>
+    <div class="srow"><div class="t"><b>6 · Roofing</b><span class="muted" style="font-size:12px">Not yet due</span></div><div class="bar"></div><div class="f"><span>—</span><span>8,400,000 XAF</span></div></div>
+    <span class="cta">Add a payment receipt</span>
+   </aside>
+  </div>
+ </div>
+</main>
+<p class="caption">Design concept · illustrative data</p>
+</body></html>
