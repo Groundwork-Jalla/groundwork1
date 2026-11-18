@@ -57,14 +57,15 @@ export function FinancialOperations() {
   const totals = rows ? financialTotals(rows) : null;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-brand-border-grey px-5 py-3.5 dark:border-[#2c2c2c]">
-        <div>
-          <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('admin.finops.title')}</h2>
-          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.finops.subtitle')}</p>
-        </div>
+    <section id="financial-operations" className="scroll-mt-4">
+      <header className="mb-3">
+        <h2 className="text-lg font-bold text-brand-near-black dark:text-white">{t('admin.finops.title')}</h2>
+        <p className="mt-0.5 text-sm text-brand-mid-grey">{t('admin.finops.subtitle')}</p>
+      </header>
+      <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         {totals && available && (
-          <dl className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]">
+          // The totals as a strip of five, read left to right as the money moves.
+          <dl className="grid grid-cols-2 border-b border-brand-border-grey sm:grid-cols-5 dark:border-[#2c2c2c]">
             <Total label={t('admin.finops.funded')}     value={formatUSDFull(totals.funded)} />
             <Total label={t('admin.finops.expected')}   value={formatUSDFull((rows ?? []).reduce((a, r) => a + r.expected, 0))} />
             <Total label={t('admin.finops.authorised')} value={formatUSDFull(totals.authorised)} />
@@ -72,7 +73,6 @@ export function FinancialOperations() {
             <Total label={t('admin.finops.disbursed')}  value={formatUSDFull(totals.disbursed)} />
           </dl>
         )}
-      </header>
 
       {rows === null ? (
         <p className="flex items-center gap-2 px-5 py-6 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('common.loading')}</p>
@@ -130,15 +130,16 @@ export function FinancialOperations() {
           ))}
         </ul>
       )}
+      </div>
     </section>
   );
 }
 
 function Total({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      <dt className="text-brand-muted-grey">{label}</dt>
-      <dd className="font-semibold tabular-nums text-brand-near-black dark:text-white">{value}</dd>
+    <div className="border-b border-r border-brand-border-grey px-4 py-3 last:border-r-0 sm:border-b-0 dark:border-[#2c2c2c]">
+      <dt className="text-xs text-brand-mid-grey">{label}</dt>
+      <dd className="mt-0.5 text-base font-semibold tabular-nums text-brand-near-black dark:text-white">{value}</dd>
     </div>
   );
 }

@@ -82,10 +82,10 @@ export default function LedgerPanel() {
   const outRows = payments.filter(p => p.direction === 'out');
 
   return (
-    <section className="mt-12 max-w-3xl">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold text-brand-near-black">{t('admin.ledger.title')}</h2>
-        <p className="mt-1 text-xs text-brand-mid-grey">{t('admin.ledger.subtitle')}</p>
+    <section id="funding-releases" className="scroll-mt-4">
+      <div className="mb-3">
+        <h2 className="text-lg font-bold text-brand-near-black dark:text-white">{t('admin.ledger.title')}</h2>
+        <p className="mt-0.5 text-sm text-brand-mid-grey">{t('admin.ledger.subtitle')}</p>
       </div>
 
       {loading ? (
@@ -93,20 +93,21 @@ export default function LedgerPanel() {
       ) : !available ? (
         <p className="text-xs text-brand-mid-grey">{t('admin.ledger.unavailable')}</p>
       ) : (
-        <div className="flex flex-col gap-6">
+        // Funding and Releases side by side (18 Nov redesign); one column on a phone.
+        <div className="grid items-start gap-4 xl:grid-cols-2">
           {/* Funding */}
-          <div className="rounded-2xl border border-brand-border-grey bg-white">
-            <h3 className="border-b border-brand-border-grey px-5 py-3 text-sm font-semibold text-brand-near-black">{t('admin.ledger.funding')}</h3>
+          <div id="funding" className="scroll-mt-4 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h3 className="border-b border-brand-border-grey px-5 py-3 text-sm font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">{t('admin.ledger.funding')}</h3>
             {inRows.length === 0 ? (
               <p className="px-5 py-6 text-xs text-brand-mid-grey">{t('admin.ledger.empty')}</p>
             ) : (
-              <ul className="divide-y divide-brand-border-grey">
+              <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
                 {inRows.map(p => {
                   const st = stageOf(p.stageId);
                   return (
                     <li key={p.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-brand-near-black">
+                        <p className="truncate text-sm text-brand-near-black dark:text-white">
                           <Link to={`/admin/projects/${p.projectId}?tab=financials`} className="font-medium hover:underline">{projects.get(p.projectId) ?? p.projectId.slice(0, 8)}</Link>
                           {st && <span className="text-brand-mid-grey"> · {t('admin.ledger.stage', { n: st.stageNumber })} {st.name && `· ${st.name}`}</span>}
                         </p>
@@ -131,16 +132,16 @@ export default function LedgerPanel() {
           </div>
 
           {/* Releases */}
-          <div className="rounded-2xl border border-brand-border-grey bg-white">
-            <h3 className="border-b border-brand-border-grey px-5 py-3 text-sm font-semibold text-brand-near-black">{t('admin.ledger.releases')}</h3>
-            <ul className="divide-y divide-brand-border-grey">
+          <div id="releases" className="scroll-mt-4 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h3 className="border-b border-brand-border-grey px-5 py-3 text-sm font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">{t('admin.ledger.releases')}</h3>
+            <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
               {outRows.map(p => {
                 const st = stageOf(p.stageId);
                 return (
                   <li key={p.id} className="flex items-center gap-3 px-5 py-3">
                     <Banknote className="size-4 shrink-0 text-brand-mid-grey" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-brand-near-black">
+                      <p className="truncate text-sm text-brand-near-black dark:text-white">
                         <span className="font-medium">{projects.get(p.projectId) ?? p.projectId.slice(0, 8)}</span>
                         {st && <span className="text-brand-mid-grey"> · {t('admin.ledger.stage', { n: st.stageNumber })}</span>}
                         <span className="text-brand-mid-grey"> · {t('admin.ledger.to', { name: nameOf(p.beneficiaryId) })}</span>
@@ -164,7 +165,7 @@ export default function LedgerPanel() {
               {candidates.map(s => (
                 <li key={s.id} className="flex items-center gap-3 px-5 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-brand-near-black">
+                    <p className="truncate text-sm text-brand-near-black dark:text-white">
                       <span className="font-medium">{projects.get(s.projectId) ?? s.projectId.slice(0, 8)}</span>
                       <span className="text-brand-mid-grey"> · {t('admin.ledger.stage', { n: s.stageNumber })} {s.name && `· ${s.name}`}</span>
                     </p>
@@ -175,7 +176,7 @@ export default function LedgerPanel() {
                   </div>
                   <button type="button" disabled={(contractors.get(s.projectId) ?? []).length === 0}
                     onClick={() => setModal({ kind: 'authorise', stage: s })}
-                    className="shrink-0 rounded-xl bg-brand-near-black px-3 py-2 text-xs font-semibold text-white hover:bg-black transition-colors disabled:opacity-40">
+                    className="shrink-0 rounded-xl bg-brand-green px-3 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover transition-colors disabled:opacity-40">
                     {t('admin.ledger.authorise')}
                   </button>
                 </li>

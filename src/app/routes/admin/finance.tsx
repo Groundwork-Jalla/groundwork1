@@ -228,6 +228,7 @@ function Movement({ line: l }: { line: LedgerLine }) {
         </span>
         <span className="text-right lg:text-left">
           <span className="block text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(l.amount)}</span>
+          {l.local && <span className="block text-[11px] tabular-nums text-brand-mid-grey">{l.local}</span>}
           <span className={cn('mt-0.5 block text-xs lg:hidden', TONE[l.state] ?? 'text-brand-mid-grey')}>{t(STATE_KEY[l.state] ?? 'admin.finance.state.expected')}</span>
           <span className="block text-[11px] text-brand-mid-grey lg:hidden">{formatDate(l.at)}</span>
         </span>

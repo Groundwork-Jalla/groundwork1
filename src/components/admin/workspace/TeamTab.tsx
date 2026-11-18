@@ -31,6 +31,10 @@ export function TeamTab({ loaded, onChanged, onNotice }: {
     : ws.team.contractors.some(c => c.status === 'accepted' && c.contractor_user_id === ws.project.user_id) ? null
     : ws.team.owner?.name || ws.team.owner?.email || null;
 
+  // A removed verifier is not shown (Favour, 18 Nov): verification is not in use yet, and
+  // the row used to read "Declined", which is a different thing from being removed.
+  const activeVerifiers = ws.team.verifiers.filter(v => v.status !== 'removed');
+
   return (
     <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:p-8">
       <TeamCard ws={ws} available={verifiersAvailable} onChanged={onChanged} onNotice={onNotice} />
@@ -45,7 +49,7 @@ export function TeamTab({ loaded, onChanged, onNotice }: {
 
         {!invitesAvailable && !verifiersAvailable ? (
           <DomainNote state="unavailable" />
-        ) : ws.team.contractors.length === 0 && ws.team.verifiers.length === 0 ? (
+        ) : ws.team.contractors.length === 0 && activeVerifiers.length === 0 ? (
           <p className="px-5 py-6 text-center text-xs text-brand-mid-grey">{t('admin.workspace.team.historyEmpty')}</p>
         ) : (
           <ol className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
@@ -60,14 +64,13 @@ export function TeamTab({ loaded, onChanged, onNotice }: {
                 </p>
               </li>
             ))}
-            {ws.team.verifiers.map(v => (
+            {activeVerifiers.map(v => (
               <li key={`v-${v.id}`} className="px-5 py-3">
                 <p className="text-sm text-brand-near-black dark:text-white">{v.name}</p>
                 <p className="mt-0.5 text-[11px] text-brand-mid-grey">
                   {t('admin.workspace.team.verifiers')}
                   {v.discipline && ` · ${v.discipline}`}
                   {v.assignedAt && ` · ${t('admin.workspace.team.assignedWhen', { when: formatRelative(v.assignedAt) })}`}
-                  {v.status === 'removed' && ` · ${t('admin.workspace.team.inviteStatus.rejected')}`}
                 </p>
               </li>
             ))}

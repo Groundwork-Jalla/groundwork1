@@ -170,7 +170,12 @@ describe('EN and FR parity', () => {
       expect(e, `${key} is not translated`).not.toBe(f);
     }
     // 17 Nov 2026: 'client' became 'homeowner' everywhere a person reads it.
-    expect(lookup(en, 'admin.flow.leg.funding')).toBe('Homeowner → Groundwork');
-    expect(lookup(fr, 'admin.flow.leg.funding')).toBe('Propriétaire → Groundwork');
+    // 18 Nov 2026 (Favour): Groundwork does not hold money, so no leg points at it.
+    expect(lookup(en, 'admin.flow.leg.funding')).toBe('Homeowner → provider');
+    expect(lookup(fr, 'admin.flow.leg.funding')).toBe('Propriétaire → prestataire');
+    for (const leg of ['funding', 'toProvider', 'toContractor']) {
+      expect(lookup(en, `admin.flow.leg.${leg}`)).not.toMatch(/→ Groundwork|Groundwork →/);
+      expect(lookup(fr, `admin.flow.leg.${leg}`)).not.toMatch(/→ Groundwork|Groundwork →/);
+    }
   });
 });

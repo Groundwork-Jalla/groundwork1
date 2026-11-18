@@ -9,6 +9,8 @@ import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import { formatDate } from '@/lib/format';
+import { useDomainLabels } from '@/lib/domain-labels';
 import LedgerPanel from '@/components/admin/LedgerPanel';
 import { FinancialOperations } from '@/components/admin/FinancialOperations';
 
@@ -24,6 +26,8 @@ interface PendingBudget {
   builtAreaSqm: number;
   /** Storeys. Drives the build duration, which the monthly professional fees bill by. */
   floors: number;
+  /** When the project was created — how long it has been waiting for a budget. */
+  createdAt: string | null;
 }
 
 function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
@@ -145,6 +149,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
 
 export default function AdminBudgets() {
   const t = useT();
+  const labels = useDomainLabels();
   const [items, setItems] = useState<PendingBudget[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PendingBudget | null>(null);
@@ -157,7 +162,7 @@ export default function AdminBudgets() {
       const [{ data }, owners] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, name, user_id, country, budget_usd, sqm, num_floors')
+          .select('id, name, user_id, country, budget_usd, sqm, num_floors, created_at')
           .in('tier', ['jalla_management', 'enterprise'])
           .is('tracking_started_at', null)
           .order('created_at', { ascending: true }),
@@ -176,6 +181,7 @@ export default function AdminBudgets() {
           estimate:   Number(p.budget_usd ?? 0),
           builtAreaSqm: Number(p.sqm ?? 0) * Number(p.num_floors ?? 1),
           floors:       Number(p.num_floors ?? 1),
+          createdAt:    (p.created_at as string | null) ?? null,
         };
       }));
     } finally {
@@ -190,66 +196,107 @@ export default function AdminBudgets() {
     setSelected(null);
   }
 
+  // Three jobs on one page (18 Nov redesign, budgets-desktop.png): a sub-nav of anchors,
+  // not tabs, so nothing is hidden — the queue that blocks a build from starting first.
+  const sections = [
+    { id: 'budget-confirmations', label: t('admin.budgetsPage.confirmations'), count: loading ? null : items.length },
+    { id: 'financial-operations', label: t('admin.finops.title'), count: null },
+    { id: 'funding-releases',     label: t('admin.ledger.title'), count: null },
+  ];
+
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.budgetsTitle')}</h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">
-          Jalla Management projects awaiting a confirmed budget before tracking can begin
+    <div className="p-4 sm:p-6 lg:p-8">
+      <header className="mb-5">
+        <p className="text-[13px] text-brand-mid-grey">
+          <Link to="/admin/finance" className="hover:text-brand-near-black hover:underline dark:hover:text-white">{t('admin.finance.title')}</Link>
+          {' · '}<span className="font-semibold text-brand-near-black dark:text-white">{t('admin.budgetsTitle')}</span>
         </p>
-      </div>
+        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white sm:text-[28px]">{t('admin.budgetsTitle')}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-brand-mid-grey">{t('admin.budgetsPage.subtitle')}</p>
+      </header>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[13.5rem_minmax(0,1fr)]">
+        <nav aria-label={t('admin.budgetsTitle')} className="flex gap-1.5 overflow-x-auto lg:sticky lg:top-4 lg:flex-col">
+          {sections.map(sec => (
+            <a key={sec.id} href={`#${sec.id}`}
+              className="flex shrink-0 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-brand-mid-grey transition-colors hover:bg-white hover:text-brand-near-black dark:hover:bg-[#1e1e1e] dark:hover:text-white">
+              {sec.label}
+              {sec.count != null && <span className="rounded-full bg-state-held/10 px-2 py-0.5 text-[11px] tabular-nums text-state-held">{sec.count}</span>}
+            </a>
+          ))}
+        </nav>
+
+        <div className="min-w-0 space-y-10">
+          <section id="budget-confirmations" className="scroll-mt-4">
+            <div className="mb-3">
+              <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-brand-near-black dark:text-white">
+                {t('admin.budgetsPage.confirmations')}
+                {!loading && items.length > 0 && (
+                  <span className="rounded-full bg-state-held/10 px-2.5 py-0.5 text-xs font-semibold text-state-held">{t('admin.budgetsPage.waiting', { n: items.length })}</span>
+                )}
+              </h2>
+              <p className="mt-0.5 text-sm text-brand-mid-grey">{t('admin.budgetsPage.confirmationsSub')}</p>
+            </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-brand-mid-grey">
           <Loader2 className="size-4 animate-spin" /> {t('admin.loadingProjects')}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-brand-border-grey bg-white py-12 text-center dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           <CheckCircle2 className="size-10 text-state-complete" />
-          <p className="text-sm font-medium text-brand-near-black">{t('admin.allCaughtUp')}</p>
+          <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('admin.allCaughtUp')}</p>
           <p className="text-xs text-brand-mid-grey">{t('admin.budgetsEmpty')}</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 max-w-2xl">
+        <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <div className="hidden grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1fr)_8rem_7rem_7.5rem] gap-4 border-b border-brand-border-grey bg-brand-off-white px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey md:grid dark:border-[#2c2c2c]">
+            <span /><span>{t('admin.projectsTable.project')}</span><span>{t('admin.budgetsPage.homeowner')}</span>
+            <span>{t('admin.budgetsPage.country')}</span><span className="text-right">{t('admin.estimate')}</span><span />
+          </div>
+          <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
           {items.map(p => (
-            <div key={p.id} className="rounded-2xl border border-brand-border-grey bg-white p-5 flex items-center gap-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-off-white">
-                <Briefcase className="size-5 text-brand-near-black" />
+            <li key={p.id} className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-5 py-3.5 md:grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1fr)_8rem_7rem_7.5rem]">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-off-white dark:bg-[#252525]">
+                <Briefcase className="size-5 text-brand-near-black dark:text-white" />
               </span>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-brand-near-black truncate">{p.name}</p>
-                  <Link to={`/projects/${p.id}`} className="text-brand-mid-grey hover:text-brand-near-black shrink-0" title={t('admin.openProject')}>
+                  <p className="truncate text-sm font-bold text-brand-near-black dark:text-white">{p.name}</p>
+                  <Link to={`/projects/${p.id}`} className="shrink-0 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white" title={t('admin.openProject')} aria-label={`${t('admin.openProject')} ${p.name}`}>
                     <ExternalLink className="size-3.5" />
                   </Link>
                 </div>
-                <p className="text-xs text-brand-mid-grey mt-0.5 truncate">
-                  {p.ownerName || p.ownerEmail} · {p.country}
-                </p>
+                {p.createdAt && <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.budgetsPage.waitingSince', { date: formatDate(p.createdAt) })}</p>}
+                <p className="mt-0.5 truncate text-xs text-brand-mid-grey md:hidden">{p.ownerName || p.ownerEmail} · {p.country}</p>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('admin.estimate')}</p>
-                <p className="text-sm font-bold tabular-nums text-brand-near-black">{p.estimate > 0 ? formatUSDFull(p.estimate) : '—'}</p>
-              </div>
+              <p className="hidden truncate text-sm text-brand-near-black md:block dark:text-white">{p.ownerName || p.ownerEmail}</p>
+              <p className="hidden text-sm text-brand-near-black md:block dark:text-white">{labels.country(p.country) || p.country}</p>
+              <p className="hidden text-right text-sm font-bold tabular-nums text-brand-near-black md:block dark:text-white">{p.estimate > 0 ? formatUSDFull(p.estimate) : '—'}</p>
               <button
                 type="button"
                 onClick={() => setSelected(p)}
-                className="shrink-0 rounded-xl bg-brand-near-black text-white text-xs font-semibold px-4 py-2.5 hover:bg-black transition-colors"
+                className="justify-self-end rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
               >
-                Set budget
+                {t('admin.budgetsPage.setBudget')}
               </button>
-            </div>
+            </li>
           ))}
+          </ul>
+          <p className="border-t border-brand-border-grey bg-brand-off-white px-5 py-3 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">{t('admin.budgetsPage.setBudgetNote')}</p>
         </div>
       )}
+          </section>
 
-      {/* Financial operations across every project: where the money of each build stands,
-          worst first, each row opening that project's Financials tab (01 §"Payments &
-          Budgets"). Groundwork's business state only — no provider anywhere. */}
-      <FinancialOperations />
+          {/* Financial operations across every project: where the money of each build stands,
+              worst first, each row opening that project's Financials tab (01 §"Payments &
+              Budgets"). Groundwork's business state only — no provider anywhere. */}
+          <FinancialOperations />
 
-      {/* The ledger (090) itself: every funding and release row, newest first. */}
-      <LedgerPanel />
+          {/* The ledger (090) itself: every funding and release row, newest first. */}
+          <LedgerPanel />
+        </div>
+      </div>
 
       <AnimatePresence>
         {selected && (

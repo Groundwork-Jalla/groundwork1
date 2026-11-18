@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { projectMoneyPair, type ProjectMoneySource } from '@/lib/budget/project-money';
 import { listAllPayments } from './payments';
 import { ownerLookup } from './admin-users';
 import { ledgerLine, byWhen, type LedgerLine, type StageRef } from '@/lib/admin/finance-ledger';
@@ -26,11 +27,24 @@ export async function loadFinanceLedger(): Promise<LedgerData> {
 
   const degraded: string[] = [];
 
-  const [projectsRes, stagesRes, people] = await Promise.all([
+  const [projectsRes, stagesRes, people, moneyRes] = await Promise.all([
     supabase.from('projects').select('id, name, user_id'),
     supabase.from('project_stages').select('id, stage_number, name'),
     ownerLookup().catch(() => { degraded.push('people'); return new Map<string, { name: string; email: string }>(); }),
+    // The money basis is its own read so a missing column can never cost the names above:
+    // without it the ledger simply shows USD alone (Favour, 18 Nov: USD and XAF). Only the
+    // currency and its recorded rate are read — never a budget amount.
+    Promise.resolve(supabase.from('projects').select('id, country, budget_source, budget_currency, budget_fx_rate, budget_fx_recorded_at, budget_precision, pricing_revision'))
+      .catch(() => ({ data: null, error: true })),
   ]);
+  const moneyOf = new Map<string, ProjectMoneySource>();
+  if (!moneyRes.error) for (const p of (moneyRes.data ?? []) as Record<string, unknown>[]) moneyOf.set(String(p.id), p as unknown as ProjectMoneySource);
+  const localOf = (projectId: string, usd: number) => {
+    const source = moneyOf.get(projectId);
+    if (!source) return null;
+    const pair = projectMoneyPair(source, usd);
+    return pair && pair.usd ? pair.local : null;
+  };
 
   const projectName = new Map<string, string>();
   const ownerOf = new Map<string, string>();
@@ -60,6 +74,7 @@ export async function loadFinanceLedger(): Promise<LedgerData> {
       return (u?.name || u?.email) || null;
     },
     stageOf: id => (id ? stages.get(id) ?? null : null),
+    localOf,
   }));
 
   return { lines: byWhen(lines), available: true, degraded };

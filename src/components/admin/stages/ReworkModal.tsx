@@ -29,14 +29,14 @@ export function ReworkModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-[#1e1e1e]"
           >
-            <h3 className="text-base font-semibold text-brand-near-black mb-2">{t('admin.requestChanges')}</h3>
+            <h3 className="mb-2 text-base font-semibold text-brand-near-black dark:text-white">{t('admin.requestChanges')}</h3>
             <p className="text-sm text-brand-mid-grey mb-4">
-              Explain what needs to be corrected. The homeowner will be notified.
+              {t('admin.rework.body')}
             </p>
             <textarea
-              className="w-full h-28 rounded-xl border border-brand-border-grey px-3 py-2.5 text-sm text-brand-near-black resize-none outline-none focus:ring-2 focus:ring-brand-near-black/20"
+              className="w-full h-28 rounded-xl border border-brand-border-grey bg-white px-3 py-2.5 text-sm text-brand-near-black resize-none dark:border-[#2c2c2c] dark:bg-[#1a1a1a] dark:text-white outline-none focus:ring-2 focus:ring-brand-near-black/20"
               placeholder={t('admin.changesPlaceholder')}
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -47,15 +47,15 @@ export function ReworkModal({
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-brand-mid-grey border border-brand-border-grey rounded-xl hover:bg-brand-off-white transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirm}
                 disabled={!reason.trim()}
-                className="px-4 py-2 text-sm font-semibold bg-brand-near-black text-white rounded-xl hover:bg-black disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-semibold bg-brand-green text-white rounded-xl hover:bg-brand-green-hover disabled:opacity-50 transition-colors"
               >
-                Send feedback
+                {t('admin.rework.send')}
               </button>
             </div>
           </motion.div>

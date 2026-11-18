@@ -74,6 +74,12 @@ export interface LedgerLine {
   providerRef: string | null;
   failureReason: string | null;
   note: string | null;
+  /**
+   * The same amount in the project's own currency (XAF for Cameroon), at the project's
+   * recorded rate — `null` when the project is priced in USD or its rate could not be
+   * read. The ledger stays in USD; this is the line a person in Douala reads.
+   */
+  local?: string | null;
 }
 
 /**
@@ -101,6 +107,8 @@ export function ledgerLine(
     ownerOf: (projectId: string) => string | null;
     nameOf: PartyLookup;
     stageOf: (id: string | null) => StageRef | null;
+    /** The amount in the project's own currency, when it has one other than USD. */
+    localOf?: (projectId: string, usd: number) => string | null;
   },
 ): LedgerLine {
   // Outgoing money names its beneficiary; incoming money is the project owner's, and 090
@@ -129,6 +137,7 @@ export function ledgerLine(
     providerRef: p.providerRef,
     failureReason: p.failureReason,
     note: p.note,
+    local: opts.localOf ? opts.localOf(p.projectId, p.amount) : null,
   };
 }
 
