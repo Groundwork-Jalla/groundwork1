@@ -877,6 +877,10 @@ export const en = {
       open:     'Open',
       stageOf:  '{n}/{total}',
       substages: '{done}/{total} substages',
+      plan:     'Plan',
+      status:   'Status',
+      created:  'Created',
+      actions:  'Actions',
     },
     supportCard: {
       title:    'Open support tickets',

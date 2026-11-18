@@ -876,6 +876,10 @@ export const fr: Mirror<EnDict> = {
       open:     'Ouvrir',
       stageOf:  '{n}/{total}',
       substages: '{done}/{total} sous-\u00e9tapes',
+      plan:     'Formule',
+      status:   'Statut',
+      created:  'Cr\u00e9\u00e9 le',
+      actions:  'Actions',
     },
     supportCard: {
       title:    'Tickets de support ouverts',

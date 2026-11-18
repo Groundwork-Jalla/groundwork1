@@ -80,8 +80,8 @@ export function FilterTiles<Row>({ tiles, counts, active, onPick, label }: {
         if (tile.readOnly) {
           return (
             <div key={tile.key}
-              className="rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-              <p className="text-xs text-brand-mid-grey">{tile.label}</p>
+              className="flex items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              <p className="text-[13px] font-semibold text-brand-mid-grey">{tile.label}</p>
               <Value n={value} tone={tile.tone} />
             </div>
           );
@@ -96,14 +96,15 @@ export function FilterTiles<Row>({ tiles, counts, active, onPick, label }: {
             onClick={() => onPick(tile.key === 'all' ? null : pressed ? null : tile.key)}
             aria-pressed={pressed}
             className={cn(
-              'rounded-xl border px-4 py-3 text-left transition-colors',
+              // 18 Nov redesign: label left, number right; the pressed tile wears the brand green.
+              'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black/30 dark:focus-visible:ring-white/40',
               pressed
-                ? 'border-brand-near-black bg-brand-off-white dark:border-white dark:bg-[#2c2c2c]'
+                ? 'border-brand-green bg-[#f3f6f4] ring-1 ring-brand-green dark:border-state-complete dark:bg-[#1c2620] dark:ring-state-complete'
                 : 'border-brand-border-grey bg-white hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:border-[#555]',
             )}
           >
-            <p className="text-xs text-brand-mid-grey">{tile.label}</p>
+            <p className={cn('text-[13px] font-semibold', pressed ? 'text-brand-green dark:text-state-complete' : 'text-brand-near-black dark:text-white')}>{tile.label}</p>
             <Value n={value} tone={tile.tone} />
           </button>
         );
@@ -116,7 +117,7 @@ export function FilterTiles<Row>({ tiles, counts, active, onPick, label }: {
 function Value({ n, tone }: { n: number; tone?: TileSpec<unknown>['tone'] }) {
   return (
     <p className={cn(
-      'mt-0.5 text-xl font-bold tabular-nums',
+      'shrink-0 text-xl font-bold tabular-nums',
       tone === 'good' ? 'text-state-complete'
         : tone === 'warn' ? 'text-state-held'
         : 'text-brand-near-black dark:text-white',

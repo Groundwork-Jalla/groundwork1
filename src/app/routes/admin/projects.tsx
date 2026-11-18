@@ -17,6 +17,7 @@ import { fetchBusinessStatuses, type BusinessStatus } from '@/lib/supabase/admin
 import { workspaceHref } from '@/lib/admin/workspace-params';
 import { FilterBanner } from '@/components/admin/FilterBanner';
 import { useT, type TKey } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { matchesCalendarRange,matchesProjectOrigin } from '@/lib/admin/communication-filters';
 
 interface AdminProject {
@@ -32,6 +33,7 @@ interface AdminProject {
   status: string;
   currentStage: number;
   country: string;
+  city: string | null;
   createdAt: string;
   /**
    * The derived band, from `projectHealth()` — the SAME call the Overview counts with,
@@ -57,11 +59,24 @@ function isFreeTier(tier: string): boolean {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  active:    'bg-brand-off-white text-state-active',
-  on_hold:   'bg-brand-off-white text-state-held',
-  completed: 'bg-brand-off-white text-brand-mid-grey',
-  archived:  'bg-brand-off-white text-brand-mid-grey',
+  active:    'bg-state-complete/10 text-state-complete',
+  on_hold:   'bg-state-held/10 text-state-held',
+  completed: 'bg-brand-light-grey text-brand-mid-grey',
+  archived:  'bg-brand-light-grey text-brand-muted-grey',
 };
+
+/** Health is a derived band; its colour is a status accent, never decoration. */
+const HEALTH_TONE: Record<HealthBand, string> = {
+  at_risk:   'text-state-alert',
+  attention: 'text-state-held',
+  on_track:  'text-state-complete',
+  planning:  'text-brand-mid-grey',
+  done:      'text-state-complete',
+  archived:  'text-brand-muted-grey',
+};
+
+const FIELD = 'rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black outline-none focus:ring-2 focus:ring-brand-near-black/15 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white';
+const ICON_BTN = 'inline-flex size-8 items-center justify-center rounded-lg border border-brand-border-grey bg-white text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:border-white/40 dark:hover:text-white';
 
 export default function AdminProjects() {
   const t = useT();
@@ -198,7 +213,7 @@ export default function AdminProjects() {
         const [{ data,error }, owners, stagesRes, activityRes] = await Promise.all([
           supabase
             .from('projects')
-            .select('id, name, user_id, tier, status, current_stage, country, created_at, tracking_started_at, updated_at, workflow_origin')
+            .select('id, name, user_id, tier, status, current_stage, country, city, created_at, tracking_started_at, updated_at, workflow_origin')
             .order('created_at', { ascending: false }),
           ownerLookup(),
           supabase.from('project_stages')
@@ -240,6 +255,7 @@ export default function AdminProjects() {
             status:       p.status as string,
             currentStage: p.current_stage as number,
             country:      p.country as string,
+            city:         (p.city as string | null) ?? null,
             createdAt:    p.created_at as string,
             health: projectHealth(
               p as unknown as Parameters<typeof projectHealth>[0],
@@ -316,40 +332,106 @@ export default function AdminProjects() {
       ? t(`admin.filter.status.${statusFilter}` as TKey)
       : '';
 
+  /** The four actions, identical on a table row and on a phone card. */
+  const rowActions = (p: AdminProject) => (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={() => { setAssignTarget(p); setAssignEmail(''); setAssignError(null); }}
+        className={ICON_BTN}
+        title={t('admin.assignContractor')}
+        aria-label={`${t('admin.assignContractor')} ${p.name}`}
+      >
+        <UserPlus className="size-4" />
+      </button>
+      {verAvailable && (
+        <button
+          type="button"
+          onClick={() => setVerTarget(p)}
+          className={ICON_BTN}
+          title={t('admin.verifier.assign')}
+          aria-label={`${t('admin.verifier.assign')} ${p.name}`}
+        >
+          <ShieldCheck className="size-4" />
+        </button>
+      )}
+      <Link
+        to={`/projects/${p.id}`}
+        target="_blank"
+        className={ICON_BTN}
+        title={t('admin.viewProject')}
+        aria-label={`${t('admin.viewProject')} ${p.name}`}
+      >
+        <ExternalLink className="size-4" />
+      </Link>
+      <button
+        type="button"
+        onClick={() => { setDelTarget(p); setDelError(null); }}
+        className={cn(ICON_BTN, 'text-state-alert hover:border-state-alert hover:text-state-alert dark:hover:border-state-alert dark:hover:text-state-alert')}
+        title={t('admin.del.deleteProject')}
+        aria-label={`${t('admin.del.deleteProject')} ${p.name}`}
+      >
+        <Trash2 className="size-4" />
+      </button>
+    </div>
+  );
+  const statusPill = (p: AdminProject) => (
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_STYLES[p.status] ?? 'bg-brand-light-grey text-brand-mid-grey')}>
+      {t(`admin.filter.status.${p.status}` as TKey) || p.status.replace('_', ' ')}
+    </span>
+  );
+  const healthMark = (p: AdminProject) => p.health ? (
+    <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', HEALTH_TONE[p.health])}>
+      <span aria-hidden className="size-2 rounded-full bg-current" />
+      {t(HEALTH_LABEL[p.health])}
+    </span>
+  ) : <span className="text-xs text-brand-muted-grey">—</span>;
+  const stageMeter = (p: AdminProject) => (
+    <div className="min-w-[7rem]">
+      <span className="text-xs font-semibold tabular-nums text-brand-near-black dark:text-white">{p.currentStage} / 10</span>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
+        <div className="h-full rounded-full bg-brand-green dark:bg-state-complete" style={{ width: `${Math.min(100, Math.max(0, (p.currentStage / 10) * 100))}%` }} />
+      </div>
+    </div>
+  );
+  const created = (p: AdminProject) =>
+    new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const emptyText = t('admin.noProjectsMatch', { query: query || filterLabel });
+
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allProjects')}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white sm:text-[28px]">{t('admin.allProjects')}</h1>
           {!loadError&&<p className="mt-1 text-sm text-brand-mid-grey">{t('admin.filter.total', { n: projects.length })}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin/projects/new"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-rich-black"
-          >
-            <Plus className="size-4" /> {t('admin.newProject.button')}
-          </Link>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
+        <Link
+          to="/admin/projects/new"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover"
+        >
+          <Plus className="size-4" /> {t('admin.newProject.button')}
+        </Link>
+      </div>
+
+      {loadError&&<p role="alert" className="mb-4 text-sm text-state-alert">{t('communications.filters.projectLoadFailed')}</p>}
+
+      {/* One filter bar: search first, because it is what an admin reaches for. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
           <input
             type="text"
             placeholder={t('admin.searchProjects')}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
+            className={cn(FIELD, 'w-full pl-9')}
           />
         </div>
-        </div>
-      </div>
-
-      {loadError&&<p role="alert" className="mb-4 text-sm text-state-alert">{t('communications.filters.projectLoadFailed')}</p>}
-      <div className="mb-4 flex flex-wrap gap-3 text-xs">
-       <label>{t('communications.filters.createdFrom')}<input type="date" value={createdFrom} onChange={event=>setBasicFilter('from',event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
-       <label>{t('communications.filters.createdThrough')}<input type="date" value={createdThrough} onChange={event=>setBasicFilter('through',event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
-       <select aria-label={t('communications.filters.origin')} value={originFilter} onChange={event=>setBasicFilter('origin',event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allOrigins')}</option><option value="client">{t('communications.filters.clientOrigin')}</option><option value="contractor">{t('communications.filters.contractorOrigin')}</option></select>
-       <select aria-label={t('communications.owner')} value={ownerFilter} onChange={event=>setBasicFilter('owner',event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allOwners')}</option>{[...new Map(projects.map(project=>[project.ownerId,project])).values()].map(project=><option key={project.ownerId} value={project.ownerId}>{project.ownerName||project.ownerEmail||project.ownerId}</option>)}</select>
-       <button type="button" onClick={clearFilters} className="rounded-xl border px-3 py-2">{t('communications.filters.clear')}</button>
+        <label className="flex items-center gap-2 text-xs text-brand-mid-grey">{t('communications.filters.createdFrom')}<input type="date" value={createdFrom} onChange={event=>setBasicFilter('from',event.target.value)} className={FIELD}/></label>
+        <label className="flex items-center gap-2 text-xs text-brand-mid-grey">{t('communications.filters.createdThrough')}<input type="date" value={createdThrough} onChange={event=>setBasicFilter('through',event.target.value)} className={FIELD}/></label>
+        <select aria-label={t('communications.filters.origin')} value={originFilter} onChange={event=>setBasicFilter('origin',event.target.value)} className={FIELD}><option value="">{t('communications.filters.allOrigins')}</option><option value="client">{t('communications.filters.clientOrigin')}</option><option value="contractor">{t('communications.filters.contractorOrigin')}</option></select>
+        <select aria-label={t('communications.owner')} value={ownerFilter} onChange={event=>setBasicFilter('owner',event.target.value)} className={cn(FIELD, 'max-w-[14rem]')}><option value="">{t('communications.filters.allOwners')}</option>{[...new Map(projects.map(project=>[project.ownerId,project])).values()].map(project=><option key={project.ownerId} value={project.ownerId}>{project.ownerName||project.ownerEmail||project.ownerId}</option>)}</select>
+        <button type="button" onClick={clearFilters} className="px-2 py-2 text-sm font-semibold text-brand-green underline-offset-2 hover:underline dark:text-state-complete">{t('communications.filters.clear')}</button>
       </div>
 
       {!loading&&!loadError && (
@@ -366,93 +448,75 @@ export default function AdminProjects() {
           <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
         </div>
       ) : (
-        <div className="rounded-2xl border border-brand-border-grey overflow-hidden bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-brand-border-grey bg-brand-off-white">
-              <tr>
-                {['Project', 'Owner', 'Tier', 'Status', 'Stage', 'Created', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-brand-mid-grey uppercase tracking-wide">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-brand-border-grey">
-              {filtered.map(p => (
-                <tr key={p.id} className="hover:bg-brand-off-white transition-colors">
-                  <td className="px-4 py-3 font-medium text-brand-near-black max-w-[200px] truncate">
-                    <Link to={workspaceHref(p.id)} className="underline-offset-2 hover:underline">{p.name}</Link>
-                  </td>
-                  <td className="px-4 py-3 text-brand-mid-grey max-w-[160px] truncate">
-                    <span className="inline-flex flex-wrap items-center gap-1.5">
-                      <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
-                      {/* What the owner IS. A contractor who built for themselves owns
-                          their project, and without this the column could not say so. */}
-                      <RoleBadge roles={p.ownerRoles} />
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-brand-mid-grey">{labels.tier(p.tier)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLES[p.status] ?? ''}`}>
-                      {p.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-brand-mid-grey tabular-nums">{p.currentStage} / 10</td>
-                  <td className="px-4 py-3 text-brand-mid-grey text-xs">
-                    {new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => { setAssignTarget(p); setAssignEmail(''); setAssignError(null); }}
-                        className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
-                        title={t('admin.assignContractor')}
-                      >
-                        <UserPlus className="size-4" />
-                      </button>
-                      {verAvailable && (
-                        <button
-                          type="button"
-                          onClick={() => setVerTarget(p)}
-                          className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
-                          title={t('admin.verifier.assign')}
-                          aria-label={`${t('admin.verifier.assign')} ${p.name}`}
-                        >
-                          <ShieldCheck className="size-4" />
-                        </button>
-                      )}
-                      <Link
-                        to={`/projects/${p.id}`}
-                        target="_blank"
-                        className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
-                        title={t('admin.viewProject')}
-                      >
-                        <ExternalLink className="size-4" />
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => { setDelTarget(p); setDelError(null); }}
-                        className="text-brand-mid-grey transition-colors hover:text-state-alert"
-                        title={t('admin.del.deleteProject')}
-                        aria-label={`${t('admin.del.deleteProject')} ${p.name}`}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+        <>
+          {/* Phone: one card per project, the same facts and the same four actions. */}
+          <ul className="space-y-2.5 md:hidden">
+            {filtered.map(p => (
+              <li key={p.id} className="rounded-2xl border border-brand-border-grey bg-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link to={workspaceHref(p.id)} className="block truncate font-bold text-brand-near-black underline-offset-2 hover:underline dark:text-white">{p.name}</Link>
+                    <p className="mt-0.5 truncate text-xs text-brand-mid-grey">{[p.ownerName || p.ownerEmail, p.city].filter(Boolean).join(' · ')}</p>
+                  </div>
+                  {statusPill(p)}
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div className="space-y-1.5">
+                    {healthMark(p)}
+                    {stageMeter(p)}
+                  </div>
+                  {rowActions(p)}
+                </div>
+              </li>
+            ))}
+            {filtered.length === 0 && (
+              <li className="rounded-2xl border border-brand-border-grey bg-white px-4 py-8 text-center text-sm text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">{emptyText}</li>
+            )}
+          </ul>
+
+          <div className="hidden overflow-x-auto rounded-2xl border border-brand-border-grey bg-white md:block dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <table className="w-full text-sm">
+              <thead className="border-b border-brand-border-grey bg-brand-off-white dark:border-[#2c2c2c]">
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
-                    {t('admin.noProjectsMatch', { query: query || filterLabel })}
-                  </td>
+                  {(['project', 'owner', 'plan', 'status', 'health', 'stage', 'created', 'actions'] as const).map(h => (
+                    <th key={h} className={cn('px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey', h === 'actions' && 'text-right')}>
+                      {t(`admin.projectsTable.${h}` as TKey)}
+                    </th>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+                {filtered.map(p => (
+                  <tr key={p.id} className="transition-colors hover:bg-brand-off-white dark:hover:bg-[#252525]">
+                    <td className="max-w-[220px] px-4 py-3">
+                      <Link to={workspaceHref(p.id)} className="block truncate font-bold text-brand-near-black underline-offset-2 hover:underline dark:text-white">{p.name}</Link>
+                      {p.city && <span className="block truncate text-xs text-brand-mid-grey">{p.city}</span>}
+                    </td>
+                    <td className="max-w-[200px] px-4 py-3 text-brand-near-black dark:text-white">
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <span title={p.ownerEmail} className="truncate">{p.ownerName || p.ownerEmail}</span>
+                        {/* What the owner IS. A contractor who built for themselves owns
+                            their project, and without this the column could not say so. */}
+                        <RoleBadge roles={p.ownerRoles} />
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-brand-near-black dark:text-white">{labels.tier(p.tier)}</td>
+                    <td className="px-4 py-3">{statusPill(p)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{healthMark(p)}</td>
+                    <td className="px-4 py-3">{stageMeter(p)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-brand-mid-grey">{created(p)}</td>
+                    <td className="px-4 py-3">{rowActions(p)}</td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-brand-mid-grey">{emptyText}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {assignDone && (
