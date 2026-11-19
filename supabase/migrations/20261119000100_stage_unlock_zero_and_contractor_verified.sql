@@ -115,8 +115,26 @@ BEGIN
     )
   );
 
-  -- Unlock the stage immediately if it was waiting on payment.
-  PERFORM public.open_stage_if_settled(p_stage);
+  -- Mark incoming tranche funded and unlock the stage immediately.
+  PERFORM set_config('app.payments_write', 'on', true);
+  UPDATE public.payments
+     SET state = 'funded',
+         funding_source = 'contractor_confirmed',
+         confirmed_by = v_actor,
+         confirmed_at = clock_timestamp()
+   WHERE stage_id = p_stage AND direction = 'in' AND state NOT IN ('funded', 'reconciled');
+  PERFORM set_config('app.payments_write', 'off', true);
+
+  PERFORM set_config('app.payments_projection', 'on', true);
+  UPDATE public.project_stages
+     SET payment_status = 'paid',
+         status = CASE WHEN status = 'locked' THEN 'active' ELSE status END
+   WHERE id = p_stage AND NOT coalesce(pre_existing, false);
+  PERFORM set_config('app.payments_projection', 'off', true);
+
+  UPDATE public.project_substages
+     SET status = 'pending'
+   WHERE stage_id = p_stage AND status = 'locked';
 
   RETURN jsonb_build_object('ok', true, 'verification_id', v_id, 'stage_id', p_stage);
 END;
@@ -124,6 +142,154 @@ $$;
 REVOKE ALL ON FUNCTION public.record_contractor_stage_verification(uuid, numeric, text, numeric, text)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_contractor_stage_verification(uuid, numeric, text, numeric, text)
+  TO authenticated;
+
+-- Automatically unlock every stage selected as covered by initial upfront payments
+-- and record each covered stage's exact scheduled amount as confirmed received.
+CREATE OR REPLACE FUNCTION public.record_project_initial_payments(
+  p_project        uuid,
+  p_total_amount   numeric,
+  p_currency       text,
+  p_fx_rate        numeric,
+  p_covered_stages integer[] DEFAULT '{}',
+  p_note           text DEFAULT NULL
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_actor        uuid := auth.uid();
+  v_currency     text := upper(btrim(coalesce(p_currency, '')));
+  v_usd          numeric;
+  v_id           uuid;
+  v_proj_curr    text;
+  v_proj_rate    numeric;
+  v_stage        record;
+  v_stage_amt    numeric;
+  v_stage_usd    numeric;
+BEGIN
+  IF v_actor IS NULL THEN RAISE EXCEPTION 'not_signed_in'; END IF;
+
+  SELECT coalesce(currency_code, v_currency), coalesce(fx_rate_at_creation, p_fx_rate)
+    INTO v_proj_curr, v_proj_rate
+    FROM public.projects WHERE id = p_project;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'not_found: project does not exist';
+  END IF;
+  IF NOT public.is_primary_project_contractor(p_project) THEN
+    RAISE EXCEPTION 'not_contractor: only the project contractor may record initial payments';
+  END IF;
+
+  IF p_total_amount IS NULL OR p_total_amount <= 0 OR p_total_amount > 1e12 THEN
+    RAISE EXCEPTION 'invalid_amount: enter a positive total amount';
+  END IF;
+  IF v_currency = '' OR v_currency !~ '^[A-Z]{3}$' THEN
+    RAISE EXCEPTION 'invalid_currency: use a 3-letter ISO currency code';
+  END IF;
+  IF p_fx_rate IS NULL OR p_fx_rate <= 0 OR p_fx_rate > 1e12 THEN
+    RAISE EXCEPTION 'invalid_rate: use a positive exchange rate';
+  END IF;
+
+  v_usd := round(p_total_amount / p_fx_rate, 9);
+  IF v_usd <= 0 OR v_usd > 1e12 THEN
+    RAISE EXCEPTION 'invalid_amount: converted USD amount is out of range';
+  END IF;
+
+  IF v_proj_curr IS NULL OR v_proj_curr !~ '^[A-Z]{3}$' THEN v_proj_curr := v_currency; END IF;
+  IF v_proj_rate IS NULL OR v_proj_rate <= 0 THEN v_proj_rate := p_fx_rate; END IF;
+
+  INSERT INTO public.project_initial_payments
+    (project_id, total_amount, currency, fx_rate, amount_usd, covered_stages, recorded_by, note)
+  VALUES
+    (p_project,
+     p_total_amount,
+     v_currency,
+     p_fx_rate,
+     v_usd,
+     coalesce(p_covered_stages, '{}'),
+     v_actor,
+     NULLIF(btrim(coalesce(p_note, '')), ''))
+  ON CONFLICT (project_id) DO UPDATE SET
+    total_amount    = EXCLUDED.total_amount,
+    currency        = EXCLUDED.currency,
+    fx_rate         = EXCLUDED.fx_rate,
+    amount_usd      = EXCLUDED.amount_usd,
+    covered_stages  = EXCLUDED.covered_stages,
+    recorded_by     = EXCLUDED.recorded_by,
+    recorded_at     = clock_timestamp(),
+    note            = EXCLUDED.note
+  RETURNING id INTO v_id;
+
+  -- Record exact scheduled stage amounts as contractor-verified AND auto-unlock
+  -- every stage the contractor selected as paid upfront.
+  IF coalesce(array_length(p_covered_stages, 1), 0) > 0 THEN
+    FOR v_stage IN
+      SELECT id, stage_number, milestone_amount, payment_milestone_usd
+        FROM public.project_stages
+       WHERE project_id = p_project
+         AND stage_number = ANY(p_covered_stages)
+         AND NOT coalesce(pre_existing, false)
+       ORDER BY stage_number
+    LOOP
+      v_stage_amt := coalesce(
+        NULLIF(v_stage.milestone_amount, 0),
+        CASE WHEN coalesce(v_stage.payment_milestone_usd, 0) > 0
+             THEN round(v_stage.payment_milestone_usd * v_proj_rate, 6)
+             ELSE NULL END
+      );
+      v_stage_usd := CASE WHEN v_stage_amt IS NOT NULL AND v_stage_amt > 0
+                          THEN round(v_stage_amt / v_proj_rate, 9)
+                          ELSE NULL END;
+
+      INSERT INTO public.contractor_stage_verifications
+        (project_id, stage_id, verified_by, amount, currency, fx_rate, amount_usd, note)
+      VALUES
+        (p_project, v_stage.id, v_actor,
+         CASE WHEN v_stage_amt IS NOT NULL AND v_stage_amt > 0 THEN v_stage_amt ELSE NULL END,
+         CASE WHEN v_stage_amt IS NOT NULL AND v_stage_amt > 0 THEN v_proj_curr ELSE NULL END,
+         CASE WHEN v_stage_amt IS NOT NULL AND v_stage_amt > 0 THEN v_proj_rate ELSE NULL END,
+         CASE WHEN v_stage_usd IS NOT NULL AND v_stage_usd > 0 THEN v_stage_usd ELSE NULL END,
+         NULLIF(btrim(coalesce(p_note, '')), ''))
+      ON CONFLICT (stage_id) DO NOTHING;
+
+      PERFORM set_config('app.payments_write', 'on', true);
+      UPDATE public.payments
+         SET state = 'funded',
+             funding_source = 'contractor_confirmed',
+             confirmed_by = v_actor,
+             confirmed_at = clock_timestamp()
+       WHERE stage_id = v_stage.id AND direction = 'in' AND state NOT IN ('funded', 'reconciled');
+      PERFORM set_config('app.payments_write', 'off', true);
+
+      PERFORM set_config('app.payments_projection', 'on', true);
+      UPDATE public.project_stages
+         SET payment_status = 'paid',
+             status = CASE WHEN status = 'locked' THEN 'active' ELSE status END
+       WHERE id = v_stage.id;
+      PERFORM set_config('app.payments_projection', 'off', true);
+
+      UPDATE public.project_substages
+         SET status = 'pending'
+       WHERE stage_id = v_stage.id AND status = 'locked';
+    END LOOP;
+  END IF;
+
+  PERFORM public.log_activity(
+    p_project,
+    'project.initial_payments_recorded',
+    NULL,
+    NULL,
+    v_actor,
+    jsonb_build_object(
+      'total_amount',   p_total_amount,
+      'currency',       v_currency,
+      'covered_stages', coalesce(p_covered_stages, '{}')
+    )
+  );
+
+  RETURN jsonb_build_object('ok', true, 'initial_payment_id', v_id);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.record_project_initial_payments(uuid, numeric, text, numeric, integer[], text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.record_project_initial_payments(uuid, numeric, text, numeric, integer[], text)
   TO authenticated;
 
 -- ── Substage / stage payment requests (19 Nov) ────────────────────────────────

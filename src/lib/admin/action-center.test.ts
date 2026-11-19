@@ -102,4 +102,24 @@ describe('Action Center rules (03 §5)', () => {
     expect(ageHours('2026-09-13T11:00:00Z', NOW)).toBe(1);
     expect(ageHours('2026-09-13T13:00:00Z', NOW)).toBe(0);
   });
+  it('surfaces open Homeowner payment disputes as high-priority Action Center items', () => {
+    const items = actionCenterItems(base({
+      stages: [stage(2, 'active')],
+      disputes: [{
+        id: 'd1', projectId: 'p1', stageId: 's2', disputedAt: '2026-09-13T08:00:00Z',
+        reason: 'I only paid half of this stage', personName: 'Ada',
+      }],
+    }), NOW);
+    expect(items).toEqual([expect.objectContaining({
+      kind: 'payment_disputed',
+      priority: 'high',
+      projectId: 'p1',
+      projectName: 'House',
+      personName: 'Ada',
+      stageNumber: 2,
+      preview: 'I only paid half of this stage',
+      to: '/admin/projects/p1?tab=stages&stage=s2',
+      key: 'payment-dispute:d1',
+    })]);
+  });
 });

@@ -1,19 +1,38 @@
 import { useState, useMemo } from 'react';
-import { Info, Search } from 'lucide-react';
+import { Info, MapPin, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
-import { hasLocalBq } from '@/lib/budget';
+import { CITY_RATES, CM_CITY_CODES, hasLocalBq } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
+
+/** Major build cities for countries outside the Cameroon rate book. */
+const COUNTRY_CITIES: Record<string, readonly string[]> = {
+  NG: ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Enugu', 'Kano', 'Owerri', 'Asaba'],
+  GH: ['Accra', 'Kumasi', 'Takoradi', 'Tamale', 'Tema', 'Cape Coast'],
+  KE: ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Thika'],
+  ZA: ['Johannesburg', 'Cape Town', 'Durban', 'Pretoria', 'Gqeberha', 'Bloemfontein'],
+  UG: ['Kampala', 'Entebbe', 'Jinja', 'Mbarara', 'Gulu'],
+  TZ: ['Dar es Salaam', 'Dodoma', 'Arusha', 'Mwanza', 'Zanzibar'],
+  ET: ['Addis Ababa', 'Adama', 'Hawassa', 'Bahir Dar', 'Dire Dawa'],
+  CI: ['Abidjan', 'Yamoussoukro', 'Bouaké', 'San-Pédro'],
+  SN: ['Dakar', 'Thiès', 'Saint-Louis', 'Mbour', 'Touba'],
+};
+
+const isKnownCmCity = (city: string) =>
+  CM_CITY_CODES.some(code => CITY_RATES[code].city_name === city);
 
 export default function Step1Country() {
   const t = useT();
   const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
+  const [slide, setSlide] = useState<'country' | 'city'>('country');
   const [query, setQuery] = useState('');
+  const [cityOther, setCityOther] = useState(false);
+
   // Only the eight launch-priority countries are listed; everything else is reached by search.
   const popular = useMemo(
     () => POPULAR_COUNTRY_CODES
@@ -35,14 +54,168 @@ export default function Step1Country() {
   }, [query, country]);
 
   function selectCountry(code: string) {
-    update({ country: code });
+    if (code !== data.country) {
+      update({ country: code, city: '' });
+      setCityOther(false);
+    } else {
+      update({ country: code });
+    }
     setQuery('');
   }
 
   const showSearch = query.trim().length > 0;
+  const isCameroon = data.country === 'CM';
+  const presetCities = !isCameroon && data.country ? COUNTRY_CITIES[data.country] : undefined;
 
+  // ── Slide 2: City selection for the chosen country ─────────────────────────
+  if (slide === 'city' && data.country) {
+    const countryName = country(data.country);
+    const hasCity = data.city.trim().length >= 2;
+    const otherActive = cityOther
+      || (isCameroon && data.city.length > 0 && !isKnownCmCity(data.city))
+      || (!!presetCities && data.city.length > 0 && !presetCities.includes(data.city));
+
+    return (
+      <WizardShell
+        canContinue={hasCity}
+        onContinue={next}
+        onBack={() => setSlide('country')}
+      >
+        <div className="pt-2" data-city-step>
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-mid-grey">
+            {COUNTRIES.find(c => c.code === data.country)?.flag} {countryName}
+          </p>
+          <h1 className="mt-1 font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
+            {t('wizard.cityStep.title', { country: countryName })}
+          </h1>
+          <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
+            {t('wizard.cityStep.subtitle')}
+          </p>
+
+          {isCameroon ? (
+            <div className="mt-6 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {CM_CITY_CODES.map(code => {
+                  const c = CITY_RATES[code];
+                  const active = !otherActive && data.city === c.city_name;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => { setCityOther(false); update({ city: c.city_name }); }}
+                      className={cn(
+                        'flex flex-col items-start gap-1 rounded-xl border-2 px-3.5 py-3 text-left transition-all duration-150',
+                        active
+                          ? 'border-brand-near-black bg-brand-off-white'
+                          : 'border-brand-border-grey hover:border-brand-dark-grey',
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-brand-near-black">
+                        <MapPin className="size-3.5 shrink-0 text-brand-mid-grey" aria-hidden />
+                        {c.city_name}
+                      </span>
+                      {c.cost_delta_pct != null && (
+                        <span className="text-[11px] text-brand-mid-grey">
+                          {c.cost_delta_pct === 0
+                            ? t('wizard.city.baseline')
+                            : t('wizard.city.delta', {
+                                delta: `${c.cost_delta_pct > 0 ? '+' : ''}${c.cost_delta_pct}%`,
+                              })}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => { setCityOther(true); if (isKnownCmCity(data.city)) update({ city: '' }); }}
+                  className={cn(
+                    'flex items-center justify-center rounded-xl border-2 px-3.5 py-3 text-sm font-semibold transition-all duration-150',
+                    otherActive
+                      ? 'border-brand-near-black bg-brand-off-white text-brand-near-black'
+                      : 'border-dashed border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
+                  )}
+                >
+                  {t('wizard.cityStep.otherCity')}
+                </button>
+              </div>
+              {otherActive && (
+                <input
+                  type="text"
+                  autoFocus
+                  value={isKnownCmCity(data.city) ? '' : data.city}
+                  onChange={e => update({ city: e.target.value })}
+                  placeholder={t('wizard.cityStep.placeholder')}
+                  className="w-full rounded-lg border border-brand-border-grey bg-white px-4 py-2.5 text-sm text-brand-near-black placeholder:text-brand-soft-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black/30 focus:border-brand-near-black"
+                />
+              )}
+            </div>
+          ) : presetCities ? (
+            <div className="mt-6 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {presetCities.map(cityName => {
+                  const active = !otherActive && data.city === cityName;
+                  return (
+                    <button
+                      key={cityName}
+                      type="button"
+                      onClick={() => { setCityOther(false); update({ city: cityName }); }}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-xl border-2 px-3.5 py-3 text-left text-sm font-semibold transition-all duration-150',
+                        active
+                          ? 'border-brand-near-black bg-brand-off-white text-brand-near-black'
+                          : 'border-brand-border-grey text-brand-near-black hover:border-brand-dark-grey',
+                      )}
+                    >
+                      <MapPin className="size-3.5 shrink-0 text-brand-mid-grey" aria-hidden />
+                      {cityName}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => { setCityOther(true); if (presetCities.includes(data.city)) update({ city: '' }); }}
+                  className={cn(
+                    'flex items-center justify-center rounded-xl border-2 px-3.5 py-3 text-sm font-semibold transition-all duration-150',
+                    otherActive
+                      ? 'border-brand-near-black bg-brand-off-white text-brand-near-black'
+                      : 'border-dashed border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
+                  )}
+                >
+                  {t('wizard.cityStep.otherCity')}
+                </button>
+              </div>
+              {otherActive && (
+                <input
+                  type="text"
+                  autoFocus
+                  value={presetCities.includes(data.city) ? '' : data.city}
+                  onChange={e => update({ city: e.target.value })}
+                  placeholder={t('wizard.cityStep.placeholder')}
+                  className="w-full rounded-lg border border-brand-border-grey bg-white px-4 py-2.5 text-sm text-brand-near-black placeholder:text-brand-soft-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black/30 focus:border-brand-near-black"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="mt-6">
+              <input
+                type="text"
+                autoFocus
+                value={data.city}
+                onChange={e => update({ city: e.target.value })}
+                placeholder={t('wizard.cityStep.placeholder')}
+                className="w-full rounded-lg border border-brand-border-grey bg-white px-4 py-2.5 text-sm text-brand-near-black placeholder:text-brand-soft-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black/30 focus:border-brand-near-black"
+              />
+            </div>
+          )}
+        </div>
+      </WizardShell>
+    );
+  }
+
+  // ── Slide 1: Country selection ─────────────────────────────────────────────
   return (
-    <WizardShell canContinue={!!data.country} onContinue={next}>
+    <WizardShell canContinue={!!data.country} onContinue={() => setSlide('city')}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           {t('wizard.s1Title')}
@@ -131,7 +304,7 @@ export default function Step1Country() {
             <span className="text-sm font-medium text-brand-near-black">{country(data.country)}</span>
             <button
               type="button"
-              onClick={() => update({ country: '' })}
+              onClick={() => update({ country: '', city: '' })}
               className="ml-auto text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors"
             >
               {t('wizard.change')}

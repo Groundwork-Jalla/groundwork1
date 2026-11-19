@@ -15,6 +15,7 @@ import { DocumentViewer } from './DocumentViewer';
 import { ProjectExchangeRateNote, ReceiptExchangeRateNote } from './ExchangeRateNote';
 import { StagePaymentPlanPanel } from './StagePaymentPlanPanel';
 import { ContractorPaymentVerificationBar } from './ContractorPaymentVerificationBar';
+import type { ContractorStageVerification } from '@/lib/supabase/contractor-payments';
 import type { SubstagePaymentContext, SubstagePaymentPart } from '@/lib/supabase/substage-payments';
 import { substageLabelWith } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
@@ -91,6 +92,9 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const [replacement,setReplacement]=useState<{scope:string;receiptId:string}|null>(null);
   const [fileQueue,setFileQueue]=useState<{scope:string;files:File[]}>({scope,files:[]});
   const [justUploaded,setJustUploaded]=useState<{scope:string}|null>(null);
+  const [contractorVer,setContractorVer]=useState<{scope:string;verification:ContractorStageVerification|null}>({scope,verification:null});
+  const activeContractorVer = contractorVer.scope === scope ? contractorVer.verification : null;
+  const contractorRecordedPaid = !!activeContractorVer;
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
   const form = decisionForm?.scope === scope ? decisionForm : null;
   const busy = working === scope; const error = failure?.scope === scope ? failure.message : null;
@@ -217,6 +221,41 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   function closeViewer() { ++viewRequest.current; setViewer(null); }
 
   if (!payment) return null;
+  // When the contractor recorded this stage as already paid offline (at project creation or
+  // per-stage), show a clean summary with ONLY the scheduled amount, Confirmed received equal
+  // to that exact stage amount, and the contractor-recorded notice — no payment plan, no
+  // receipt upload form, no "attach several vendor receipts" clutter.
+  if (contractorRecordedPaid) {
+    const confirmedDisplay = activeContractorVer?.amount != null && activeContractorVer.amount > 0
+      ? format(activeContractorVer.amount, activeContractorVer.currency ?? code)
+      : format(stageDue, code);
+    return (
+      <section id={`stage-payment-${stageId}`} data-contractor-paid-summary
+        className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')}
+        aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
+        <h3 className={cn('flex items-center gap-2 font-semibold text-brand-near-black dark:text-white', clientPresentation ? 'text-base' : 'text-sm')}>
+          <Receipt className={clientPresentation ? 'size-5 text-brand-green' : 'size-4'} aria-hidden />
+          {t('project.receiptFlow.title', { n: stageNumber })}
+        </h3>
+        <dl className={cn('grid gap-3 text-xs', clientPresentation ? 'grid-cols-1 sm:grid-cols-3 [&>div]:min-w-0 [&>div]:rounded-lg [&>div]:border [&>div]:border-brand-border-grey [&>div]:p-3 [&_dd]:break-words [&_dd]:font-semibold [&_dd]:leading-relaxed' : 'grid-cols-2')}>
+          <div><dt className="text-brand-mid-grey">{t('project.clientUi.stageBudget')}</dt><dd className="mt-1 font-mono">{format(stageDue, code)}</dd></div>
+          <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono">{confirmedDisplay}</dd></div>
+          {clientPresentation && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(0, code)}</dd></div>}
+        </dl>
+        <ContractorPaymentVerificationBar
+          stageId={stageId}
+          isContractor={isContractor}
+          readOnly={readOnly}
+          settled={true}
+          currencyCode={code}
+          fxRate={fxRate}
+          scheduledAmount={scheduledAmount}
+          onChanged={onChanged}
+          onVerificationChange={v => setContractorVer({ scope, verification: v })}
+        />
+      </section>
+    );
+  }
   return <section id={`stage-payment-${stageId}`} className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')} aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
     <h3 className={cn('flex items-center gap-2 font-semibold text-brand-near-black dark:text-white', clientPresentation ? 'text-base' : 'text-sm')}><Receipt className={clientPresentation ? 'size-5 text-brand-green' : 'size-4'} aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
     {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
@@ -249,6 +288,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       fxRate={fxRate}
       scheduledAmount={scheduledAmount}
       onChanged={onChanged}
+      onVerificationChange={v => setContractorVer({ scope, verification: v })}
     />
     {/* Why a receipt cannot be added here yet. On a contractor-created project this is the
         agreed order (work updates, the client's approval, then payment), and on 16 November

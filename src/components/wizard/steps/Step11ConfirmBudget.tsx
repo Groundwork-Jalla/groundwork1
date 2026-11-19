@@ -15,6 +15,7 @@ import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtSta
 import { billBudget, confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { recordProjectInitialPayments } from '@/lib/supabase/contractor-payments';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
+import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
 import { extractBqTotal } from '@/lib/budget/extract-bq';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
@@ -26,7 +27,7 @@ import { trackFunnel, currentProjectAttemptId, clearProjectAttempt } from '@/lib
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
-import { useUsdQuote } from '@/lib/budget/live-fx';
+import { useUsdQuote, useUsdRate } from '@/lib/budget/live-fx';
 import { UsdQuoteNote } from '@/components/project/ExchangeRateNote';
 
 const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
@@ -54,6 +55,7 @@ export default function Step11ConfirmBudget() {
   const f         = useFormat();
   const contractorCreating = onBehalfOf?.by === 'partner' || (!onBehalfOf && isContractor);
   const [hasInitialPayment, setHasInitialPayment] = useState<boolean>(false);
+  const [initialCurrency, setInitialCurrency]     = useState('');
   const [initialAmount, setInitialAmount]         = useState('');
   const [initialStages, setInitialStages]         = useState<number[]>([]);
   const [initialNote, setInitialNote]             = useState('');
@@ -159,6 +161,16 @@ export default function Step11ConfirmBudget() {
   // A foreign-currency bill waits for its own rate; the country's rate cannot price it.
   const quote = useUsdQuote(currencyCode, currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null);
   const fxRate = quote.rate;
+  const selectedInitialCurrency = initialCurrency || currencyCode;
+  const initialForeignRate = useUsdRate(
+    selectedInitialCurrency !== currencyCode && selectedInitialCurrency !== 'USD' ? selectedInitialCurrency : null,
+    null,
+  );
+  const effectiveInitialFxRate = selectedInitialCurrency === 'USD'
+    ? 1
+    : selectedInitialCurrency === currencyCode
+      ? fxRate
+      : initialForeignRate;
   const localBudget = confirmedBillAmount(raw) ?? 0;
   const finalBudget = fxRate != null && fxRate > 0 ? localBudget / fxRate : 0;
 
@@ -341,18 +353,19 @@ export default function Step11ConfirmBudget() {
         await startProjectTracking(project.id, priced);
       }
 
-      // 2b. Contractor-recorded initial payments captured at project creation (18 Nov).
+      // 2b. Contractor-recorded initial payments captured at project creation (18–19 Nov).
       //     Non-fatal: a recording failure must not lose the newly created project.
       if (contractorCreating && hasInitialPayment) {
         const parsedInitial = canonicalReceiptAmount(initialAmount.trim());
-        if (parsedInitial && fxRate != null && fxRate > 0) {
+        const covered = initialStages.filter(n => n >= startStage);
+        if (parsedInitial && effectiveInitialFxRate != null && effectiveInitialFxRate > 0) {
           try {
             await recordProjectInitialPayments({
               projectId: project.id,
               totalAmount: Number(parsedInitial),
-              currency: currencyCode,
-              fxRate,
-              coveredStages: initialStages.filter(n => n >= startStage),
+              currency: selectedInitialCurrency,
+              fxRate: effectiveInitialFxRate,
+              coveredStages: covered,
               note: initialNote,
             });
           } catch (initErr) {
@@ -518,7 +531,7 @@ export default function Step11ConfirmBudget() {
                     hasInitialPayment ? 'bg-brand-green text-white' : 'border border-brand-border-grey text-brand-near-black')}>
                   {t('wizard.initialPayments.yes')}
                 </button>
-                <button type="button" disabled={busy} onClick={() => { setHasInitialPayment(false); setInitialAmount(''); setInitialStages([]); setInitialNote(''); }}
+                <button type="button" disabled={busy} onClick={() => { setHasInitialPayment(false); setInitialCurrency(''); setInitialAmount(''); setInitialStages([]); setInitialNote(''); }}
                   className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold',
                     !hasInitialPayment ? 'bg-brand-near-black text-white' : 'border border-brand-border-grey text-brand-near-black')}>
                   {t('wizard.initialPayments.no')}
@@ -526,20 +539,37 @@ export default function Step11ConfirmBudget() {
               </div>
               {hasInitialPayment && (
                 <div className="space-y-3 border-t border-brand-border-grey pt-3">
-                  <label className="block text-xs font-medium text-brand-near-black">
-                    {t('wizard.initialPayments.amountLabel', { currency: currencyCode })}
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      disabled={busy}
-                      value={initialAmount}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setInitialAmount(/^[\d.,\s]*$/.test(val) ? normaliseBudgetInput(val, lang) : val);
-                      }}
-                      className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
-                    />
-                  </label>
+                  <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                    <label className="block text-xs font-medium text-brand-near-black">
+                      {t('project.receiptFlow.currencyLabel')}
+                      <select
+                        value={selectedInitialCurrency}
+                        disabled={busy}
+                        onChange={e => setInitialCurrency(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-2.5 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                      >
+                        {receiptCurrencyChoices(currencyCode).map(code => (
+                          <option key={code} value={code}>
+                            {code}{code === currencyCode ? ` · ${t('project.receiptFlow.projectCurrency')}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block text-xs font-medium text-brand-near-black">
+                      {t('wizard.initialPayments.amountLabel', { currency: selectedInitialCurrency })}
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        disabled={busy}
+                        value={initialAmount}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setInitialAmount(/^[\d.,\s]*$/.test(val) ? normaliseBudgetInput(val, lang) : val);
+                        }}
+                        className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                      />
+                    </label>
+                  </div>
                   <fieldset disabled={busy} className="space-y-1.5">
                     <legend className="text-xs font-medium text-brand-near-black">{t('wizard.initialPayments.stagesLabel')}</legend>
                     <div className="grid gap-1.5 sm:grid-cols-2">

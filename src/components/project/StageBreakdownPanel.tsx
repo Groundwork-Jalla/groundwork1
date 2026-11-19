@@ -14,6 +14,7 @@ interface Props {
   stageId: string; stageName: string; projectName: string;
   clientPresentation?: boolean;
   isContractor?: boolean;
+  hidden?: boolean;
   onChanged: () => void | Promise<void>;
 }
 type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal?: BreakdownProposal; hash: string };
@@ -28,7 +29,7 @@ type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal
  *
  * Quiet by default: a stage nobody has split shows only the contractor's button.
  */
-export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, isContractor = false, onChanged }: Props) {
+export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, isContractor = false, hidden = false, onChanged }: Props) {
   const t = useT(); const { lang } = useLanguage(); const { substageLabel } = useStageLabels();
   const [read, setRead] = useState<{ stage: string; context: StageBreakdownContext } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -64,6 +65,7 @@ export function StageBreakdownPanel({ stageId, stageName, projectName, clientPre
   const latest = context?.history.find(item => item.status !== 'pending');
   const preview = editing && context ? breakdownDraft(context.stage_amount, editing.rows) : null;
 
+  if (hidden) return null;
   if (failed && !context) return null;
   if (!context) return null;
   const lockedForContractor = isContractor && !context.editable && !context.can_propose && !pending;

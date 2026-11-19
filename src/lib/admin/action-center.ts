@@ -27,6 +27,7 @@ export type ActionKind =
   | 'awaiting_funding'
   | 'payment_ready'
   | 'disbursement_failed'
+  | 'payment_disputed'
   | 'unanswered_conversation'
   | 'application_to_decide'
   | 'quote_request_open'
@@ -75,6 +76,14 @@ export interface WaitingConversation {
 }
 export interface QueueRow { id: string; label: string; since: string }
 export interface UnmatchedEvent { id: string; receivedAt: string }
+export interface ActionPaymentDispute {
+  id: string;
+  projectId: string;
+  stageId: string;
+  disputedAt: string;
+  reason?: string | null;
+  personName?: string;
+}
 
 export interface ActionCenterInput {
   projects: ActionProject[];
@@ -90,6 +99,8 @@ export interface ActionCenterInput {
   applications: QueueRow[];
   inquiries: QueueRow[];
   tickets: QueueRow[];
+  /** Open Homeowner disputes on contractor-recorded payments (20261119000000). */
+  disputes?: ActionPaymentDispute[];
 }
 
 const PRIORITY_RANK: Record<Priority, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -217,6 +228,25 @@ export function actionCenterItems(input: ActionCenterInput, now: Date, workspace
       // answering them. The Inbox selects by id and keeps the filter in the URL.
       to: `/admin/inbox?status=waiting_on_us&conversation=${w.conversationId}`,
       key: `conversation:${w.conversationId}`,
+    });
+  }
+
+  // Homeowner disputes on contractor-recorded payments ("Not right? Tell us").
+  // High priority so staff verify promptly without stalling active site progress.
+  for (const d of input.disputes ?? []) {
+    const project = projectById.get(d.projectId);
+    const stage = (stagesByProject.get(d.projectId) ?? []).find(s => s.id === d.stageId);
+    items.push({
+      kind: 'payment_disputed',
+      priority: 'high',
+      since: d.disputedAt,
+      projectId: d.projectId,
+      projectName: project?.name,
+      personName: d.personName ?? project?.ownerName,
+      stageNumber: stage?.stage_number,
+      preview: d.reason ?? undefined,
+      to: stageLink(d.projectId, d.stageId, workspaceReady),
+      key: `payment-dispute:${d.id}`,
     });
   }
 

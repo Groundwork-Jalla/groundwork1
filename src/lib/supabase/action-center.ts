@@ -25,7 +25,7 @@ type Row = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
 /** A fail-soft table read: rows, or [] with available=false when the table is not there yet. */
-type Filter = { eq: (c: string, v: unknown) => Filter };
+type Filter = { eq: (c: string, v: unknown) => Filter; is: (c: string, v: unknown) => Filter };
 async function softRows(table: string, columns: string, modify?: (q: Filter) => Filter): Promise<{ rows: Row[]; available: boolean }> {
   const base = supabase.from(table).select(columns);
   const q = modify ? (modify(base as unknown as Filter) as unknown as typeof base) : base;
@@ -38,7 +38,7 @@ async function softRows(table: string, columns: string, modify?: (q: Filter) => 
 }
 
 export async function loadActionCenter(now: Date = new Date(), workspaceReady = true): Promise<ActionCenterData> {
-  const [projectsRes, stagesRes, verRes, verifiersRes, updatesRes, ledger, eventsRes, waiting, appsRes, inqRes, ticketsRes, owners] = await Promise.all([
+  const [projectsRes, stagesRes, verRes, verifiersRes, updatesRes, ledger, eventsRes, waiting, appsRes, inqRes, ticketsRes, owners, disputesRes] = await Promise.all([
     supabase.from('projects').select('id, name, user_id, status, tier, tracking_started_at, created_at').neq('status', 'archived'),
     supabase.from('project_stages').select('id, project_id, stage_number, status, verification_required, payment_milestone_usd, completed_at'),
     softRows('stage_verifications', 'id, stage_id, project_id, verifier_id, requested_by, requested_at, visited_at, decision, decided_at, recorded_by, recorded_on_behalf_of, reason, certificate_id'),
@@ -55,6 +55,7 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     supabase.from('contractor_inquiries').select('id, name, location, created_at').eq('status', 'open'),
     listOpenSupportTickets(),
     ownerLookup(),
+    softRows('contractor_payment_disputes', 'id, project_id, stage_id, disputed_by, disputed_at, reason', q => q.is('resolved_at', null)),
   ]);
   if (projectsRes.error) throw projectsRes.error;
   if (stagesRes.error)   throw stagesRes.error;
@@ -110,6 +111,14 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     applications: ((appsRes.data ?? []) as Row[]).map(a => ({ id: str(a.id), label: str(a.full_name) || str(a.email), since: str(a.created_at) })),
     inquiries:    ((inqRes.data ?? []) as Row[]).map(q => ({ id: str(q.id), label: str(q.name) || str(q.location), since: str(q.created_at) })),
     tickets:      ticketsRes.map(t => ({ id: t.id, label: t.subject || t.name || t.email, since: t.created_at })),
+    disputes:     disputesRes.rows.map(d => ({
+      id: str(d.id),
+      projectId: str(d.project_id),
+      stageId: str(d.stage_id),
+      disputedAt: str(d.disputed_at),
+      reason: (d.reason as string | null) ?? null,
+      personName: d.disputed_by ? (owners.get(str(d.disputed_by))?.name || owners.get(str(d.disputed_by))?.email) : undefined,
+    })),
   };
 
   return {

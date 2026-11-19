@@ -859,7 +859,11 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const selected = ordered.find(stage => stage.id === selectedStageId)
     ?? ordered.find(stage => stage.id === linkedStage || String(stage.stage_number) === linkedStage)
     ?? current ?? ordered[0];
-  const isOpen = !!selected && selected.id === activeStage?.id;
+  const isRowPaidUpfront = (row: AssignedProject['stages'][number]) =>
+    !!contractorPayState?.verifiedStageIds.has(row.id)
+    || (contractorPayState?.initialPayment?.covered_stages?.includes(row.stage_number) ?? false);
+  const selectedPaidUpfront = !!selected && isRowPaidUpfront(selected);
+  const isOpen = !!selected && (selected.id === activeStage?.id || (selected.status === 'active' && selectedPaidUpfront));
   // One read of the parts per stage: the open stage's is shared with the next step.
   const otherParts = useSubstagePayments(selected && !isOpen ? selected.id : undefined, !!selected?.paid_by_part, selected ? stagePayments.get(selected.id) : undefined);
   const parts = isOpen ? activeParts : otherParts;
@@ -892,14 +896,15 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   // stage paid by part takes them only on the part that is paid (18 Nov).
   const workFor = (stage: AssignedProject['stages'][number], open: boolean) => {
     const tranche = stagePayments.get(stage.id);
-    const funded = stageWorkReady(stage, stages, tranche, project.workflow_origin);
-    const canWork = open && project.status === 'active' && canActOnProjectStage(stage, stages) && funded;
+    const upfront = isRowPaidUpfront(stage);
+    const funded = upfront || stageWorkReady(stage, stages, tranche, project.workflow_origin);
+    const canWork = open && project.status === 'active' && (upfront || canActOnProjectStage(stage, stages)) && funded;
     // Why Upload is off, in words. The button used to go quiet with no cue at all —
     // a contractor on 14 Nov 2026 reported it "not clicking" on a stage whose
     // approved updates were waiting on the client's payment.
     const blocked: 'paused' | 'previous' | 'payment' | null = canWork ? null
       : project.status !== 'active' ? 'paused'
-      : !canActOnProjectStage(stage, stages) ? 'previous'
+      : !(upfront || canActOnProjectStage(stage, stages)) ? 'previous'
       : 'payment';
     const blockedText = blocked === null ? null
       : blocked === 'paused' ? t('contractorProject.uploadPaused')
@@ -963,18 +968,15 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const due = money.pair(stagePayableUsd(stage, basis), stage.milestone_amount);
   const sent = rework.filter(r => r.stageId === stage.id);
   const { tranche, canWork, blockedText } = workFor(stage, isOpen);
-  const showGate = !stage.pre_existing && (canActOnProjectStage(stage, stages) || stage.status === 'complete') && !!tranche;
+  const stagePaidUpfront =
+    isRowPaidUpfront(stage)
+    || (tranche != null && stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).remaining === 0
+      && (stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).received ?? 0) > 0);
+  const showGate = !stage.pre_existing && (canActOnProjectStage(stage, stages) || stage.status === 'complete' || isRowPaidUpfront(stage)) && !!tranche;
   const balance = tranche ? stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount) : null;
   const split = !!stage.paid_by_part && !!parts?.split;
   const partReady = (substageId: string) => partWorkReady(parts, !!stage.paid_by_part && isOpen, substageId);
   const waiting = waitingOn(stage);
-  // Upfront-payment suppression (19 Nov): if the Homeowner already paid for this stage
-  // upfront (recorded at project creation or via contractor stage verification) or the
-  // stage is already fully settled, do not show the per-substage "Request payment" button.
-  const stagePaidUpfront =
-    !!contractorPayState?.verifiedStageIds.has(stage.id)
-    || (contractorPayState?.initialPayment?.covered_stages?.includes(stage.stage_number) ?? false)
-    || (balance?.remaining === 0 && (balance?.received ?? 0) > 0);
   const canRequestSubstagePayment =
     canConfirmPayments && !stage.pre_existing && stage.status !== 'complete'
     && stagePayableUsd(stage, basis) > 0 && !stagePaidUpfront;
@@ -1013,14 +1015,14 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;
   const breakdown = priceable
     ? <div data-tour={isOpen ? 'price-by-part' : undefined}>
-        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor onChanged={onSubmitted}
+        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront} onChanged={onSubmitted}
           stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`} />
       </div>
     : null;
   const pill = waiting.length > 0 ? { tone: 'held', label: t('contractorView.receiptToConfirm') }
     : stage.status === 'complete' ? { tone: 'complete', label: t('contractorStageStatus.complete') }
     : stage.pre_existing ? { tone: 'muted', label: t('contractorView.builtBefore') }
-    : isOpen ? { tone: 'held', label: t(`contractorStageStatus.${stage.status}` as TKey) }
+    : isOpen ? { tone: stage.status === 'active' && canWork ? 'complete' : 'held', label: t(`contractorStageStatus.${stage.status}` as TKey) }
     : { tone: 'muted', label: t('contractorView.afterStage', { n: Math.max(1, stage.stage_number - 1) }) };
 
   const statusLine = (row: AssignedProject['stages'][number]) => waitingOn(row).length > 0 ? t('contractorView.receiptToConfirm')
@@ -1045,7 +1047,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
               {ordered.map(row => {
                 const on = row.id === stage.id;
                 const rowDue = money.pair(stagePayableUsd(row, basis), row.milestone_amount);
-                const live = row.id === activeStage?.id;
+                const live = row.id === activeStage?.id || (row.status === 'active' && isRowPaidUpfront(row));
                 const held = waitingOn(row).length > 0;
                 return (
                   <li key={row.id} id={`work-stage-${row.id}`} className="border-t border-brand-border-grey dark:border-[#2c2c2c]">
@@ -1089,7 +1091,9 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
             {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
               <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
               <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{due.local}</p>
-              {balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
+              {isRowPaidUpfront(stage)
+                ? <p className="mt-0.5 text-[11.5px] text-brand-green dark:text-[#b4d8bf]">{t('project.historyView.stageConfirmed', { amount: due.local })}</p>
+                : balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
             </div>}
           </div>
 

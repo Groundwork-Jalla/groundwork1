@@ -850,6 +850,7 @@ export const fr: Mirror<EnDict> = {
         awaiting_funding:            'En attente de financement',
         payment_ready:               'Versement pr\u00eat \u00e0 autoriser',
         disbursement_failed:         'Versement \u00e9chou\u00e9 ou non rapproch\u00e9',
+        payment_disputed:            'Le propri\u00e9taire a signal\u00e9 un paiement enregistr\u00e9 par l\u2019entrepreneur',
         unanswered_conversation:     'Conversation sans r\u00e9ponse',
         application_to_decide:       'Candidature \u00e0 d\u00e9cider',
         quote_request_open:          'Demande de devis ouverte',
@@ -5921,7 +5922,13 @@ export const fr: Mirror<EnDict> = {
       amountLabel: 'Montant total déjà payé ({currency})',
       stagesLabel: 'Quelles étapes sont couvertes ?',
       noteLabel: 'Note (facultatif)',
-      hint: 'Ces étapes seront enregistrées comme paiements confirmés par l’entrepreneur afin que les travaux puissent commencer immédiatement.',
+      hint: 'Ces étapes seront enregistrées comme paiements confirmés par l’entrepreneur et automatiquement débloquées afin que les travaux puissent commencer immédiatement.',
+    },
+    cityStep: {
+      title: 'Dans quelle ville au/en {country} ?',
+      subtitle: 'Sélectionnez la ville où se situe ce chantier.',
+      otherCity: 'Autre ville',
+      placeholder: 'Saisissez le nom de la ville…',
     },
     confirmBudget: {
       title:         "Confirmez l'étape du projet",

@@ -112,6 +112,27 @@ export async function requestStagePayment(input: {
     p_note: input.note?.trim() || null,
   });
   if (error) throw error;
+
+  // Best-effort email + WhatsApp notification to the Homeowner. Never blocks or fails
+  // the persisted payment request + in-app notification if delivery is unavailable.
+  void supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session?.access_token) return;
+    return fetch('/api/events?action=payment-request-notify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        stageId: input.stageId,
+        substageId: input.substageId ?? null,
+        amount: hasAmount ? input.amount : null,
+        currency: hasAmount ? input.currency ?? null : null,
+        note: input.note?.trim() || null,
+      }),
+    });
+  }).catch(() => {});
+
   return data as { ok: boolean; request_id: string; stage_id: string; substage_id: string | null };
 }
 

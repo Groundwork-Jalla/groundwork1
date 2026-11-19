@@ -21,6 +21,7 @@ interface Props {
   fxRate: number;
   scheduledAmount?: number | null;
   onChanged: () => void | Promise<void>;
+  onVerificationChange?: (verification: ContractorStageVerification | null) => void;
 }
 
 /**
@@ -34,7 +35,7 @@ interface Props {
  *   that flags a dispute in Admin Action Center without stalling active site work.
  */
 export function ContractorPaymentVerificationBar({
-  stageId, isContractor, readOnly = false, settled, currencyCode, fxRate, scheduledAmount, onChanged,
+  stageId, isContractor, readOnly = false, settled, currencyCode, fxRate, scheduledAmount, onChanged, onVerificationChange,
 }: Props) {
   const t = useT();
   const { lang } = useLanguage();
@@ -59,10 +60,14 @@ export function ContractorPaymentVerificationBar({
       setVerification(res.verification);
       setDispute(res.dispute);
       setLoaded(true);
+      onVerificationChange?.(res.verification);
     } catch {
-      if (current.current === stageId) setLoaded(true);
+      if (current.current === stageId) {
+        setLoaded(true);
+        onVerificationChange?.(null);
+      }
     }
-  }, [stageId]);
+  }, [stageId, onVerificationChange]);
 
   useEffect(() => {
     setAnswer(null);

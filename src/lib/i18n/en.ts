@@ -851,6 +851,7 @@ export const en = {
         awaiting_funding:            'Awaiting funding',
         payment_ready:               'Payment ready to authorise',
         disbursement_failed:         'Disbursement failed or unreconciled',
+        payment_disputed:            'Homeowner flagged a contractor-recorded payment',
         unanswered_conversation:     'Unanswered conversation',
         application_to_decide:       'Application to decide',
         quote_request_open:          'Quote request open',
@@ -6049,7 +6050,13 @@ export const en = {
       amountLabel: 'Total amount already paid ({currency})',
       stagesLabel: 'Which stages are covered?',
       noteLabel: 'Note (optional)',
-      hint: 'These stages will be recorded as contractor-verified payments so work can begin right away.',
+      hint: 'These stages will be recorded as contractor-verified payments and automatically unlocked so work can begin right away.',
+    },
+    cityStep: {
+      title: 'Which city in {country}?',
+      subtitle: 'Select the city or town where this project is located.',
+      otherCity: 'Other city',
+      placeholder: 'Enter city or town name…',
     },
     confirmBudget: {
       title:         'Confirm Project Stage',
