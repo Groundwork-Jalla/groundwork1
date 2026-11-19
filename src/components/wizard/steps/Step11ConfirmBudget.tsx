@@ -12,14 +12,16 @@ import type { DocCategory } from '@/lib/projects/plan-answer';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
 import { setClientIntent } from '@/lib/supabase/contractor-onboarding';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage, confirmBoqBudget } from '@/lib/supabase/tracking';
-import { billBudget, confirmedBillAmount } from '@/lib/budget/bill-budget';
+import { billBudget, confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
+import { recordProjectInitialPayments } from '@/lib/supabase/contractor-payments';
+import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { extractBqTotal } from '@/lib/budget/extract-bq';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
 import { stageSharesFromTakeoff } from '@/lib/budget/stage-shares';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { BOQ_ACCEPT_ATTR, MAX_FILE_MB, fileProblem, isBoqFile } from '@/lib/documents/accepted-files';
-import { useFormat, useT, type TKey } from '@/lib/i18n';
+import { useFormat, useLanguage, useT, type TKey } from '@/lib/i18n';
 import { trackFunnel, currentProjectAttemptId, clearProjectAttempt } from '@/lib/analytics/funnel';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
@@ -48,7 +50,13 @@ export default function Step11ConfirmBudget() {
   const { user, isContractor }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
+  const { lang }  = useLanguage();
   const f         = useFormat();
+  const contractorCreating = onBehalfOf?.by === 'partner' || (!onBehalfOf && isContractor);
+  const [hasInitialPayment, setHasInitialPayment] = useState<boolean>(false);
+  const [initialAmount, setInitialAmount]         = useState('');
+  const [initialStages, setInitialStages]         = useState<number[]>([]);
+  const [initialNote, setInitialNote]             = useState('');
   const fileRef   = useRef<HTMLInputElement>(null);
   const attachmentGeneration = useRef(0);
   useEffect(() => () => { attachmentGeneration.current++; }, []);
@@ -333,6 +341,26 @@ export default function Step11ConfirmBudget() {
         await startProjectTracking(project.id, priced);
       }
 
+      // 2b. Contractor-recorded initial payments captured at project creation (18 Nov).
+      //     Non-fatal: a recording failure must not lose the newly created project.
+      if (contractorCreating && hasInitialPayment) {
+        const parsedInitial = canonicalReceiptAmount(initialAmount.trim());
+        if (parsedInitial && fxRate != null && fxRate > 0) {
+          try {
+            await recordProjectInitialPayments({
+              projectId: project.id,
+              totalAmount: Number(parsedInitial),
+              currency: currencyCode,
+              fxRate,
+              coveredStages: initialStages.filter(n => n >= startStage),
+              note: initialNote,
+            });
+          } catch (initErr) {
+            console.warn('[wizard] initial payment recording failed:', initErr);
+          }
+        }
+      }
+
       // 3. The costing they attached, if any. Only possible now that a project id
       //    exists, and deliberately not fatal — a failed upload must not lose the
       //    project. Filed as 'boq': it is the number this build is priced on, not a
@@ -480,6 +508,75 @@ export default function Step11ConfirmBudget() {
               </select>
             </label>
           </div>
+
+          {contractorCreating && (
+            <div className="space-y-3 rounded-xl border border-brand-border-grey px-4 py-3.5" data-initial-payments>
+              <p className="text-sm font-medium text-brand-near-black">{t('wizard.initialPayments.question')}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={busy} onClick={() => setHasInitialPayment(true)}
+                  className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold',
+                    hasInitialPayment ? 'bg-brand-green text-white' : 'border border-brand-border-grey text-brand-near-black')}>
+                  {t('wizard.initialPayments.yes')}
+                </button>
+                <button type="button" disabled={busy} onClick={() => { setHasInitialPayment(false); setInitialAmount(''); setInitialStages([]); setInitialNote(''); }}
+                  className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold',
+                    !hasInitialPayment ? 'bg-brand-near-black text-white' : 'border border-brand-border-grey text-brand-near-black')}>
+                  {t('wizard.initialPayments.no')}
+                </button>
+              </div>
+              {hasInitialPayment && (
+                <div className="space-y-3 border-t border-brand-border-grey pt-3">
+                  <label className="block text-xs font-medium text-brand-near-black">
+                    {t('wizard.initialPayments.amountLabel', { currency: currencyCode })}
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      disabled={busy}
+                      value={initialAmount}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setInitialAmount(/^[\d.,\s]*$/.test(val) ? normaliseBudgetInput(val, lang) : val);
+                      }}
+                      className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                    />
+                  </label>
+                  <fieldset disabled={busy} className="space-y-1.5">
+                    <legend className="text-xs font-medium text-brand-near-black">{t('wizard.initialPayments.stagesLabel')}</legend>
+                    <div className="grid gap-1.5 sm:grid-cols-2">
+                      {STAGE_KEYS.map((_, i) => {
+                        const num = i + 1;
+                        if (num < startStage) return null;
+                        const checked = initialStages.includes(num);
+                        return (
+                          <label key={num} className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs text-brand-near-black">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setInitialStages(prev => checked ? prev.filter(n => n !== num) : [...prev, num].sort((a, b) => a - b))}
+                              className="accent-brand-green"
+                            />
+                            <span>{num}. {stageLabel(num)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                  <label className="block text-xs font-medium text-brand-near-black">
+                    {t('wizard.initialPayments.noteLabel')}
+                    <input
+                      type="text"
+                      maxLength={500}
+                      disabled={busy}
+                      value={initialNote}
+                      onChange={e => setInitialNote(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-xs text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                    />
+                  </label>
+                  <p className="text-xs text-brand-mid-grey">{t('wizard.initialPayments.hint')}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Optional supporting quote.
               Hidden in BOTH directions, for the same reason — nobody is asked twice:

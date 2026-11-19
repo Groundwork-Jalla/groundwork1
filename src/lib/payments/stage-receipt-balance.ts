@@ -40,3 +40,23 @@ export function stageReceiptExcess(balance: { received: number | null; remaining
   const total = received + extra;
   return total > due ? Number(total - due) / 1e6 : 0;
 }
+
+/**
+ * Same as `stageReceiptExcess`, but includes pending (unconfirmed) receipts already
+ * uploaded on the stage. Catches overpayments split across multiple pending receipts
+ * (including foreign-currency receipts whose project equivalents are already stored).
+ */
+export function stageReceiptTotalExcess(
+  balance: { received: number | null; pending: number | null; remaining: number | null },
+  scheduled: number | null | undefined,
+  adding = 0,
+): number | null {
+  const due = units(scheduled ?? null);
+  const received = units(balance.received ?? 0);
+  const pending = units(balance.pending ?? 0);
+  const extra = units(adding);
+  if (due == null || received == null || pending == null || extra == null) return null;
+  if (balance.received == null && balance.pending == null) return null;
+  const total = received + pending + extra;
+  return total > due ? Number(total - due) / 1e6 : 0;
+}

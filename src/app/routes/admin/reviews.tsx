@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, RotateCcw, Loader2, ImageIcon, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Loader2, ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { EvidenceThumbs } from '@/components/project/EvidenceThumbs';
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,22 +59,9 @@ function EvidenceGrid({ urls }: { urls: string[] }) {
       </div>
     );
   }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {urls.map((url, i) => (
-        <a
-          key={i}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 rounded-lg border border-brand-border-grey px-2 py-1 text-xs font-medium text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white"
-        >
-          <ExternalLink className="size-3" />
-          Evidence {i + 1}
-        </a>
-      ))}
-    </div>
-  );
+  // Storage paths (not raw URLs): EvidenceThumbs signs each path and opens it in
+  // the in-app EvidenceLightbox instead of navigating to a broken relative URL / 404.
+  return <EvidenceThumbs paths={urls} size="compact" />;
 }
 
 function StageReviewCard({
@@ -195,7 +183,7 @@ function StageReviewCard({
           </div>
           <h3 className="mt-1.5 truncate text-xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{item.stageName}</h3>
           <p className="mt-1 truncate text-[13px] text-brand-mid-grey">
-            <Link to={`/projects/${item.projectId}`} className="font-medium text-brand-green hover:underline dark:text-state-complete" target="_blank">
+            <Link to={workspaceHref(item.projectId)} className="font-medium text-brand-green hover:underline dark:text-state-complete">
               {item.projectName}
             </Link>
             {' · '}{item.ownerName || item.ownerEmail}

@@ -3,16 +3,18 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Camera, FileUp, Loader2, Receipt } from 'lucide-react';
 import { useT, useLanguage } from '@/lib/i18n';
 import { useProjectMoneyContext } from '@/lib/budget/project-money-context';
+import { useUsdRate } from '@/lib/budget/live-fx';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib/payments/receipt-reading';
 import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
-import { stageReceiptBalance, stageReceiptExcess } from '@/lib/payments/stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess, stageReceiptTotalExcess } from '@/lib/payments/stage-receipt-balance';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
 import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentReceipt, signReceiptUrl,
   type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { DocumentViewer } from './DocumentViewer';
 import { ProjectExchangeRateNote, ReceiptExchangeRateNote } from './ExchangeRateNote';
 import { StagePaymentPlanPanel } from './StagePaymentPlanPanel';
+import { ContractorPaymentVerificationBar } from './ContractorPaymentVerificationBar';
 import type { SubstagePaymentContext, SubstagePaymentPart } from '@/lib/supabase/substage-payments';
 import { substageLabelWith } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,43 @@ interface Props {
   onReviewReceipt?: (receiptId: string) => void;
   /** The parts are already listed beside the stage's work, so the panel does not repeat them. */
   hideParts?: boolean;
+}
+
+/**
+ * Converts a typed foreign-currency receipt amount (e.g. NGN on an XAF stage) using live
+ * USD rates so the overpayment warning appears immediately while typing, before upload.
+ */
+function ForeignCurrencyExcessAlert({
+  typedAmount, selectedCurrency, projectCurrency, projectFxRate, dueInProject, format,
+}: {
+  typedAmount: string;
+  selectedCurrency: string;
+  projectCurrency: string;
+  projectFxRate: number;
+  dueInProject: number;
+  format: (value: number | null, iso: string | null) => string;
+}) {
+  const t = useT();
+  const foreignRate = useUsdRate(selectedCurrency === 'USD' ? null : selectedCurrency, null);
+  const amount = Number(typedAmount);
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(projectFxRate) || projectFxRate <= 0) return null;
+  const inProject = selectedCurrency === 'USD'
+    ? amount * projectFxRate
+    : foreignRate != null && foreignRate > 0
+      ? (amount / foreignRate) * projectFxRate
+      : null;
+  if (inProject == null || inProject <= dueInProject) return null;
+  return (
+    <div role="alert" data-excess-warning className="rounded-lg border border-state-held/40 bg-state-held/10 p-3 text-xs leading-relaxed">
+      <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
+      <p className="mt-1 text-brand-mid-grey">
+        {t('project.receiptFlow.excessPaymentWarningBody', {
+          amount: `${format(amount, selectedCurrency)} (≈ ${format(Math.round(inProject * 100) / 100, projectCurrency)})`,
+          due: format(dueInProject, projectCurrency),
+        })}
+      </p>
+    </div>
+  );
 }
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
@@ -51,6 +90,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const [confirmation,setConfirmation]=useState<{scope:string;receipt?:StagePaymentReceipt;stageAmount:number;legacy?:{path:string;uploadedAt:string};action:'accept'|'record'|'needs_top_up'|'flag';note?:string;topUp?:string;description:string}|null>(null);
   const [replacement,setReplacement]=useState<{scope:string;receiptId:string}|null>(null);
   const [fileQueue,setFileQueue]=useState<{scope:string;files:File[]}>({scope,files:[]});
+  const [justUploaded,setJustUploaded]=useState<{scope:string}|null>(null);
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
   const form = decisionForm?.scope === scope ? decisionForm : null;
   const busy = working === scope; const error = failure?.scope === scope ? failure.message : null;
@@ -83,14 +123,21 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
 
   const errorText = (error: unknown) => receiptErrorText(t, error);
-  // Overpayment (18 Nov). Confirmed money already past the stage price, and an amount being
-  // typed that would go past what is still due. Both only warn: the receipt is accepted and
-  // project_payment_allocation carries the excess forward to the next stages.
+  // Overpayment (18–19 Nov). Flag both confirmed excess and combined (confirmed + pending)
+  // excess across multiple uploaded receipts (even in another currency, since each uploaded
+  // receipt carries its project-currency equivalent), plus a live warning when typing.
   const stageDue = payment ? scheduledAmount ?? payment.amount * fxRate : null;
-  const excessNow = balance ? stageReceiptExcess(balance, stageDue) : null;
+  const excessConfirmed = balance ? stageReceiptExcess(balance, stageDue) : null;
+  const excessWithPending = balance ? stageReceiptTotalExcess(balance, stageDue) : null;
+  const excessNow = excessConfirmed != null && excessConfirmed > 0 ? excessConfirmed : excessWithPending;
+  const remainingAfterPending = balance?.remaining != null
+    ? Math.max(0, Math.round((balance.remaining - (balance.pending ?? 0)) * 1e6) / 1e6)
+    : null;
   const typedAmount = canonicalReceiptAmount(activeDraft.amount);
-  const typedDue = split ? (payingPart ? Number(payingPart.remaining) : null) : balance?.remaining ?? null;
-  // Only compared in the project currency; another currency is converted by the server.
+  const typedDue = split
+    ? (payingPart ? Number(payingPart.remaining) : null)
+    : remainingAfterPending;
+  // Same-currency comparison is synchronous; foreign currencies use ForeignCurrencyExcessAlert below.
   const typedOver = !!typedAmount && selectedCurrency === code && typedDue != null && Number(typedAmount) > typedDue;
 
   async function upload(file: File | null = activeDraft.file) {
@@ -108,7 +155,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         ...(replacement?.scope===scope?{replacesReceiptId:replacement.receiptId}:{}) });
       if (current.current === scope) {
         await onChanged();
-        if (current.current === scope) {const rest=fileQueue.scope===scope?fileQueue.files:[];setDraft({ scope, amount: '', currency: activeDraft.currency, file: rest[0]??null });setFileQueue({scope,files:rest.slice(1)});setReplacement(null);}
+        if (current.current === scope) {const rest=fileQueue.scope===scope?fileQueue.files:[];setDraft({ scope, amount: '', currency: activeDraft.currency, file: rest[0]??null });setFileQueue({scope,files:rest.slice(1)});setReplacement(null);setJustUploaded({ scope });}
       }
     } catch (error) {
       if (current.current === scope) {
@@ -182,11 +229,27 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono">{format(balance.received, code)}</dd></div>
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(balance.remaining, code)}</dd></div>
       {(balance.pending == null || balance.pending > 0) && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.pendingTotal')}</dt><dd className="mt-1 font-mono">{format(balance.pending, code)}</dd></div>}
+      {!isContractor && balance.pending != null && balance.pending > 0 && remainingAfterPending != null && (
+        <div data-client-remaining-after-pending>
+          <dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingAfterPending')}</dt>
+          <dd className="mt-1 font-mono">{format(remainingAfterPending, code)}</dd>
+        </div>
+      )}
     </dl>}
     {excessNow != null && excessNow > 0 && <div role="status" data-excess-payment className="rounded-lg border border-state-held/40 bg-state-held/10 p-3 text-xs leading-relaxed">
       <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
       <p className="mt-1 text-brand-mid-grey">{t(isContractor ? 'contractorView.overBy' : 'project.receiptFlow.excessCarried', { excessAmount: format(excessNow, code) })}</p>
     </div>}
+    <ContractorPaymentVerificationBar
+      stageId={stageId}
+      isContractor={isContractor}
+      readOnly={readOnly}
+      settled={settled}
+      currencyCode={code}
+      fxRate={fxRate}
+      scheduledAmount={scheduledAmount}
+      onChanged={onChanged}
+    />
     {/* Why a receipt cannot be added here yet. On a contractor-created project this is the
         agreed order (work updates, the client's approval, then payment), and on 16 November
         one small grey line was all that said so: the upload looked broken. */}
@@ -285,6 +348,16 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
           <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
           <p className="mt-1 text-brand-mid-grey">{t('project.receiptFlow.excessPaymentWarningBody', { amount: format(Number(typedAmount), code), due: format(typedDue, code) })}</p>
         </div>}
+        {!typedOver && !!typedAmount && selectedCurrency !== code && typedDue != null && (
+          <ForeignCurrencyExcessAlert
+            typedAmount={typedAmount}
+            selectedCurrency={selectedCurrency}
+            projectCurrency={code}
+            projectFxRate={fxRate}
+            dueInProject={typedDue}
+            format={format}
+          />
+        )}
         {fileQueue.scope===scope&&fileQueue.files.length>0&&<p className="text-xs">{t('project.receiptFlow.additionalFiles',{count:fileQueue.files.length+1})}</p>}
         {activeDraft.file && <p className="break-all text-xs text-brand-mid-grey">{activeDraft.file.name}</p>}
         <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-40" disabled={!allowed || busy}>
@@ -295,6 +368,20 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-label={t('project.receiptFlow.takePhoto')} onChange={event => { const file = event.target.files?.[0] ?? null; event.target.value = ''; return selectFile(file); }} />
       </fieldset>
     </form>}
+    {/* Immediate post-upload feedback right where the user clicked, whether or not the form stays open. */}
+    {!isContractor && justUploaded?.scope === scope && excessNow != null && excessNow > 0 && (
+      <div role="alert" data-upload-excess-alert className="rounded-lg border border-state-held/40 bg-state-held/10 p-3 text-xs leading-relaxed">
+        <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
+        <p className="mt-1 text-brand-mid-grey">{t('project.receiptFlow.receiptUploadedExcess', { excessAmount: format(excessNow, code) })}</p>
+      </div>
+    )}
+    {!isContractor && justUploaded?.scope === scope && (excessNow == null || excessNow <= 0) && remainingAfterPending != null && (
+      <div role="status" data-upload-remaining-notice className="rounded-lg border border-brand-green/30 bg-brand-green/5 p-3 text-xs leading-relaxed text-brand-near-black dark:text-white">
+        {remainingAfterPending > 0
+          ? t('project.receiptFlow.receiptUploadedRemaining', { remaining: format(remainingAfterPending, code) })
+          : t('project.receiptFlow.receiptUploadedCovered')}
+      </div>
+    )}
     <ConfirmModal open={!!confirm} title={t('project.receiptFlow.confirmDecision')} description={confirm?.description??''} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmDecision} onCancel={()=>setConfirmation(null)}/>
     {error && <p role="alert" className={clientPresentation ? 'rounded-lg border border-state-alert/30 p-3 text-sm leading-relaxed text-state-alert' : 'text-xs text-state-alert'}>{error}</p>}
     {/* Fills the two fields with what the receipt itself says. Nothing is submitted: the

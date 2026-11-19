@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verifications';
-import { stageReceiptBalance, stageReceiptExcess } from './stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess, stageReceiptTotalExcess } from './stage-receipt-balance';
 
 const receipt = (patch: Partial<StagePaymentReceipt> = {}): StagePaymentReceipt => ({
   id: 'receipt', stageId: 'stage', path: 'proof', submittedAt: '', amount: 30, currency: 'USD',
@@ -60,5 +60,14 @@ describe('stage balances across partial payments and currencies', () => {
     expect(stageReceiptExcess(under, 60000)).toBe(0);
     expect(stageReceiptExcess(under, 60000, 50000)).toBe(15000);
     expect(stageReceiptExcess({ received: null, remaining: null }, 60000)).toBeNull();
+  });
+  it('detects overpayment across multiple pending receipts (e.g. NGN receipts on an XAF stage)', () => {
+    const r1 = receipt({ id: 'r1', decision: 'pending', amount: 2300000, currency: 'NGN', projectAmount: 991333.77, projectCurrency: 'XAF' });
+    const r2 = receipt({ id: 'r2', decision: 'pending', amount: 480000, currency: 'NGN', projectAmount: 206564.23, projectCurrency: 'XAF' });
+    const bal = stageReceiptBalance(payment([r1, r2]), 'XAF', 616.82, 1193586);
+    expect(bal.received).toBe(0);
+    expect(bal.pending).toBe(1197898);
+    expect(stageReceiptExcess(bal, 1193586)).toBe(0);
+    expect(stageReceiptTotalExcess(bal, 1193586)).toBe(4312);
   });
 });

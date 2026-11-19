@@ -4,7 +4,7 @@ import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
-import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Search, Upload, UserRound } from 'lucide-react';
+import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Search, Send, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -25,12 +25,17 @@ import { ProjectExchangeRateNote } from '@/components/project/ExchangeRateNote';
 // payment the client is shown, and until 11 Nov 2026 they disagreed about it by ~3.34%
 // on every stage of a bill-of-quantities project — see lib/budget/stage-amounts.ts.
 import { stageBasisFor, stagePayableUsd, sumPayableUsd } from '@/lib/budget/stage-amounts';
-import { sumBillAmounts } from '@/lib/budget/bill-budget';
+import { sumBillAmounts, normaliseBudgetInput } from '@/lib/budget/bill-budget';
+import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
+import {
+  fetchProjectContractorPaymentState, requestStagePayment,
+  type ProjectContractorPaymentState,
+} from '@/lib/supabase/contractor-payments';
 import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
-import { useT, type TKey } from '@/lib/i18n';
+import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProjectSharing } from '@/components/project/ProjectSharing';
@@ -822,6 +827,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   inviteHomeowner: boolean;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { stageLabel, substageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project);
   const { project, stages } = assigned;
@@ -831,6 +837,22 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
+  /** Per-substage "Request payment" inline dropdown state (19 Nov). */
+  const [requestPayFor, setRequestPayFor] = useState<string | null>(null);
+  const [requestAmount, setRequestAmount] = useState('');
+  const [requestNote, setRequestNote] = useState('');
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [contractorPayState, setContractorPayState] = useState<ProjectContractorPaymentState | null>(null);
+  const reloadContractorPayState = useCallback(async () => {
+    try {
+      const nextState = await fetchProjectContractorPaymentState(project.id);
+      setContractorPayState(nextState);
+    } catch {
+      // Non-blocking: table/RPC may not be populated in older environments or test mocks.
+    }
+  }, [project.id]);
+  useEffect(() => { void reloadContractorPayState(); }, [reloadContractorPayState]);
   const stageParams = new URLSearchParams(typeof window === 'undefined' ? '' : window.location?.search ?? '');
   const linkedStage = stageParams.get('stage_id') ?? stageParams.get('stage');
   const ordered = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
@@ -946,6 +968,45 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const split = !!stage.paid_by_part && !!parts?.split;
   const partReady = (substageId: string) => partWorkReady(parts, !!stage.paid_by_part && isOpen, substageId);
   const waiting = waitingOn(stage);
+  // Upfront-payment suppression (19 Nov): if the Homeowner already paid for this stage
+  // upfront (recorded at project creation or via contractor stage verification) or the
+  // stage is already fully settled, do not show the per-substage "Request payment" button.
+  const stagePaidUpfront =
+    !!contractorPayState?.verifiedStageIds.has(stage.id)
+    || (contractorPayState?.initialPayment?.covered_stages?.includes(stage.stage_number) ?? false)
+    || (balance?.remaining === 0 && (balance?.received ?? 0) > 0);
+  const canRequestSubstagePayment =
+    canConfirmPayments && !stage.pre_existing && stage.status !== 'complete'
+    && stagePayableUsd(stage, basis) > 0 && !stagePaidUpfront;
+  const openRequestFor = (substageId: string) =>
+    contractorPayState?.requests.find(r => r.stage_id === stage.id && r.substage_id === substageId);
+  async function submitSubstagePaymentRequest(substageId: string) {
+    if (requestBusy) return;
+    const parsed = canonicalReceiptAmount(requestAmount.trim());
+    if (!parsed) {
+      setRequestError(t('project.stages.receiptAmountInvalid'));
+      return;
+    }
+    setRequestBusy(true);
+    setRequestError(null);
+    try {
+      await requestStagePayment({
+        stageId: stage.id,
+        substageId,
+        amount: Number(parsed),
+        currency: money.code,
+        note: requestNote,
+      });
+      setRequestPayFor(null);
+      setRequestAmount('');
+      setRequestNote('');
+      await reloadContractorPayState();
+    } catch (err) {
+      setRequestError(errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setRequestBusy(false);
+    }
+  }
   // Price by part (18 Nov): each part is paid before its work, so the contractor
   // has to be able to price a stage's parts from here, not only the homeowner's view.
   // The server decides who may propose; the panel hides itself when there is nothing to do.
@@ -1032,8 +1093,6 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
             </div>}
           </div>
 
-          {breakdown}
-
           {blockedText && stage.status !== 'complete' && !stage.pre_existing && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{blockedText}</p>}
 
           {/* What a verifier sent back belongs to the stage it is about. */}
@@ -1059,6 +1118,9 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                 const part = split ? parts?.parts?.find(row => row.id === item.id) : undefined;
                 const partWaiting = part ? waiting.find(receipt => receipt.substageId === item.id) : undefined;
                 const ready = partReady(item.id);
+                const openReq = openRequestFor(item.id);
+                const showRequestBtn = canRequestSubstagePayment && !complete && !part?.paid && !partWaiting;
+                const showUploadBtn = isOpen && !complete && !partWaiting && canWork && ready;
                 return (
                   <li key={item.id} id={`substage-${item.id}`} className={cn('border-t border-brand-border-grey px-3.5 py-3 first:border-t-0 dark:border-[#2c2c2c]', partWaiting && 'bg-state-held/[0.05]')}>
                     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 md:grid-cols-[22px_minmax(0,1fr)_auto_auto]">
@@ -1076,6 +1138,13 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                             : part && !part.paid && !ready ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
                             : count > 0 ? t('contractorProject.evidenceCount', { count }) : t('contractorProject.noEvidence')}
                         </span>
+                        {openReq && openReq.amount != null && (
+                          <span className="mt-1 inline-block rounded-full bg-state-held/10 px-2 py-0.5 text-[11px] font-semibold text-state-held" data-substage-payment-requested>
+                            {t('contractorView.paymentRequestedTag', {
+                              amount: `${Number(openReq.amount).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ${openReq.currency ?? money.code}`,
+                            })}
+                          </span>
+                        )}
                       </span>
                       {/* One set of thumbnails: beside the part on desktop, under its name on a phone. */}
                       <span className="col-start-2 row-start-2 min-w-0 md:col-start-3 md:row-start-1 [&>div]:mt-0">
@@ -1089,17 +1158,85 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                         </span>}
                         {partWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, partWaiting.id)} data-action="review-part-receipt"
                           className="rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white">{t('contractorView.reviewReceipt')}</button>}
-                        {/* Upload only where it works. Why it does not is said in words: the
-                            stage line above, or "paid after part n" on the part. */}
-                        {isOpen && !complete && !partWaiting && canWork && ready && (
-                          <button type="button" onClick={() => setUploadFor(item.id)}
-                            data-tour="upload-evidence" data-action="upload"
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white">
-                            <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
-                          </button>
+                        {/* Side-by-side Request payment + Upload buttons (19 Nov). */}
+                        {(showRequestBtn || showUploadBtn) && (
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {showRequestBtn && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const closing = requestPayFor === item.id;
+                                  setRequestPayFor(closing ? null : item.id);
+                                  setUploadFor(null);
+                                  setRequestAmount(part?.price ? String(part.price) : '');
+                                  setRequestNote('');
+                                  setRequestError(null);
+                                }}
+                                data-action="request-substage-payment"
+                                className="inline-flex items-center gap-1 rounded-lg border border-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-brand-green hover:bg-brand-green/5 dark:text-[#b4d8bf]"
+                              >
+                                <Send className="size-3" aria-hidden />{t('contractorView.requestSubstagePayment')}
+                              </button>
+                            )}
+                            {showUploadBtn && (
+                              <button type="button" onClick={() => { setUploadFor(item.id); setRequestPayFor(null); }}
+                                data-tour="upload-evidence" data-action="upload"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white">
+                                <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </span>
                     </div>
+
+                    {/* Inline Request payment dropdown for this substage (19 Nov). */}
+                    {requestPayFor === item.id && showRequestBtn && (
+                      <form
+                        onSubmit={e => { e.preventDefault(); void submitSubstagePaymentRequest(item.id); }}
+                        className="mt-3 space-y-2.5 rounded-xl border border-brand-green/30 bg-brand-off-white px-4 py-3.5 text-xs dark:bg-[#141414]"
+                        data-substage-payment-dropdown
+                      >
+                        <label className="block font-medium text-brand-near-black dark:text-white">
+                          {t('contractorView.requestSubstageAmountLabel', { currency: money.code })}
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={requestAmount}
+                            disabled={requestBusy}
+                            onChange={e => {
+                              const raw = e.target.value;
+                              setRequestAmount(/^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw);
+                              setRequestError(null);
+                            }}
+                            className="mt-1 min-h-10 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 font-mono text-sm dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+                          />
+                        </label>
+                        <label className="block font-medium text-brand-near-black dark:text-white">
+                          {t('contractorView.noteOptional')}
+                          <input
+                            type="text"
+                            maxLength={500}
+                            value={requestNote}
+                            disabled={requestBusy}
+                            onChange={e => setRequestNote(e.target.value)}
+                            className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-xs dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+                          />
+                        </label>
+                        {requestError && <p role="alert" className="text-state-alert">{requestError}</p>}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button type="submit" disabled={requestBusy}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white disabled:opacity-50">
+                            {requestBusy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Send className="size-3.5" aria-hidden />}
+                            {t('contractorView.sendPaymentRequest')}
+                          </button>
+                          <button type="button" disabled={requestBusy} onClick={() => { setRequestPayFor(null); setRequestError(null); }}
+                            className="px-2 py-1.5 text-brand-mid-grey underline underline-offset-4">
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      </form>
+                    )}
 
                     {/* Opened against the item it belongs to, so the camera and
                         the file picker are under the thumb that pressed Upload. */}
@@ -1118,6 +1255,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
             </ul>
           )}
 
+          {breakdown}
           {showGate && (
             <div data-tour="confirm-payment">
             {/* Share the project's canonical budget basis with the client payment

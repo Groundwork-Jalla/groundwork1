@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/format';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
-import { stageReceiptBalance, stageReceiptExcess } from '@/lib/payments/stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess, stageReceiptTotalExcess } from '@/lib/payments/stage-receipt-balance';
 import { decideStagePaymentReceipt, signReceiptUrl, type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { useSubstagePayments } from '@/lib/supabase/substage-payments';
 import { substageLabelWith } from '@/lib/stage-labels';
@@ -66,9 +66,12 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
   const partLabel = part ? t('project.historyView.part', { n: part.number ?? '', name: substageLabelWith(t, { name: part.name, substage_key: part.key }) }) : null;
   const projected = stageReceiptBalance({ ...payment, receipts: payment.receipts?.map(row => row.id === receipt.id ? { ...row, decision: 'received' as const } : row) }, currency, rate, scheduled);
   const remainingAfter = projected.remaining;
-  // Accepting this receipt would take the stage past its price (18 Nov): say by how much.
+  // Accepting this receipt (alone or combined with other pending receipts on the stage)
+  // would take the stage past its price (18–19 Nov): say by how much.
   // The excess still carries forward to the next stages; nothing here changes that.
-  const excessAfter = stageReceiptExcess(projected, scheduled);
+  const excessConfirmedAfter = stageReceiptExcess(projected, scheduled);
+  const excessTotalAfter = stageReceiptTotalExcess(projected, scheduled);
+  const excessAfter = excessConfirmedAfter != null && excessConfirmedAfter > 0 ? excessConfirmedAfter : excessTotalAfter;
 
   async function decide(action: Decision) {
     if (busy.current) return;
