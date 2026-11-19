@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { listAuditLog, type AuditRow } from '@/lib/supabase/activity';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { actionLabel } from '@/lib/admin/action-labels';
+import { groupActivityByActor } from '@/lib/admin/activity-groups';
+import { workspaceHref } from '@/lib/admin/workspace-params';
 import { useT, useLanguage } from '@/lib/i18n';
 
 // =========================================================
@@ -30,6 +32,10 @@ export default function AdminAuditLog() {
   const [loading, setLoading] = useState(true);
   const [more, setMore]       = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const groups = useMemo(() => groupActivityByActor(rows), [rows]);
+  const toggle = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
   const load = useCallback(async (before?: string) => {
     try {
@@ -69,29 +75,85 @@ export default function AdminAuditLog() {
         <EmptyState title={t('admin.ops.recentEmpty')} description={t('admin.auditLog.emptyBody')} />
       ) : (
         <>
-          <ul className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            {rows.map(r => {
-              const verb = actionLabel(r.action, t);
+          <ul className="divide-y divide-brand-border-grey overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:divide-[#2c2c2c] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            {groups.map(group => {
+              if (group.events.length === 1) {
+                const r = group.events[0];
+                const verb = actionLabel(r.action, t);
+                return (
+                  <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-5 py-3">
+                    <span className="text-sm text-brand-near-black dark:text-white">
+                      {/* An actor with no readable account shows as "—", not as a guess. */}
+                      <span className="font-medium">{r.actorName || t('admin.auditLog.unknownActor')}</span> {verb}
+                    </span>
+                    {r.personName && (
+                      <span className="text-xs text-brand-mid-grey">· {r.personName}</span>
+                    )}
+                    {r.projectId ? (
+                      <Link to={workspaceHref(r.projectId)}
+                        className="text-xs text-brand-mid-grey underline-offset-2 transition-colors hover:text-brand-near-black hover:underline dark:hover:text-white">
+                        {r.projectName || r.projectId.slice(0, 8)}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-brand-mid-grey">{t('admin.ops.noProject')}</span>
+                    )}
+                    <span className="ml-auto shrink-0 text-[11px] tabular-nums text-brand-muted-grey" title={stamp(r.createdAt)}>
+                      {formatRelative(r.createdAt)}
+                    </span>
+                  </li>
+                );
+              }
+
+              const open = !!expanded[group.key];
               return (
-                <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-brand-border-grey px-5 py-3 last:border-b-0 dark:border-[#2c2c2c]">
-                  <span className="text-sm text-brand-near-black dark:text-white">
-                    {/* An actor with no readable account shows as "—", not as a guess. */}
-                    <span className="font-medium">{r.actorName || t('admin.auditLog.unknownActor')}</span> {verb}
-                  </span>
-                  {r.personName && (
-                    <span className="text-xs text-brand-mid-grey">· {r.personName}</span>
+                <li key={group.key} data-activity-group={group.key}>
+                  <button
+                    type="button"
+                    onClick={() => toggle(group.key)}
+                    aria-expanded={open}
+                    className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition-colors hover:bg-brand-off-white dark:hover:bg-[#252525]"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      {open
+                        ? <ChevronDown className="size-4 shrink-0 text-brand-mid-grey" aria-hidden />
+                        : <ChevronRight className="size-4 shrink-0 text-brand-mid-grey" aria-hidden />}
+                      <span className="truncate text-sm font-medium text-brand-near-black dark:text-white">
+                        {group.actorName}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-brand-light-grey px-2 py-0.5 text-xs font-semibold text-brand-mid-grey dark:bg-[#2c2c2c]">
+                        {t('admin.ops.groupActivities', { n: group.events.length })}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-brand-muted-grey" title={stamp(group.latestAt)}>
+                      {formatRelative(group.latestAt)}
+                    </span>
+                  </button>
+                  {open && (
+                    <ul className="divide-y divide-brand-border-grey/60 border-t border-brand-border-grey/60 bg-brand-off-white/60 dark:divide-[#2c2c2c] dark:border-[#2c2c2c] dark:bg-[#141414]">
+                      {group.events.map(r => {
+                        const verb = actionLabel(r.action, t);
+                        return (
+                          <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-2.5 pl-11 pr-5">
+                            <span className="text-sm text-brand-near-black dark:text-white">{verb}</span>
+                            {r.personName && (
+                              <span className="text-xs text-brand-mid-grey">· {r.personName}</span>
+                            )}
+                            {r.projectId ? (
+                              <Link to={workspaceHref(r.projectId)}
+                                className="text-xs text-brand-mid-grey underline-offset-2 transition-colors hover:text-brand-near-black hover:underline dark:hover:text-white">
+                                {r.projectName || r.projectId.slice(0, 8)}
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-brand-mid-grey">{t('admin.ops.noProject')}</span>
+                            )}
+                            <span className="ml-auto shrink-0 text-[11px] tabular-nums text-brand-muted-grey" title={stamp(r.createdAt)}>
+                              {formatRelative(r.createdAt)}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   )}
-                  {r.projectId ? (
-                    <Link to={`/projects/${r.projectId}`} target="_blank"
-                      className="text-xs text-brand-mid-grey underline-offset-2 transition-colors hover:text-brand-near-black hover:underline dark:hover:text-white">
-                      {r.projectName || r.projectId.slice(0, 8)}
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-brand-mid-grey">{t('admin.ops.noProject')}</span>
-                  )}
-                  <span className="ml-auto shrink-0 text-[11px] tabular-nums text-brand-muted-grey" title={stamp(r.createdAt)}>
-                    {formatRelative(r.createdAt)}
-                  </span>
                 </li>
               );
             })}

@@ -208,10 +208,10 @@ describe('the Financials tab, redesigned', () => {
     expect(button(view, 'Show all 12')).toHaveLength(0);
   });
 
-  it('the provider banner still points at Integrations, and the costing still opens the take-off', async () => {
+  it('the provider banner still points at Integrations, and the Edit bill of quantities link is removed', async () => {
     const to = (await settle()).filter(n => n.type === 'a').map(n => n.props.to);
     expect(to).toContain('/admin/integrations');
-    expect(to).toContain('/admin/projects/p1/takeoff');
+    expect(to).not.toContain('/admin/projects/p1/takeoff');
   });
 
   it('the new strings exist in both languages', () => {

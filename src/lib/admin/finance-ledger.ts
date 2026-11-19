@@ -215,3 +215,59 @@ export function totalsFor(lines: LedgerLine[], direction: 'in' | 'out'): Directi
     count: mine.length,
   };
 }
+
+export interface ProjectFinanceSummary {
+  projectId: string;
+  projectName: string | null;
+  confirmedIn: number;
+  expectedIn: number;
+  approvedOut: number;
+  disbursedOut: number;
+  available: number;
+  latestAt: string;
+  count: number;
+}
+
+/**
+ * Per-project breakdown of the admin finance ledger (18 Nov).
+ *
+ * Splits the aggregate finance figures by project so operators can inspect each
+ * project's inflows, expected funding, disbursements, and available balance separately.
+ */
+export function projectTotals(lines: LedgerLine[]): ProjectFinanceSummary[] {
+  const byProject = new Map<string, { name: string | null; rows: LedgerLine[]; latestAt: string }>();
+  for (const l of lines) {
+    const entry = byProject.get(l.projectId);
+    if (!entry) {
+      byProject.set(l.projectId, { name: l.projectName, rows: [l], latestAt: l.at });
+    } else {
+      if (!entry.name && l.projectName) entry.name = l.projectName;
+      if (l.at > entry.latestAt) entry.latestAt = l.at;
+      entry.rows.push(l);
+    }
+  }
+
+  const out: ProjectFinanceSummary[] = [];
+  for (const [projectId, { name, rows, latestAt }] of byProject) {
+    const incoming = totalsFor(rows, 'in');
+    const outgoing = totalsFor(rows, 'out');
+    const approvedOut = outgoing.approved + outgoing.processing;
+    out.push({
+      projectId,
+      projectName: name,
+      confirmedIn: incoming.settled,
+      expectedIn: incoming.pending,
+      approvedOut,
+      disbursedOut: outgoing.settled,
+      available: Math.max(0, incoming.settled - outgoing.settled - approvedOut),
+      latestAt,
+      count: rows.length,
+    });
+  }
+
+  return out.sort((a, b) =>
+    b.confirmedIn - a.confirmedIn
+    || b.expectedIn - a.expectedIn
+    || b.latestAt.localeCompare(a.latestAt),
+  );
+}

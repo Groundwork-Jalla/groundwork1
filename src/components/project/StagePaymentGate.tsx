@@ -1,7 +1,8 @@
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useRef, useState, type FormEvent } from 'react';
-import { Camera, FileUp, Loader2, Receipt } from 'lucide-react';
+import { Camera, Eye, FileUp, Loader2, Receipt } from 'lucide-react';
 import { useT, useLanguage } from '@/lib/i18n';
+import { currencyFractionDigits } from '@/lib/format';
 import { useProjectMoneyContext } from '@/lib/budget/project-money-context';
 import { useUsdRate } from '@/lib/budget/live-fx';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
@@ -31,6 +32,10 @@ interface Props {
   onReviewReceipt?: (receiptId: string) => void;
   /** The parts are already listed beside the stage's work, so the panel does not repeat them. */
   hideParts?: boolean;
+  /** The contractor payment prompt is rendered above the work checklist, so don't repeat it here. */
+  hideVerificationPrompt?: boolean;
+  /** Caller already knows the contractor recorded this stage as paid offline. */
+  contractorPaidUpfront?: boolean;
 }
 
 /**
@@ -72,7 +77,7 @@ function ForeignCurrencyExcessAlert({
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
-  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null, onReviewReceipt, hideParts = false }: Props) {
+  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null, onReviewReceipt, hideParts = false, hideVerificationPrompt = false, contractorPaidUpfront = false }: Props) {
   const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
@@ -94,7 +99,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const [justUploaded,setJustUploaded]=useState<{scope:string}|null>(null);
   const [contractorVer,setContractorVer]=useState<{scope:string;verification:ContractorStageVerification|null}>({scope,verification:null});
   const activeContractorVer = contractorVer.scope === scope ? contractorVer.verification : null;
-  const contractorRecordedPaid = !!activeContractorVer;
+  const contractorRecordedPaid = contractorPaidUpfront || !!activeContractorVer;
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
   const form = decisionForm?.scope === scope ? decisionForm : null;
   const busy = working === scope; const error = failure?.scope === scope ? failure.message : null;
@@ -124,7 +129,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     && (!split || !!payingPart);
   const fail = (message: string) => setFailure({ scope, message });
   const format = (value: number | null, iso: string | null) => value == null ? t('project.receiptFlow.amountUnknown')
-    : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
+    : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(iso) }).format(value) + ` ${iso ?? ''}`;
 
   const errorText = (error: unknown) => receiptErrorText(t, error);
   // Overpayment (18–19 Nov). Flag both confirmed excess and combined (confirmed + pending)
@@ -279,17 +284,20 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
       <p className="mt-1 text-brand-mid-grey">{t(isContractor ? 'contractorView.overBy' : 'project.receiptFlow.excessCarried', { excessAmount: format(excessNow, code) })}</p>
     </div>}
-    <ContractorPaymentVerificationBar
-      stageId={stageId}
-      isContractor={isContractor}
-      readOnly={readOnly}
-      settled={settled}
-      currencyCode={code}
-      fxRate={fxRate}
-      scheduledAmount={scheduledAmount}
-      onChanged={onChanged}
-      onVerificationChange={v => setContractorVer({ scope, verification: v })}
-    />
+    {(!hideVerificationPrompt || !isContractor) && (
+      <ContractorPaymentVerificationBar
+        stageId={stageId}
+        isContractor={isContractor}
+        readOnly={readOnly}
+        settled={settled}
+        hasReceipts={liveReceipts.length > 0}
+        currencyCode={code}
+        fxRate={fxRate}
+        scheduledAmount={scheduledAmount}
+        onChanged={onChanged}
+        onVerificationChange={v => setContractorVer({ scope, verification: v })}
+      />
+    )}
     {/* Why a receipt cannot be added here yet. On a contractor-created project this is the
         agreed order (work updates, the client's approval, then payment), and on 16 November
         one small grey line was all that said so: the upload looked broken. */}
@@ -325,23 +333,39 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       {receipt.amountUsd != null && receipt.currency !== 'USD' && <p className="mt-1 font-mono text-brand-mid-grey">≈ ${receipt.amountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
       {receipt.projectAmount != null && receipt.projectCurrency !== receipt.currency && <p className="mt-1 font-mono text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: format(receipt.projectAmount, receipt.projectCurrency ?? code) })}</p>}
       <ReceiptExchangeRateNote receipt={receipt}/>
-      {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&!readOnly&&canUpload&&<button type="button" disabled={busy} onClick={()=>onReviewReceipt?onReviewReceipt(receipt.id):setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})} className="mt-2 ml-3 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
-      {!isContractor&&!readOnly&&canUpload&&!receipt.replacedBy&&receipt.decision!=='received'&&<button type="button" disabled={busy} onClick={()=>correctReceipt(receipt)} className="mt-2 ml-3 rounded-lg border px-3 py-2 font-semibold">{t('project.receiptFlow.replaceReceipt')}</button>}
       {receipt.decisionNote && <p className="mt-1 whitespace-pre-wrap text-brand-mid-grey">{receipt.decisionNote}</p>}
-      <button type="button" className="mt-2 font-semibold text-brand-green underline" onClick={() => { void openReceipt(receipt.path); }}>{t('project.stages.confirmView')}</button>
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&!readOnly&&canUpload&&(
+          <button type="button" disabled={busy} onClick={()=>onReviewReceipt?onReviewReceipt(receipt.id):setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})}
+            className="inline-flex items-center justify-center rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:opacity-50">
+            {t('project.receiptFlow.reviewPayment')}
+          </button>
+        )}
+        {!isContractor&&!readOnly&&canUpload&&!receipt.replacedBy&&receipt.decision!=='received'&&(
+          <button type="button" disabled={busy} onClick={()=>correctReceipt(receipt)}
+            className="inline-flex items-center justify-center rounded-lg border border-brand-green bg-white px-3.5 py-2 text-xs font-semibold text-brand-green transition-colors hover:bg-brand-green/5 disabled:opacity-50 dark:bg-[#1a1a1a] dark:text-[#b4d8bf]">
+            {t('project.receiptFlow.replaceReceipt')}
+          </button>
+        )}
+        <button type="button" onClick={() => { void openReceipt(receipt.path); }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey bg-white px-3.5 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-near-black hover:bg-brand-off-white dark:border-[#3a3a3a] dark:bg-[#1a1a1a] dark:text-white dark:hover:border-white/50">
+          <Eye className="size-3.5 shrink-0" aria-hidden />
+          {t('project.stages.confirmView')}
+        </button>
+      </div>
     </li>)}</ol>}
     {legacyPending && <div className="space-y-2 text-xs"><p className="font-mono">{format(payment.receiptAmount ?? null, payment.receiptCurrency ?? null)}</p>
       {payment.receiptAmountUsd != null && payment.receiptCurrency !== 'USD' && <p className="font-mono text-brand-mid-grey">≈ ${payment.receiptAmountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
-      <button type="button" className="font-semibold text-brand-green underline" onClick={() => { void openReceipt(payment.receiptPath!); }}>{t('project.stages.confirmView')}</button></div>}
+      <div className="pt-1 flex flex-wrap items-center gap-2.5">
+        {isContractor && !readOnly && <button type="button" disabled={!canUpload||busy} onClick={()=>review(undefined,'accept')} className="inline-flex items-center justify-center rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:opacity-50">{t('project.receiptFlow.reviewPayment')}</button>}
+        <button type="button" onClick={() => { void openReceipt(payment.receiptPath!); }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey bg-white px-3.5 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-near-black hover:bg-brand-off-white dark:border-[#3a3a3a] dark:bg-[#1a1a1a] dark:text-white dark:hover:border-white/50">
+          <Eye className="size-3.5 shrink-0" aria-hidden />
+          {t('project.stages.confirmView')}
+        </button>
+      </div></div>}
     {requested && requested.requestedTopUp != null && !settled && <p className="text-xs text-brand-near-black dark:text-white">{t('project.receiptFlow.topUpRequested', { amount: format(requested.requestedTopUp, requested.currency) })}</p>}
     {isContractor && !readOnly ? <>
-      {legacyPending&&<button type="button" disabled={!canUpload||busy} onClick={()=>review(undefined,'accept')} className="rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
-      {/* One payment action at a time. While a receipt is waiting to be reviewed, that
-          review is the action: it ends on the same continue / record / top-up choice
-          this button opens, so showing both read as two buttons for one thing
-          (16 November). Once nothing is waiting, this is how work is allowed on money
-          already confirmed. */}
-      {receivedWithoutWork && !settled && !pending && !form && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:receivedWithoutWork.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
       {form&&<div className="space-y-3 rounded-xl border border-brand-green/40 p-4">
         <p className="font-mono text-sm font-semibold">{format(reviewedReceipt?.amount??null,reviewedReceipt?.currency??code)}</p>
         {form.step==='receipt'?<>

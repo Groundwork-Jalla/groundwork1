@@ -1004,21 +1004,13 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
 }) {
   const t = useT();
   const accepted = state === 'accepted';
+  const booked = accepted || (qualified && !!detail?.bookingShownAt);
   const hasCalendar = booking !== 'unset' && booking !== null;
 
-  /**
-   * Where this application actually stands, in one line.
-   *
-   * It used to read "we have your application" whatever had happened since,
-   * which is why Favour asked for the call trail to "accurately display the
-   * booking status". It now follows the same facts the track below it does —
-   * and still never claims a call is BOOKED, because the slot lives in the
-   * team's calendar and not here (migration 136).
-   */
   const trailStatus: TKey =
     accepted                      ? 'partner.statusAcceptedTitle'
     : !qualified                  ? 'partner.trailReviewing'
-    : detail?.bookingShownAt      ? 'partner.trailChooseTime'
+    : detail?.bookingShownAt      ? 'partner.trailBooked'
     : hasCalendar                 ? 'partner.trailBookNow'
     :                               'partner.statusPendingTitle';
 
@@ -1055,9 +1047,9 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
               {t('partner.yourApplication')}
             </h1>
             <span className={cn('flex items-center gap-1.5 text-xs font-semibold',
-              accepted ? 'text-state-complete' : 'text-state-held')}>
+              booked ? 'text-state-complete' : 'text-state-held')}>
               <span aria-hidden className={cn('size-1.5 rounded-full',
-                accepted ? 'bg-state-complete' : 'bg-state-held')} />
+                booked ? 'bg-state-complete' : 'bg-state-held')} />
               {t(trailStatus)}
             </span>
           </div>

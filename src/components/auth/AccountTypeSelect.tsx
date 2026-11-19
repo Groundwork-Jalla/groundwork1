@@ -27,11 +27,11 @@ const OPTIONS: readonly SignupAccountType[] = ['homeowner', 'contractor'] as con
 const STYLE: Record<SignupAccountType, { on: string; off: string }> = {
   homeowner: {
     on:  'border-brand-green bg-brand-green text-white',
-    off: 'border-brand-green bg-white text-brand-green hover:bg-brand-green/10',
+    off: 'border-brand-green bg-white text-brand-green hover:bg-brand-green/10 dark:border-[#4e9e78] dark:bg-transparent dark:text-[#86efac] dark:hover:bg-[#4e9e78]/15',
   },
   contractor: {
-    on:  'border-brand-near-black bg-brand-near-black text-white',
-    off: 'border-brand-near-black bg-white text-brand-near-black hover:bg-brand-light-grey',
+    on:  'border-brand-near-black bg-brand-near-black text-white dark:border-[#f0f0f0] dark:bg-[#f0f0f0] dark:text-[#0a0a0a]',
+    off: 'border-brand-near-black bg-white text-brand-near-black hover:bg-brand-light-grey dark:border-[#f0f0f0]/75 dark:bg-transparent dark:text-[#f0f0f0] dark:hover:bg-white/10',
   },
 };
 

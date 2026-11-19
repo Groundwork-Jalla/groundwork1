@@ -40,9 +40,12 @@ import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProjectSharing } from '@/components/project/ProjectSharing';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import { ContractorPaymentVerificationBar } from '@/components/project/ContractorPaymentVerificationBar';
 import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
+import { fetchStagePaymentPlan } from '@/lib/supabase/stage-payment-plans';
+import { currencyFractionDigits } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
@@ -168,7 +171,16 @@ export default function ContractorProjectDetail() {
   }, [projectId]);
 
   useEffect(() => {
-    activeProject.current = projectId; setAssigned(null); void load();
+    activeProject.current = projectId;
+    setAssigned(null);
+    setSubstages([]);
+    setDocuments([]);
+    setRework([]);
+    setPayments(null);
+    setStagePayments(new Map());
+    setSelectedStageId(null);
+    setReviewing(null);
+    void load();
     return () => { activeProject.current = null; ++loadSequence.current; };
   }, [load, projectId]);
   useEffect(() => {
@@ -284,12 +296,13 @@ export default function ContractorProjectDetail() {
       </nav>
 
       {tab === 'work' && (
-        <ProjectCloseoutPanel projectId={project.id} refreshKey={stagePayments}
+        <ProjectCloseoutPanel key={`closeout:${project.id}`} projectId={project.id} refreshKey={stagePayments}
           stageName={stageId => { const stage = assigned.stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }}
           onViewStage={openStage} onClosed={load} />
       )}
       {tab === 'work' && (
         <WorkTab
+          key={`work:${project.id}`}
           hasBoq={hasBoq}
           assigned={assigned} substages={substages} rework={rework}
           isOwner={user?.id === project.user_id}
@@ -305,6 +318,7 @@ export default function ContractorProjectDetail() {
 
       {tab === 'documents' && (
         <ProjectDocuments
+          key={`docs:${assigned.project.id}`}
           projectId={assigned.project.id}
           stages={assigned.stages}
           documents={documents}
@@ -313,18 +327,18 @@ export default function ContractorProjectDetail() {
 
       {tab === 'money' && (
         <div className="space-y-4">
-          <MoneyTab assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} substages={substages}
+          <MoneyTab key={`money:${project.id}`} assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} substages={substages}
             canDecide={canDecide} onReviewReceipt={(stageId, receiptId) => setReviewing({ stageId, receiptId })} onOpenStage={openStage} />
-          <StagePricingPanel project={project} onChanged={load} />
+          <StagePricingPanel key={`pricing:${project.id}`} project={project} onChanged={load} />
         </div>
       )}
 
       {tab === 'people' && (
-        <PeopleTab project={project} isOwner={user?.id === project.user_id} />
+        <PeopleTab key={`people:${project.id}`} project={project} isOwner={user?.id === project.user_id} />
       )}
 
       {tab === 'messages' && (
-        <ProjectConversations projectId={project.id} projectName={project.name} />
+        <ProjectConversations key={`chat:${project.id}`} projectId={project.id} projectName={project.name} />
       )}
 
       {reviewStage && reviewPayment && reviewReceipt && canDecide(reviewStage) && (
@@ -844,15 +858,21 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const [requestBusy, setRequestBusy] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [contractorPayState, setContractorPayState] = useState<ProjectContractorPaymentState | null>(null);
+  const currentProjectId = useRef(project.id);
+  currentProjectId.current = project.id;
   const reloadContractorPayState = useCallback(async () => {
+    const pid = project.id;
     try {
-      const nextState = await fetchProjectContractorPaymentState(project.id);
-      setContractorPayState(nextState);
+      const nextState = await fetchProjectContractorPaymentState(pid);
+      if (currentProjectId.current === pid) setContractorPayState(nextState);
     } catch {
       // Non-blocking: table/RPC may not be populated in older environments or test mocks.
     }
   }, [project.id]);
-  useEffect(() => { void reloadContractorPayState(); }, [reloadContractorPayState]);
+  useEffect(() => {
+    setContractorPayState(null);
+    void reloadContractorPayState();
+  }, [reloadContractorPayState]);
   const stageParams = new URLSearchParams(typeof window === 'undefined' ? '' : window.location?.search ?? '');
   const linkedStage = stageParams.get('stage_id') ?? stageParams.get('stage');
   const ordered = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
@@ -875,6 +895,22 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
     const target = document.getElementById('work-stage-detail');
     if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); scrolledStage.current = key; }
   }, [project.id, linkedStage, stages]);
+
+  const [carriedInByStage, setCarriedInByStage] = useState<{ stageId: string; amount: number }>({ stageId: '', amount: 0 });
+  const selectedIdForPlan = selected?.id ?? '';
+  const selectedTrancheRef = selected ? stagePayments.get(selected.id) : undefined;
+  useEffect(() => {
+    if (!selectedIdForPlan) { setCarriedInByStage({ stageId: '', amount: 0 }); return; }
+    let alive = true;
+    void fetchStagePaymentPlan(selectedIdForPlan)
+      .then(ctx => {
+        if (alive) setCarriedInByStage({ stageId: selectedIdForPlan, amount: Math.max(0, Number(ctx.carried_in ?? 0)) });
+      })
+      .catch(() => {
+        if (alive) setCarriedInByStage({ stageId: selectedIdForPlan, amount: 0 });
+      });
+    return () => { alive = false; };
+  }, [selectedIdForPlan, selectedTrancheRef]);
 
   if (!selected) {
     return (
@@ -973,6 +1009,11 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
     || (tranche != null && stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).remaining === 0
       && (stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).received ?? 0) > 0);
   const showGate = !stage.pre_existing && (canActOnProjectStage(stage, stages) || stage.status === 'complete' || isRowPaidUpfront(stage)) && !!tranche;
+  const liveStageReceipts = (tranche?.receipts ?? []).filter(r => !r.replacedBy);
+  const stageCarriedIn = carriedInByStage.stageId === stage.id ? carriedInByStage.amount : 0;
+  const stageTotalLocal = stage.milestone_amount != null && Number.isFinite(Number(stage.milestone_amount))
+    ? Number(stage.milestone_amount)
+    : stagePayableUsd(stage, basis) * fxRate;
   const balance = tranche ? stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount) : null;
   const split = !!stage.paid_by_part && !!parts?.split;
   const partReady = (substageId: string) => partWorkReady(parts, !!stage.paid_by_part && isOpen, substageId);
@@ -980,6 +1021,14 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const canRequestSubstagePayment =
     canConfirmPayments && !stage.pre_existing && stage.status !== 'complete'
     && stagePayableUsd(stage, basis) > 0 && !stagePaidUpfront;
+  // Carried-over overpayment automatically covers early substages in order until exhausted (19 Nov).
+  const isCoveredByCarryover = (index: number, part: { paid?: boolean } | undefined) => {
+    if (stageCarriedIn <= 0) return false;
+    if (split) return !!part?.paid;
+    if (items.length === 0 || stageTotalLocal <= 0) return false;
+    const share = stageTotalLocal / items.length;
+    return stageCarriedIn > index * share;
+  };
   const openRequestFor = (substageId: string) =>
     contractorPayState?.requests.find(r => r.stage_id === stage.id && r.substage_id === substageId);
   async function submitSubstagePaymentRequest(substageId: string) {
@@ -1099,6 +1148,24 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
 
           {blockedText && stage.status !== 'complete' && !stage.pre_existing && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{blockedText}</p>}
 
+          {/* Chronological first step: ask whether the Homeowner has paid BEFORE evidence
+              upload, only while the stage is unpaid and has no receipts yet (19 Nov). */}
+          {showGate && !stagePaidUpfront && stage.status !== 'complete' && (
+            <div className="mt-4">
+              <ContractorPaymentVerificationBar
+                stageId={stage.id}
+                isContractor={true}
+                readOnly={!canConfirmPayments}
+                settled={tranche?.state === 'funded' || tranche?.state === 'reconciled'}
+                hasReceipts={liveStageReceipts.length > 0}
+                currencyCode={money.code}
+                fxRate={fxRate}
+                scheduledAmount={stage.milestone_amount}
+                onChanged={async () => { await reloadContractorPayState(); await onSubmitted(); }}
+              />
+            </div>
+          )}
+
           {/* What a verifier sent back belongs to the stage it is about. */}
           {sent.length > 0 && (
             <div className="mt-4 rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3">
@@ -1116,36 +1183,42 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
 
           {items.length > 0 && (
             <ul className="mt-4 overflow-hidden rounded-xl border border-brand-border-grey dark:border-[#2c2c2c]">
-              {items.map(item => {
+              {items.map((item, itemIndex) => {
                 const complete = item.status === 'complete';
                 const count = item.evidence_urls?.length ?? 0;
                 const part = split ? parts?.parts?.find(row => row.id === item.id) : undefined;
                 const partWaiting = part ? waiting.find(receipt => receipt.substageId === item.id) : undefined;
                 const ready = partReady(item.id);
                 const openReq = openRequestFor(item.id);
-                const showRequestBtn = canRequestSubstagePayment && !complete && !part?.paid && !partWaiting;
-                const showUploadBtn = isOpen && !complete && !partWaiting && canWork && ready;
+                const carriedCovered = isCoveredByCarryover(itemIndex, part);
+                const showRequestBtn = canRequestSubstagePayment && !complete && !part?.paid && !carriedCovered && !partWaiting;
+                const showUploadBtn = isOpen && !complete && !partWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
                 return (
                   <li key={item.id} id={`substage-${item.id}`} className={cn('border-t border-brand-border-grey px-3.5 py-3 first:border-t-0 dark:border-[#2c2c2c]', partWaiting && 'bg-state-held/[0.05]')}>
                     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 md:grid-cols-[22px_minmax(0,1fr)_auto_auto]">
                       <span aria-hidden className={cn('mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-semibold',
-                        complete ? 'bg-brand-green text-white' : isOpen && ready ? 'border-2 border-brand-green text-brand-green dark:border-state-complete dark:text-state-complete' : 'border border-brand-border-grey text-brand-mid-grey dark:border-[#3a3a3a]')}>
+                        complete ? 'bg-brand-green text-white' : isOpen && (ready || carriedCovered) ? 'border-2 border-brand-green text-brand-green dark:border-state-complete dark:text-state-complete' : 'border border-brand-border-grey text-brand-mid-grey dark:border-[#3a3a3a]')}>
                         {complete ? <Check className="size-2.5 stroke-[3]" /> : item.substage_number}
                       </span>
                       <span className="min-w-0">
-                        <span className={cn('block text-[13.5px] font-semibold', complete || (isOpen && ready) ? 'text-brand-near-black dark:text-white' : 'text-brand-mid-grey')}>
+                        <span className={cn('block text-[13.5px] font-semibold', complete || (isOpen && (ready || carriedCovered)) ? 'text-brand-near-black dark:text-white' : 'text-brand-mid-grey')}>
                           {split ? t('project.historyView.part', { n: item.substage_number, name: substageLabel(item) }) : substageLabel(item)}
                         </span>
                         <span className="block text-xs text-brand-mid-grey">
                           {partWaiting ? <><span className="font-semibold text-state-held">{t('contractorView.receiptToConfirm')}</span> · {t('contractorView.uploadsOpenAfter')}</>
                             : complete ? t('contractorView.approvedOn')
-                            : part && !part.paid && !ready ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
+                            : part && !part.paid && !ready && !carriedCovered ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
                             : count > 0 ? t('contractorProject.evidenceCount', { count }) : t('contractorProject.noEvidence')}
                         </span>
-                        {openReq && openReq.amount != null && (
+                        {carriedCovered && !complete && (
+                          <span className="mt-1 inline-block rounded-full bg-state-complete/10 px-2 py-0.5 text-[11px] font-semibold text-state-complete" data-substage-carryover-covered>
+                            {t('contractorView.coveredByCarryover')}
+                          </span>
+                        )}
+                        {openReq && openReq.amount != null && !carriedCovered && (
                           <span className="mt-1 inline-block rounded-full bg-state-held/10 px-2 py-0.5 text-[11px] font-semibold text-state-held" data-substage-payment-requested>
                             {t('contractorView.paymentRequestedTag', {
-                              amount: `${Number(openReq.amount).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} ${openReq.currency ?? money.code}`,
+                              amount: `${Number(openReq.amount).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(openReq.currency ?? money.code) })} ${openReq.currency ?? money.code}`,
                             })}
                           </span>
                         )}
@@ -1156,15 +1229,22 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                       </span>
                       <span className="col-start-3 row-start-1 flex shrink-0 flex-col items-end gap-2 md:col-start-4">
                         {part && <span className="text-right font-mono text-xs tabular-nums text-brand-near-black dark:text-white">
-                          {Number(part.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          {Number(part.price).toLocaleString('en-US', { maximumFractionDigits: currencyFractionDigits(parts?.currency ?? money.code) })}
                           <span className="block font-sans text-[11px] text-brand-mid-grey">
-                            {t(part.paid || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
+                            {t(part.paid || carriedCovered || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
                         </span>}
                         {partWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, partWaiting.id)} data-action="review-part-receipt"
-                          className="rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white">{t('contractorView.reviewReceipt')}</button>}
-                        {/* Side-by-side Request payment + Upload buttons (19 Nov). */}
+                          className="rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">{t('contractorView.reviewReceipt')}</button>}
+                        {/* Sequential CTA order: primary expected next action always appears FIRST (19 Nov). */}
                         {(showRequestBtn || showUploadBtn) && (
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {showUploadBtn && (
+                              <button type="button" onClick={() => { setUploadFor(item.id); setRequestPayFor(null); }}
+                                data-tour="upload-evidence" data-action="upload"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">
+                                <Camera className="size-3.5" aria-hidden />{t('contractorProject.upload')}
+                              </button>
+                            )}
                             {showRequestBtn && (
                               <button
                                 type="button"
@@ -1177,16 +1257,14 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                                   setRequestError(null);
                                 }}
                                 data-action="request-substage-payment"
-                                className="inline-flex items-center gap-1 rounded-lg border border-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-brand-green hover:bg-brand-green/5 dark:text-[#b4d8bf]"
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                                  showUploadBtn
+                                    ? 'border border-brand-green bg-white text-brand-green hover:bg-brand-green/5 dark:bg-[#1a1a1a] dark:text-[#b4d8bf]'
+                                    : 'bg-brand-green text-white hover:bg-brand-green-hover',
+                                )}
                               >
                                 <Send className="size-3" aria-hidden />{t('contractorView.requestSubstagePayment')}
-                              </button>
-                            )}
-                            {showUploadBtn && (
-                              <button type="button" onClick={() => { setUploadFor(item.id); setRequestPayFor(null); }}
-                                data-tour="upload-evidence" data-action="upload"
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white">
-                                <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
                               </button>
                             )}
                           </div>
@@ -1244,7 +1322,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
 
                     {/* Opened against the item it belongs to, so the camera and
                         the file picker are under the thumb that pressed Upload. */}
-                    {uploadFor === item.id && canWork && ready && (
+                    {uploadFor === item.id && (canWork || carriedCovered) && (ready || carriedCovered) && (
                       <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3.5 dark:bg-[#141414]">
                         <SubmitWork projectId={project.id} stage={stage} substages={items}
                                     fixedSubstageId={item.id}
@@ -1271,6 +1349,8 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                 canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                 scheduledAmount={stage.milestone_amount}
                 blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments}
+                hideVerificationPrompt
+                contractorPaidUpfront={isRowPaidUpfront(stage)}
                 onChanged={onSubmitted} parts={parts} hideParts={split} onReviewReceipt={receiptId => onReviewReceipt(stage.id, receiptId)} />
             </ProjectMoneyProvider>
             </div>

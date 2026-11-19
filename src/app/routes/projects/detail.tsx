@@ -29,6 +29,7 @@ import { projectStagesAfterApproval } from '@/lib/projects/stage-progression';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { ProjectContractorConnection } from '@/components/project/ProjectContractorConnection';
 import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
+import { fetchProjectContractorPaymentState, type SubstagePaymentRequest } from '@/lib/supabase/contractor-payments';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import { MoneyValue } from '@/components/project/MoneyValue';
 import BudgetView                from '@/components/project/BudgetView';
@@ -180,6 +181,7 @@ export default function ProjectDetail() {
   // so without them the overview's "outstanding" could only ever be the whole budget
   // minus the stages — which is why it read as the project total (Philip, 9 Nov 2026).
   const [fees,      setFees]      = useState<ProjectFeeRow[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<SubstagePaymentRequest[]>([]);
   const [loading,   setLoading]   = useState(true);
   useEffect(() => {
     if (id && project?.id === id && teamAccess?.primaryClient === true) {
@@ -225,12 +227,13 @@ export default function ProjectDetail() {
     const isCurrent = () => mounted.current && currentScope.current === scope && sequence === loadSequence.current;
     try {
       // The document count went with the delete confirmation it was counting for (053).
-      const [p, s, sub, pay, fee] = await Promise.all([
+      const [p, s, sub, pay, fee, cState] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
         fetchStagePayments(id),
         fetchProjectFees(id),
+        fetchProjectContractorPaymentState(id).catch(() => null),
       ]);
       if (!isCurrent()) return;
       if (!p) { setProject(null); setError(t('project.notFound')); return; }
@@ -240,6 +243,7 @@ export default function ProjectDetail() {
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
+      setPaymentRequests(cState?.requests ?? []);
       if (typeof window !== 'undefined') window.dispatchEvent?.(new Event('groundwork:project-action'));
       return;
     } catch {
@@ -252,6 +256,14 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     let active = true;
+    // Clear previous project state immediately so updates from another build never bleed in.
+    setProject(null);
+    setStages([]);
+    setSubstages([]);
+    setPayments(new Map());
+    setFees([]);
+    setPaymentRequests([]);
+    setError(null);
     setLoading(true);
     void loadAll().finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -267,6 +279,7 @@ export default function ProjectDetail() {
         { event: 'UPDATE', schema: 'public', table: 'project_stages', filter: `project_id=eq.${id}` },
         (payload) => {
           const updated = payload.new as ProjectStageRow;
+          if (currentScope.current !== scope || updated.project_id !== id) return;
           setStages(prev =>
             prev.map(s => s.id === updated.id ? { ...s, ...updated } : s),
           );
@@ -274,16 +287,18 @@ export default function ProjectDetail() {
       )
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${id}` }, payload => {
         const updated = payload.new as ProjectSubstageRow;
+        if (currentScope.current !== scope || updated.project_id !== id) return;
         setSubstages(prev => prev.map(substage => substage.id === updated.id ? { ...substage, ...updated } : substage));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'substage_payment_requests', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, () => { void loadAll(); })
       .subscribe();
     const refresh = () => { void loadAll(); };
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('focus', refresh); supabase.removeChannel(channel); };
-  }, [id, loadAll]);
+  }, [id, scope, loadAll]);
 
   // ── Event handlers ─────────────────────────────────────
 
@@ -575,6 +590,7 @@ export default function ProjectDetail() {
           {/* Tab: Overview */}
           {activeTab === 'overview' && (
             <OverviewTab
+              key={`overview:${project.id}`}
               hasPrimaryContractor={teamAccess?.hasPrimaryContractor === true}
               contractorConnection={project.status === 'active' && teamAccess?.primaryClient && !teamAccess.hasPrimaryContractor ? <ProjectContractorConnection key={project.id} projectId={project.id} access={teamAccess} onRequested={refreshTeamAccess} /> : undefined}
               project={project}
@@ -595,10 +611,11 @@ export default function ProjectDetail() {
               {/* A plain wrapper, deliberately unstyled: `display: contents` measures
                   as a zero-sized box, so the tour would have nothing to point at. One
                   child of a `space-y-6` parent either way, so the spacing is unchanged. */}
-              <ProjectCloseoutPanel projectId={project.id} refreshKey={payments}
+              <ProjectCloseoutPanel key={`closeout:${project.id}`} projectId={project.id} refreshKey={payments}
                 stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} onClosed={loadAll} />
               <div data-tour="stage-list">
               <StageTracker
+                key={`stages:${project.id}`}
                 clientPresentation={!isContractor}
                 stages={stages}
                 substages={substages}
@@ -614,6 +631,7 @@ export default function ProjectDetail() {
                 canUploadEvidence={canUploadEvidence}
                 projectId={project.id}
                 payments={payments}
+                paymentRequests={paymentRequests}
                 onPaymentChanged={loadAll}
                 projectName={project.name}
                 projectCountry={project.country}
@@ -667,6 +685,7 @@ export default function ProjectDetail() {
                   viewer, and the server refuses the write anyway. The owner and the
                   contractor working the build both file documents against it. */}
               <ClientDocuments
+                key={`docs:${project.id}`}
                 projectId={project.id}
                 userId={user?.id ?? ''}
                 tier={project.tier}
@@ -690,6 +709,7 @@ export default function ProjectDetail() {
           {activeTab === 'messages' && user && (
             <div>
               <ProjectConversations
+                key={`chat:${project.id}`}
                 projectId={project.id}
                 projectName={project.name}
               />

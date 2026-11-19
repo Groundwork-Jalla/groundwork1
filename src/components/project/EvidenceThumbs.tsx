@@ -40,7 +40,11 @@ export function EvidenceThumbs({ paths, bucket = 'evidence', className, size = '
   useEffect(() => {
     let live = true;
     const images = paths.filter(p => IMAGE.test(p));
-    if (images.length === 0) return;
+    setAt(null);
+    if (images.length === 0) {
+      setUrls({});
+      return;
+    }
     void Promise.all(images.map(async p => {
       const small = await signedUrlIn(bucket, p, size === 'review' ? { width: 480, height: 320 } : { width: 160, height: 160 });
       return [p, small ?? ''] as const;

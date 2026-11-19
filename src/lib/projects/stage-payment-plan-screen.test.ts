@@ -158,16 +158,13 @@ describe('stage payment plans and separate progression permission', () => {
     expect(text(render(contractor))).toContain('stage price, receipts or plan changed');
   });
 
-  it('keeps money confirmation separate from the explicit progression-with-balance confirmation', async () => {
+  it('removes the redundant progression-with-outstanding-balance button (19 Nov decision)', async () => {
     const model = { ...split, received: '30000', remaining: '30000', can_decide: false, can_authorize_progression: true,
       plan: { ...split.plan!, status: 'accepted' as const } };
     const contractor = { isContractor: true };
-    await load(model, contractor); button(render(contractor), 'Review progression with an outstanding balance').props.onClick();
+    const view = await load(model, contractor);
+    expect(view.some(node => node.type === 'button' && text(node) === 'Review progression with an outstanding balance')).toBe(false);
     expect(h.progress).not.toHaveBeenCalled();
-    expect(dialog(render(contractor)).props.description).toContain('Outstanding balance: 30,000 XAF');
-    expect(dialog(render(contractor)).props.description).toContain('does not mark the stage fully paid or confirm any pending receipt');
-    await dialog(render(contractor)).props.onConfirm(); expect(h.progress).toHaveBeenCalledWith(model);
-    expect(h.decide).not.toHaveBeenCalled(); expect(h.save).not.toHaveBeenCalled();
   });
 
   it.each([{ readOnly: true, isContractor: true }, { canUpload: false, isContractor: true }])('offers no mutation controls for restricted project access: %j', async access => {
@@ -255,18 +252,11 @@ describe('money paid above one stage is shown where it was carried to', () => {
     expect(view.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
-  it('lets the primary contractor accept carried money behind a confirmation that states every figure', async () => {
-    h.credit.mockResolvedValue({ ...carried, can_confirm_credit: false, work_authorized: true });
-    await load(carried, { isContractor: true });
-    button(render({ isContractor: true }), 'Review the carried payment for this stage').props.onClick();
+  it('applies carried-over credit automatically without a manual contractor acceptance button (19 Nov decision)', async () => {
+    const view = await load(carried, { isContractor: true });
+    expect(text(view)).toContain('12,000 XAF carried forward from your other stage payments counts toward this stage. Still to pay: 48,000 XAF.');
+    expect(view.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
     expect(h.credit).not.toHaveBeenCalled();
-    const description = dialog(render({ isContractor: true })).props.description;
-    expect(description).toContain('Stage budget: 60,000 XAF. Carried forward from earlier payments: 12,000 XAF. Still to pay: 48,000 XAF.');
-    expect(description).toContain('moving past this stage with a balance remains a separate decision');
-    await dialog(render({ isContractor: true })).props.onConfirm();
-    expect(h.credit).toHaveBeenCalledWith(carried);
-    expect(h.changed).toHaveBeenCalledTimes(1);
-    expect(render({ isContractor: true }).some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
   it('does not offer the decision when the database does not, or on a read-only project', async () => {

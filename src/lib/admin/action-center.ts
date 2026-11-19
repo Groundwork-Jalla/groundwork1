@@ -28,6 +28,7 @@ export type ActionKind =
   | 'payment_ready'
   | 'disbursement_failed'
   | 'payment_disputed'
+  | 'overpayment_recorded'
   | 'unanswered_conversation'
   | 'application_to_decide'
   | 'quote_request_open'
@@ -62,6 +63,7 @@ export interface ActionProject {
 export interface ActionStage {
   id: string; project_id: string; stage_number: number; status: string;
   verification_required?: boolean | null; payment_milestone_usd?: number | null;
+  milestone_amount?: number | null;
   completed_at?: string | null; updated_at?: string | null;
 }
 export interface ActionSiteUpdate { stageId: string; submittedAt: string }
@@ -101,6 +103,8 @@ export interface ActionCenterInput {
   tickets: QueueRow[];
   /** Open Homeowner disputes on contractor-recorded payments (20261119000000). */
   disputes?: ActionPaymentDispute[];
+  /** Live stage payment receipts (`pending` or `received`, not replaced) for overpayment detection. */
+  receipts?: { id: string; projectId: string; stageId: string; submittedAt: string; projectAmount: number | null; amountUsd: number | null; projectCurrency: string | null }[];
 }
 
 const PRIORITY_RANK: Record<Priority, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -248,6 +252,43 @@ export function actionCenterItems(input: ActionCenterInput, now: Date, workspace
       to: stageLink(d.projectId, d.stageId, workspaceReady),
       key: `payment-dispute:${d.id}`,
     });
+  }
+
+  // Client overpayments — live receipts on a stage whose total exceeds the stage price.
+  if (input.receipts?.length) {
+    const byStage = new Map<string, { projectId: string; localSum: number; usdSum: number; latestAt: string; currency: string | null }>();
+    for (const r of input.receipts) {
+      const cur = byStage.get(r.stageId) ?? { projectId: r.projectId, localSum: 0, usdSum: 0, latestAt: r.submittedAt, currency: r.projectCurrency };
+      cur.localSum += r.projectAmount ?? 0;
+      cur.usdSum += r.amountUsd ?? 0;
+      if (r.submittedAt > cur.latestAt) cur.latestAt = r.submittedAt;
+      if (!cur.currency && r.projectCurrency) cur.currency = r.projectCurrency;
+      byStage.set(r.stageId, cur);
+    }
+    for (const [stageId, agg] of byStage) {
+      const project = projectById.get(agg.projectId);
+      const stage = (stagesByProject.get(agg.projectId) ?? []).find(s => s.id === stageId);
+      if (!project || !stage) continue;
+      const localDue = stage.milestone_amount != null && stage.milestone_amount > 0 ? stage.milestone_amount : null;
+      const usdDue = stage.payment_milestone_usd != null && stage.payment_milestone_usd > 0 ? stage.payment_milestone_usd : null;
+      const overLocal = localDue != null && agg.localSum > localDue + 0.01;
+      const overUsd = localDue == null && usdDue != null && agg.usdSum > usdDue + 0.01;
+      if (!overLocal && !overUsd) continue;
+      const excess = overLocal ? Math.round(agg.localSum - localDue!) : Math.round((agg.usdSum - usdDue!) * 100) / 100;
+      const iso = overLocal ? (agg.currency ?? '') : 'USD';
+      items.push({
+        kind: 'overpayment_recorded',
+        priority: 'high',
+        since: agg.latestAt,
+        projectId: project.id,
+        projectName: project.name,
+        personName: project.ownerName,
+        stageNumber: stage.stage_number,
+        preview: `+${excess.toLocaleString('en-US')} ${iso}`.trim(),
+        to: workspaceReady ? `/admin/projects/${project.id}?tab=financials` : `/projects/${project.id}`,
+        key: `overpayment:${stageId}`,
+      });
+    }
   }
 
   for (const a of input.applications) items.push({ kind: 'application_to_decide', priority: 'medium', since: a.since, personName: a.label, to: `/admin/applications/${a.id}`, key: `application:${a.id}` });

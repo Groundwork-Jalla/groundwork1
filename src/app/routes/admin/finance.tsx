@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { loadFinanceLedger, type LedgerData } from '@/lib/supabase/finance-ledger';
-import { totalsFor, purposeOf, needsAttention, type LedgerLine } from '@/lib/admin/finance-ledger';
+import { totalsFor, projectTotals, purposeOf, needsAttention, type LedgerLine } from '@/lib/admin/finance-ledger';
 import { monthlyFlows, shares } from '@/lib/admin/finance-trend';
 import { availableFunds } from '@/lib/lifecycle/stage';
 import { listAllPayments } from '@/lib/supabase/payments';
@@ -69,6 +69,7 @@ export default function AdminFinance() {
   const inflow  = useMemo(() => totalsFor(lines, 'in'),  [lines]);
   const outflow = useMemo(() => totalsFor(lines, 'out'), [lines]);
   const attention = useMemo(() => needsAttention(lines), [lines]);
+  const byProject = useMemo(() => projectTotals(lines), [lines]);
   const recent = useMemo(() => lines.slice(0, 12), [lines]);
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>(6);
   const [now] = useState(() => new Date());
@@ -180,6 +181,46 @@ export default function AdminFinance() {
           </dl>
         </section>
       </div>
+
+      {byProject.length > 0 && (
+        <section data-finance-by-project className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-4">
+            <div>
+              <h2 className="text-sm font-bold text-brand-near-black dark:text-white">{t('admin.finance.byProjectTitle')}</h2>
+              <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.finance.byProjectSub')}</p>
+            </div>
+            <span className="text-xs text-brand-mid-grey">{t('admin.finance.byProjectCount', { n: byProject.length })}</span>
+          </div>
+          <div className="overflow-x-auto border-t border-brand-border-grey dark:border-[#2c2c2c]">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-brand-off-white text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey dark:bg-[#141414]">
+                <tr>
+                  <th className="px-5 py-2.5">{t('admin.finance.colProject')}</th>
+                  <th className="px-4 py-2.5 text-right">{t('admin.finance.confirmedInflows')}</th>
+                  <th className="px-4 py-2.5 text-right">{t('admin.finance.colExpected')}</th>
+                  <th className="px-4 py-2.5 text-right">{t('admin.finance.disbursed')}</th>
+                  <th className="px-5 py-2.5 text-right">{t('admin.finance.colAvailable')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+                {byProject.map(p => (
+                  <tr key={p.projectId} className="transition-colors hover:bg-brand-off-white dark:hover:bg-[#252525]">
+                    <td className="px-5 py-3 font-semibold text-brand-near-black dark:text-white">
+                      <Link to={workspaceHref(p.projectId, { tab: 'financials' })} className="hover:text-brand-green hover:underline dark:hover:text-state-complete">
+                        {p.projectName ?? t('admin.finance.unknownProject')}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-state-complete">{formatUSDFull(p.confirmedIn)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-state-held">{formatUSDFull(p.expectedIn)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(p.disbursedOut)}</td>
+                    <td className="px-5 py-3 text-right font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(p.available)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl lg:border lg:border-brand-border-grey lg:bg-white lg:dark:border-[#2c2c2c] lg:dark:bg-[#1e1e1e]">
         <div className="flex items-center justify-between gap-2 pb-2 lg:px-5 lg:pb-3 lg:pt-4">

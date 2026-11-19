@@ -39,24 +39,18 @@ describe('each step is read from a fact, not from the status', () => {
   });
 });
 
-describe('a booking is never claimed', () => {
-  it('showing the calendar does not tick the step', () => {
-    // Groundwork sees that a slot was offered, never that one was taken: the widget
-    // is a cross-origin iframe. Ticking it would tell somebody they had booked a call
-    // that does not exist.
-    expect(at({ decisionReady: true, bookingShownAt: '2026-10-30T09:00:00Z' }, 'book')).toBe('now');
+describe('booking a call completes partner activation (100%)', () => {
+  it('ends at book with no extra post-booking steps', () => {
+    expect(partnerTrack(base).map(s => s.key)).toEqual(['applied', 'qualified', 'book']);
   });
 
-  it('only acceptance moves it on', () => {
+  it('marks book as done once the booking step is completed', () => {
+    expect(at({ decisionReady: true, bookingShownAt: '2026-10-30T09:00:00Z' }, 'book')).toBe('done');
+    expect(stepsReached(partnerTrack({ ...base, decisionReady: true, bookingShownAt: '2026-10-30T09:00:00Z' }))).toBe(3);
+  });
+
+  it('also marks book as done when accepted', () => {
     expect(at({ state: 'accepted' }, 'book')).toBe('done');
-    expect(at({ state: 'accepted' }, 'call')).toBe('done');
-    expect(at({ state: 'accepted' }, 'partner')).toBe('done');
-  });
-
-  it('and the call step is never current, because we cannot observe it', () => {
-    for (const state of ['pending', 'reviewing'] as const) {
-      expect(at({ state, decisionReady: true }, 'call')).not.toBe('now');
-    }
   });
 });
 
@@ -97,8 +91,8 @@ describe('both surfaces use it', () => {
 });
 
 describe('stepsReached counts what is behind them', () => {
-  it('one at the start, all five once accepted', () => {
+  it('one at the start, all three once booked or accepted', () => {
     expect(stepsReached(partnerTrack(base))).toBe(1);
-    expect(stepsReached(partnerTrack({ ...base, state: 'accepted' }))).toBe(5);
+    expect(stepsReached(partnerTrack({ ...base, state: 'accepted' }))).toBe(3);
   });
 });

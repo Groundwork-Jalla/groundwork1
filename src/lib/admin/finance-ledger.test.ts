@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ledgerLine, totalsFor, purposeOf, needsAttention, byWhen, matchesLine } from './finance-ledger';
+import { ledgerLine, totalsFor, projectTotals, purposeOf, needsAttention, byWhen, matchesLine } from './finance-ledger';
 import type { Payment } from '@/lib/supabase/payments';
 import { ADMIN_NAV } from '@/components/shell/nav-config';
 import { lookup } from '@/lib/i18n/translate';
@@ -298,5 +298,50 @@ describe('EN and FR parity', () => {
         expect(f, banned).not.toContain(banned);
       }
     }
+  });
+});
+
+describe('per-project finance breakdown', () => {
+  it('groups confirmed inflows, expected inflows, outflows and available funds by project', () => {
+    const multiOpts = {
+      projectName: (id: string) => ({ j1: 'Villa Kribi', j2: 'Douala Duplex' }[id] ?? null),
+      ownerOf: () => 'mary',
+      nameOf: () => 'Mary N.',
+      stageOf: () => null,
+    };
+    const mk = (p: Partial<Payment>) => ledgerLine(P(p), multiOpts);
+    const lines = [
+      mk({ id: '1', projectId: 'j1', direction: 'in',  state: 'funded',             amount: 40_000, confirmedAt: '2026-06-01T00:00:00Z' }),
+      mk({ id: '2', projectId: 'j1', direction: 'in',  state: 'expected',           amount: 15_000, createdAt:   '2026-06-02T00:00:00Z' }),
+      mk({ id: '3', projectId: 'j1', direction: 'out', state: 'disbursed',          amount: 12_000, settledAt:   '2026-06-03T00:00:00Z' }),
+      mk({ id: '4', projectId: 'j1', direction: 'out', state: 'release_authorised', amount:  5_000, authorisedAt:'2026-06-04T00:00:00Z' }),
+      mk({ id: '5', projectId: 'j2', direction: 'in',  state: 'reconciled',         amount: 80_000, confirmedAt: '2026-06-05T00:00:00Z' }),
+      mk({ id: '6', projectId: 'j2', direction: 'out', state: 'failed',             amount: 10_000, createdAt:   '2026-06-06T00:00:00Z' }),
+    ];
+
+    const byProject = projectTotals(lines);
+    expect(byProject.map(p => p.projectId)).toEqual(['j2', 'j1']);
+
+    expect(byProject[0]).toMatchObject({
+      projectId: 'j2',
+      projectName: 'Douala Duplex',
+      confirmedIn: 80_000,
+      expectedIn: 0,
+      approvedOut: 0,
+      disbursedOut: 0,
+      available: 80_000,
+      count: 2,
+    });
+
+    expect(byProject[1]).toMatchObject({
+      projectId: 'j1',
+      projectName: 'Villa Kribi',
+      confirmedIn: 40_000,
+      expectedIn: 15_000,
+      approvedOut: 5_000,
+      disbursedOut: 12_000,
+      available: 23_000,
+      count: 4,
+    });
   });
 });

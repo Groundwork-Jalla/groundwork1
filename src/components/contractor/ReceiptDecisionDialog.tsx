@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useLanguage, useT } from '@/lib/i18n';
-import { formatDate } from '@/lib/format';
+import { currencyFractionDigits, formatDate } from '@/lib/format';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
@@ -60,7 +60,7 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
   const money = (value: number | null | undefined, code: string | null | undefined) => value == null || !Number.isFinite(value) ? '—'
-    : `${value.toLocaleString(locale, { maximumFractionDigits: 2 })} ${code ?? ''}`.trim();
+    : `${value.toLocaleString(locale, { maximumFractionDigits: currencyFractionDigits(code) })} ${code ?? ''}`.trim();
   const scheduled = stage.milestone_amount != null && Number.isFinite(Number(stage.milestone_amount)) ? Number(stage.milestone_amount) : payment.amount * rate;
   const part = receipt.substageId ? parts?.parts?.find(row => row.id === receipt.substageId) ?? null : null;
   const partLabel = part ? t('project.historyView.part', { n: part.number ?? '', name: substageLabelWith(t, { name: part.name, substage_key: part.key }) }) : null;

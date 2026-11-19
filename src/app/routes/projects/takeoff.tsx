@@ -1,14 +1,13 @@
 import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams } from 'react-router';
 import { motion } from 'framer-motion';
-import { FileSpreadsheet, Loader2, Plus, Lock } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Lock } from 'lucide-react';
 import { boqEditorPaths } from '@/lib/projects/boq-editor-paths';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
-import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
-import { createTakeoff, fetchTakeoffs, priceTakeoff, type ProjectTakeoffRow } from '@/lib/supabase/takeoffs';
+import { fetchTakeoffs, priceTakeoff, type ProjectTakeoffRow } from '@/lib/supabase/takeoffs';
 import { formatLocalCurrency, projectBudget } from '@/lib/budget';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { MoneyValue } from '@/components/project/MoneyValue';
@@ -44,9 +43,7 @@ function StatusPill({ status }: { status: ProjectTakeoffRow['status'] }) {
  *  is a component: `useMoney()` must run inside the provider this route renders. */
 export default function TakeoffList() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
   const t = useT();
-  const navigate = useNavigate();
   const { access, error: accessError, refresh: refreshAccess } = useProjectTeamAccess(id ?? '');
   const { pathname } = useLocation();
   const paths = boqEditorPaths(id ?? '', pathname, access?.canChangeRoles === true);
@@ -56,7 +53,6 @@ export default function TakeoffList() {
   const [rate, setRate]       = useState<ConstructionRate | null>(null);
   const [rows, setRows]       = useState<ProjectTakeoffRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -87,35 +83,6 @@ export default function TakeoffList() {
     if (access?.canEditBoq && !paths.legacy) void load();
     return () => { ++loadRequest.current; };
   }, [load, access?.canEditBoq, paths.legacy]);
-
-  async function handleCreate() {
-    if (!id || !user || !project || project.id !== id || !access?.canEditBoq || creating) return;
-    setCreating(true);
-    setError(null);
-    try {
-      // Seeded from the project's own brief so the contractor starts from the client's
-      // stated building, not from nothing. They can correct any of it.
-      const row = await createTakeoff(id, user.id, {
-        country: project.country,
-        city: project.city ?? undefined,
-        sqm: Number(project.sqm),
-        floors: project.num_floors,
-        buildingType: project.building_type,
-        roofType: project.roof_type,
-        finishLevel: project.finish_level,
-        bedrooms: project.bedrooms,
-        bathrooms: project.bathrooms,
-        livingRooms: project.living_rooms,
-        kitchens: project.kitchens,
-        offices: project.offices ?? 0,
-      }, null);
-      navigate(`${paths.list}/${row.id}`);
-    } catch (err) {
-      const message = errorMessage(err, t('takeoff.errCreate'));
-      setError(message.startsWith('not_permitted') ? t('project.review.editorRestricted') : message);
-      setCreating(false);
-    }
-  }
 
   if (accessError) return <div className="p-6 text-sm"><ProjectBackLink /><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
   if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><ProjectBackLink /></div>;
@@ -189,16 +156,6 @@ export default function TakeoffList() {
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={handleCreate}
-        disabled={creating}
-        className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-      >
-        {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-        {t('takeoff.editBoq')}
-      </button>
     </motion.div>
     </ProjectMoneyProvider>
   );

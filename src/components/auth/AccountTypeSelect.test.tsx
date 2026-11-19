@@ -48,6 +48,17 @@ describe('the account-type choice is two distinct coloured buttons, still a radi
     expect(render('homeowner')).not.toContain('disabled=""');
   });
 
+  it('keeps both options high-contrast in dark mode (never black-on-black)', () => {
+    const client = render('homeowner');
+    expect(client).toContain('dark:border-[#f0f0f0]/75');
+    expect(client).toContain('dark:text-[#f0f0f0]');
+
+    const contractor = render('contractor');
+    expect(contractor).toContain('dark:bg-[#f0f0f0]');
+    expect(contractor).toContain('dark:text-[#0a0a0a]');
+    expect(contractor).toContain('dark:text-[#86efac]');
+  });
+
   it('is large enough to tap on a phone', () => {
     expect(render('homeowner')).toContain('min-h-12');
     expect(render('homeowner')).toContain('grid-cols-2');

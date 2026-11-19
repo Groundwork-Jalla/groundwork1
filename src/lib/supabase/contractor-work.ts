@@ -142,9 +142,11 @@ export interface ReworkItem {
 
 export async function fetchRework(projects: AssignedProject[]): Promise<ReworkItem[]> {
   if (projects.length === 0) return [];
+  const projectIds = projects.map(a => a.project.id);
   const { data, error } = await supabase
     .from('stage_verifications')
     .select('stage_id, project_id, decision, findings, decided_at')
+    .in('project_id', projectIds)
     .in('decision', ['rejected', 'needs_more_evidence'])
     .order('decided_at', { ascending: false });
   // The table may not be reachable on an older deployment; an absent queue is not a fault.

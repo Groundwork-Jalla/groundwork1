@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage, useT } from '@/lib/i18n';
+import { currencyFractionDigits } from '@/lib/format';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { installmentSplit } from '@/lib/payments/installment-split';
@@ -105,7 +106,7 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
   const canCredit = !!context?.can_confirm_credit && isContractor && !readOnly && canUpload;
   const permitted = (action: Decision['action']) => action === 'save' ? editable : action === 'progress' ? canProgress : action === 'credit' ? canCredit : canDecide;
   const amount = (value: string | number | null | undefined) => value == null ? '—'
-    : `${Number(value).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 })} ${context?.currency ?? ''}`;
+    : `${Number(value).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(context?.currency) })} ${context?.currency ?? ''}`;
   const split = context?.plan?.mode === 'two_installments' ? context.plan : null;
 
   function request(action: Decision['action'], mode: Mode = 'two_installments') {
@@ -207,8 +208,6 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
         : <p data-receipt-installment={installment.value}>{t('project.paymentPlan.receiptForInstallment', { n: installment.value })}{' '}
           <button type="button" className={link} onClick={() => setChoosing(stageId)}>{t('project.paymentPlan.changeInstallment')}</button></p>)}
       <p className={context.progression_authorized && Number(context.remaining) > 0 ? 'font-semibold text-brand-green dark:text-[#b4d8bf]' : 'text-brand-mid-grey'}>{t(context.progression_authorized && Number(context.remaining) > 0 ? 'project.paymentPlan.balanceAuthorized' : 'project.paymentPlan.nextStageRule')}</p>
-      {canCredit && <button type="button" disabled={working} onClick={() => request('credit')} className="rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.paymentPlan.acceptCredit')}</button>}
-      {canProgress && <button type="button" disabled={working} onClick={() => request('progress')} className="rounded-lg border border-brand-green px-3 py-2 font-semibold">{t('project.paymentPlan.allowNext')}</button>}
     </>}
     <ConfirmModal open={!!confirm} variant={clientPresentation && !isContractor ? 'client' : 'default'} title={t('project.paymentPlan.confirmTitle')} description={description} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={working} error={error} onConfirm={commit} onCancel={() => { if (!working) setConfirmation(null); }}/>
     {error && <p role="alert" className="text-state-alert">{error}</p>}

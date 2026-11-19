@@ -11,10 +11,12 @@ import { MoneyValue } from './MoneyValue';
 import { DocumentViewer } from './DocumentViewer';
 import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase/certificates';
 import { formatShare } from '@/lib/budget/stage-shares';
-import { useT, type TKey } from '@/lib/i18n';
+import { useLanguage, useT, type TKey } from '@/lib/i18n';
+import { currencyFractionDigits } from '@/lib/format';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
 import { partWorkReady, useSubstagePayments } from '@/lib/supabase/substage-payments';
+import type { SubstagePaymentRequest } from '@/lib/supabase/contractor-payments';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged, stageWorkReady, stageStartsWithEvidence, canSubmitStageReceipt } from '@/lib/projects/stage-progression';
@@ -113,6 +115,8 @@ interface StageDetailProps {
   projectId: string;
   /** The incoming tranche on THIS stage, if one is owed (175). */
   payment?: StagePayment;
+  /** Open contractor payment requests on this stage (including ones created before the Homeowner joined). */
+  paymentRequests?: SubstagePaymentRequest[];
   canAct: boolean;
   workAllowed: boolean;
   paymentEnabled: boolean;
@@ -142,6 +146,7 @@ function StageDetail({
   canUploadEvidence,
   projectId,
   payment,
+  paymentRequests = [],
   canAct, workAllowed, paymentEnabled, paymentBlockedReason,
   isFinalStage,
   onPaymentChanged,
@@ -150,9 +155,15 @@ function StageDetail({
   onApproveStage,
   renderEvidenceUpload,
 }: StageDetailProps) {
-  const { stageLabel } = useStageLabels();
+  const { stageLabel, substageLabel } = useStageLabels();
   // The milestone in the project's currency (9 Nov 2026) — project-money-context.tsx.
   const t = useT();
+  const { lang } = useLanguage();
+  const openStageRequests = paymentRequests.filter(r => r.stage_id === stage.id && r.status === 'open');
+  const formatRequestAmount = (amount: number | null, iso: string | null) => {
+    if (amount == null || !Number.isFinite(amount)) return '';
+    return `${amount.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(iso) })} ${iso ?? ''}`.trim();
+  };
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
@@ -232,6 +243,31 @@ function StageDetail({
           {!clientPresentation && <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} reviewPaymentPending={stage.review_payment_pending} />}
         </div>
       </div>
+
+      {!isContractor && openStageRequests.length > 0 && (
+        <div role="status" data-client-payment-requests className="mb-4 space-y-2 rounded-xl border border-state-held/40 bg-state-held/10 p-3.5 text-xs">
+          <p className="font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.paymentRequestedTitle')}</p>
+          <ul className="space-y-1.5">
+            {openStageRequests.map(req => {
+              const sub = req.substage_id ? substages.find(s => s.id === req.substage_id) : undefined;
+              const formatted = formatRequestAmount(req.amount, req.currency);
+              return (
+                <li key={req.id} className="flex flex-wrap items-baseline justify-between gap-2 text-brand-near-black dark:text-white">
+                  <span className="min-w-0">
+                    {sub && <span className="font-semibold">{substageLabel(sub)}</span>}
+                    {req.note && <span className="text-brand-mid-grey">{sub ? ' · ' : ''}{req.note}</span>}
+                  </span>
+                  {formatted && (
+                    <span className="shrink-0 font-mono font-semibold tabular-nums text-state-held">
+                      {t('project.clientUi.paymentRequestedAmount', { amount: formatted })}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {stage.status === 'locked' ? (
         <>
@@ -348,6 +384,8 @@ export interface StageTrackerProps {
   ownerName: string;
   /** Incoming tranches keyed by stage id (175). */
   payments?: Map<string, StagePayment>;
+  /** Open contractor payment requests across stages (19 Nov). */
+  paymentRequests?: SubstagePaymentRequest[];
   onPaymentChanged: () => void | Promise<void>;
   onMarkSubstageComplete: (substageId: string) => Promise<ApproveStageResult | undefined>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
@@ -394,6 +432,7 @@ export function StageTracker({
   canApprove,
   projectId,
   payments,
+  paymentRequests,
   onPaymentChanged,
   projectName,
   projectCountry,
@@ -502,6 +541,7 @@ export function StageTracker({
                 canUploadEvidence={canUploadEvidence}
                 projectId={projectId}
                 payment={payments?.get(selectedStage.id)}
+                paymentRequests={paymentRequests}
                 canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
                 workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
                 paymentEnabled={hasPrimaryContractor && !projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}

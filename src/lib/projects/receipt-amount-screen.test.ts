@@ -225,20 +225,18 @@ describe('the receipt upload and contractor review', () => {
     const sent: StagePayment = { ...payment, state: 'receipt_submitted', receiptPath: 'proof', receiptUploadedAt: '2026-11-12T01:00:00.123456+00:00', receiptAmount: 750.125, receiptCurrency: 'XAF', receiptAmountUsd: 1.250208333 };
     h.confirm.mockRejectedValueOnce({ message: 'stale_receipt' });
     const elements = render({ payment: sent, isContractor: true });
-    expect(text(elements)).toContain('750.125 XAF'); expect(text(elements).replace(/\s/g, '')).toContain('$1.25');
+    expect(text(elements)).toContain('750 XAF'); expect(text(elements).replace(/\s/g, '')).toContain('$1.25');
     await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.reviewPayment')!.props.onClick();expect(h.confirm).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
     expect(h.confirm).toHaveBeenCalledWith('stage', undefined, { path: 'proof', uploadedAt: sent.receiptUploadedAt });
     expect(h.changed).toHaveBeenCalledOnce();
     expect(text(render({ payment: sent, isContractor: true }))).toContain('project.receiptFlow.refreshReceipt');
   });
-  it('reviews immutable receipt IDs and retains confirmed partial payments with a top-up request', async () => {
+  it('retains confirmed partial payments with a top-up request without a redundant allow-work button', async () => {
     const first = { id: 'r1', stageId: 'stage', path: 'one', submittedAt: '', amount: 30, currency: 'XAF', fxRate: 600, amountUsd: 0.05, decision: 'received' as const, allowsWork: false, requestedTopUp: 70, decisionNote: 'More materials', decidedAt: '' };
     const sent: StagePayment = { ...payment, state: 'receipt_submitted', receipts: [first] };
     const elements = render({ payment: sent, isContractor: true });
     expect(text(elements)).toContain('30 XAF'); expect(text(elements)).toContain('topUpRequested');
-    await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.continueWithReceived')!.props.onClick();
-    expect(h.decide).not.toHaveBeenCalled();render({payment:sent,isContractor:true}).find(e=>e.type==='button'&&text(e)==='project.receiptFlow.continueChoice')!.props.onClick();expect(h.decide).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
-    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined,{stageAmount:60000,decision:'received'});
+    expect(elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.continueWithReceived')).toBeUndefined();
   });
 
   const pendingReceipt: StagePaymentReceipt = { id: 'r1', stageId: 'stage', path: 'one', submittedAt: '', amount: 30000, currency: 'XAF', fxRate: 600, amountUsd: 50, decision: 'pending', allowsWork: false, requestedTopUp: null, decisionNote: null, decidedAt: null };
@@ -264,18 +262,11 @@ describe('the receipt upload and contractor review', () => {
     await confirmation(render(props)).props.onConfirm();
     expect(h.decide).toHaveBeenCalledWith('pending-2', 'accept', undefined, undefined, expect.objectContaining({ decision: 'pending' }));
   });
-  it('allows work on money already confirmed once no receipt is waiting, without asking again whether it arrived', async () => {
+  it('does not show a redundant continue-with-received button once receipts are already confirmed', async () => {
     const confirmed: StagePaymentReceipt = { ...pendingReceipt, id: 'received-1', path: 'received-proof', decision: 'received', allowsWork: false };
     const props = { payment: { ...payment, state: 'receipt_submitted' as const, receipts: [confirmed] }, isContractor: true };
     expect(button(render(props), 'reviewPayment')).toBeUndefined();
-    button(render(props), 'continueWithReceived').props.onClick();
-    expect(text(render(props))).not.toContain('project.receiptFlow.receivedQuestion');
-    // The choice is open; the button that opened it is not repeated beside it.
     expect(button(render(props), 'continueWithReceived')).toBeUndefined();
-    button(render(props), 'continueChoice').props.onClick();
-    expect(h.decide).not.toHaveBeenCalled();
-    await confirmation(render(props)).props.onConfirm();
-    expect(h.decide).toHaveBeenCalledWith('received-1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'received' });
   });
 
   it('asks about actual receipt and work continuation separately, then requires a final confirmation', async () => {

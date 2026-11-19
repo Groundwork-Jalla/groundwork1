@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
@@ -62,12 +62,18 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
   const [available, setAvailable] = useState(true);
   /** Who is what on this build, so a bubble can say so. Empty until it loads. */
   const [roles, setRoles] = useState<Record<string, string>>({});
+  const loadTurn = useRef(0);
+  const activeProject = useRef(projectId);
+  activeProject.current = projectId;
 
   const load = useCallback(async () => {
+    const turn = ++loadTurn.current;
     setLoading(true);
     setError(null);
+    setConversation(null);
     try {
       let result = await listConversations({ projectId });
+      if (activeProject.current !== projectId || loadTurn.current !== turn) return;
       setAvailable(result.available);
       if (!result.available) { setConversation(null); return; }
 
@@ -75,15 +81,18 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
       // anybody has.
       if (!result.rows.some(row => row.channel === 'jalla')) {
         await ensureProjectConversation(projectId);
+        if (activeProject.current !== projectId || loadTurn.current !== turn) return;
         result = await listConversations({ projectId });
+        if (activeProject.current !== projectId || loadTurn.current !== turn) return;
         setAvailable(result.available);
       }
       setConversation(result.rows.find(r => r.id === requestedConversation) ?? result.rows.find(r => r.channel === 'jalla') ?? result.rows[0] ?? null);
     } catch (err) {
+      if (activeProject.current !== projectId || loadTurn.current !== turn) return;
       setError(errorMessage(err, t('common.somethingWrong')));
       setConversation(null);
     } finally {
-      setLoading(false);
+      if (activeProject.current === projectId && loadTurn.current === turn) setLoading(false);
     }
   }, [projectId, t, requestedConversation]);
 

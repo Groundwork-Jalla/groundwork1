@@ -537,19 +537,20 @@ function PartnerCard({ detail }: { detail: PartnerApplicationDetail | 'none' | n
     decisionReady:  filed.decisionReady,
     appliedAt:      filed.appliedAt,
     bookingShownAt: filed.bookingShownAt,
-  }).filter(s => s.key !== 'call');
+  });
 
   const LABEL: Record<string, TKey> = {
     applied:   'partner.track.applied',
     qualified: 'partner.track.qualified',
     book:      'partner.track.book',
-    partner:   'partner.track.partner',
   };
 
   // The sentence follows the same facts as the bar beneath it, so the two cannot say
-  // different things about the same application.
+  // different things about the same application. Once the call is booked, the track is complete.
+  const allDone = steps.every(s => s.at === 'done');
   const current = steps.find(s => s.at === 'now');
   const body = state === 'accepted' ? t('contractorPartnerCard.accepted')
+    : allDone                       ? t('contractorPartnerCard.booked')
     : current?.key === 'book'       ? t('contractorPartnerCard.book')
     : t('contractorPartnerCard.reviewing');
 
@@ -565,12 +566,12 @@ function PartnerCard({ detail }: { detail: PartnerApplicationDetail | 'none' | n
         </div>
         <Link to="/work/partner"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-          {state === 'accepted' ? t('contractorPartnerCard.ctaOpen') : t('contractorPartnerCard.ctaTrack')}
+          {state === 'accepted' || allDone ? t('contractorPartnerCard.ctaOpen') : t('contractorPartnerCard.ctaTrack')}
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       </div>
 
-      <ol className="mt-3.5 grid grid-cols-4 gap-2">
+      <ol className="mt-3.5 grid grid-cols-3 gap-2">
         {steps.map(step => (
           <li key={step.key} className="min-w-0" aria-current={step.at === 'now' ? 'step' : undefined}>
             <span className={cn('block h-1 rounded-full',

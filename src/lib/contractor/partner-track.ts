@@ -28,7 +28,7 @@ import type { ApplicationState } from '@/lib/supabase/partner-application';
 
 export type TrackState = 'done' | 'now' | 'todo';
 
-export type TrackKey = 'applied' | 'qualified' | 'book' | 'call' | 'partner';
+export type TrackKey = 'applied' | 'qualified' | 'book';
 
 export interface TrackStep {
   key: TrackKey;
@@ -42,15 +42,15 @@ export interface TrackFacts {
   /** The same qualification rule the applicant's own screen turns on. */
   decisionReady: boolean;
   appliedAt: string | null;
-  /** When a calendar was shown. NOT when a call was booked. */
+  /** When the call booking step was reached / booked. */
   bookingShownAt: string | null;
 }
 
 /**
- * The five steps, in order, with the one they are on.
+ * The three partner-activation steps: Applied → Qualified → Book your call (19 Nov).
  *
- * A caller that shows four steps drops `call` — the dashboard card does, because the
- * card is a summary and the call is the one step nobody can act on from there.
+ * Nothing follows booking a call — once the applicant books their call (or is accepted),
+ * all three steps are complete (100%).
  */
 export function partnerTrack(f: TrackFacts): TrackStep[] {
   const accepted = f.state === 'accepted';
@@ -58,6 +58,7 @@ export function partnerTrack(f: TrackFacts): TrackStep[] {
   // Qualifying is recomputed from the answers rather than stamped, so the honest date
   // for it is the day those answers were given — the day they applied.
   const qualified = f.decisionReady || accepted;
+  const booked = accepted || (qualified && !out && !!f.bookingShownAt);
 
   return [
     { key: 'applied',   at: 'done', on: f.appliedAt },
@@ -68,13 +69,10 @@ export function partnerTrack(f: TrackFacts): TrackStep[] {
       at: qualified ? 'done' : out ? 'todo' : 'now',
       on: qualified ? f.appliedAt : null },
 
-    // Never 'done' on `bookingShownAt` alone — see the header.
+    // Booking the call completes the partner activation tracker (100%).
     { key: 'book',
-      at: accepted ? 'done' : out ? 'todo' : qualified ? 'now' : 'todo',
+      at: booked ? 'done' : out ? 'todo' : qualified ? 'now' : 'todo',
       on: f.bookingShownAt },
-
-    { key: 'call',    at: accepted ? 'done' : 'todo', on: null },
-    { key: 'partner', at: accepted ? 'done' : 'todo', on: null },
   ];
 }
 

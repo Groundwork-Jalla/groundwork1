@@ -25,7 +25,7 @@ type Row = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
 /** A fail-soft table read: rows, or [] with available=false when the table is not there yet. */
-type Filter = { eq: (c: string, v: unknown) => Filter; is: (c: string, v: unknown) => Filter };
+type Filter = { eq: (c: string, v: unknown) => Filter; is: (c: string, v: unknown) => Filter; in: (c: string, v: unknown[]) => Filter };
 async function softRows(table: string, columns: string, modify?: (q: Filter) => Filter): Promise<{ rows: Row[]; available: boolean }> {
   const base = supabase.from(table).select(columns);
   const q = modify ? (modify(base as unknown as Filter) as unknown as typeof base) : base;
@@ -38,9 +38,9 @@ async function softRows(table: string, columns: string, modify?: (q: Filter) => 
 }
 
 export async function loadActionCenter(now: Date = new Date(), workspaceReady = true): Promise<ActionCenterData> {
-  const [projectsRes, stagesRes, verRes, verifiersRes, updatesRes, ledger, eventsRes, waiting, appsRes, inqRes, ticketsRes, owners, disputesRes] = await Promise.all([
+  const [projectsRes, stagesRes, verRes, verifiersRes, updatesRes, ledger, eventsRes, waiting, appsRes, inqRes, ticketsRes, owners, disputesRes, receiptsRes] = await Promise.all([
     supabase.from('projects').select('id, name, user_id, status, tier, tracking_started_at, created_at').neq('status', 'archived'),
-    supabase.from('project_stages').select('id, project_id, stage_number, status, verification_required, payment_milestone_usd, completed_at'),
+    supabase.from('project_stages').select('id, project_id, stage_number, status, verification_required, payment_milestone_usd, milestone_amount, completed_at'),
     softRows('stage_verifications', 'id, stage_id, project_id, verifier_id, requested_by, requested_at, visited_at, decision, decided_at, recorded_by, recorded_on_behalf_of, reason, certificate_id'),
     softRows('project_verifiers', 'project_id, status', q => q.eq('status', 'active')),
     softRows('site_updates', 'stage_id, submitted_at'),
@@ -56,6 +56,7 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     listOpenSupportTickets(),
     ownerLookup(),
     softRows('contractor_payment_disputes', 'id, project_id, stage_id, disputed_by, disputed_at, reason', q => q.is('resolved_at', null)),
+    softRows('stage_payment_receipts', 'id, project_id, stage_id, submitted_at, project_amount, amount_usd, project_currency, decision', q => q.is('replaced_by', null).in('decision', ['pending', 'received'])),
   ]);
   if (projectsRes.error) throw projectsRes.error;
   if (stagesRes.error)   throw stagesRes.error;
@@ -85,7 +86,9 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     })),
     stages: ((stagesRes.data ?? []) as Row[]).map(s => ({
       id: str(s.id), project_id: str(s.project_id), stage_number: Number(s.stage_number), status: str(s.status),
-      verification_required: s.verification_required === true, payment_milestone_usd: s.payment_milestone_usd == null ? null : Number(s.payment_milestone_usd),
+      verification_required: s.verification_required === true,
+      payment_milestone_usd: s.payment_milestone_usd == null ? null : Number(s.payment_milestone_usd),
+      milestone_amount: s.milestone_amount == null ? null : Number(s.milestone_amount),
       completed_at: (s.completed_at as string | null) ?? null,
     })),
     verifications: verRes.rows.map(r => ({
@@ -118,6 +121,15 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
       disputedAt: str(d.disputed_at),
       reason: (d.reason as string | null) ?? null,
       personName: d.disputed_by ? (owners.get(str(d.disputed_by))?.name || owners.get(str(d.disputed_by))?.email) : undefined,
+    })),
+    receipts:     receiptsRes.rows.map(r => ({
+      id: str(r.id),
+      projectId: str(r.project_id),
+      stageId: str(r.stage_id),
+      submittedAt: str(r.submitted_at),
+      projectAmount: r.project_amount == null ? null : Number(r.project_amount),
+      amountUsd: r.amount_usd == null ? null : Number(r.amount_usd),
+      projectCurrency: (r.project_currency as string | null) ?? null,
     })),
   };
 

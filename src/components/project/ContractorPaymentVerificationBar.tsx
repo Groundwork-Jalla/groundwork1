@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Flag, Loader2, Send } from 'lucide-react';
 import { useLanguage, useT } from '@/lib/i18n';
+import { currencyFractionDigits } from '@/lib/format';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import {
@@ -17,6 +18,8 @@ interface Props {
   isContractor: boolean;
   readOnly?: boolean;
   settled: boolean;
+  /** True once at least one live payment receipt already exists on this stage. */
+  hasReceipts?: boolean;
   currencyCode: string;
   fxRate: number;
   scheduledAmount?: number | null;
@@ -35,7 +38,7 @@ interface Props {
  *   that flags a dispute in Admin Action Center without stalling active site work.
  */
 export function ContractorPaymentVerificationBar({
-  stageId, isContractor, readOnly = false, settled, currencyCode, fxRate, scheduledAmount, onChanged, onVerificationChange,
+  stageId, isContractor, readOnly = false, settled, hasReceipts = false, currencyCode, fxRate, scheduledAmount, onChanged, onVerificationChange,
 }: Props) {
   const t = useT();
   const { lang } = useLanguage();
@@ -70,6 +73,9 @@ export function ContractorPaymentVerificationBar({
   }, [stageId, onVerificationChange]);
 
   useEffect(() => {
+    setVerification(null);
+    setDispute(null);
+    setLoaded(false);
     setAnswer(null);
     setRequestSent(false);
     setDisputing(false);
@@ -80,7 +86,7 @@ export function ContractorPaymentVerificationBar({
   }, [load, stageId, scheduledAmount]);
 
   const formatAmount = (value: number, iso: string) =>
-    `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 }).format(value)} ${iso}`;
+    `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(iso) }).format(value)} ${iso}`;
 
   async function handleConfirmPaid(e: React.FormEvent) {
     e.preventDefault();
@@ -237,7 +243,7 @@ export function ContractorPaymentVerificationBar({
     );
   }
 
-  if (readOnly || settled) return null;
+  if (readOnly || settled || hasReceipts) return null;
 
   return (
     <div className="space-y-2.5 rounded-lg border border-brand-border-grey bg-white p-3 text-xs dark:border-[#2c2c2c] dark:bg-[#141414]" data-contractor-payment-prompt>
