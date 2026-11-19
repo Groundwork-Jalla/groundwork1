@@ -83,7 +83,7 @@ export function createDocumentReadRequests() {
 }
 
 export function ArchitecturePlanGate({
-  onAnswered, onCancel, backLabel, currencyCode, fxRate,
+  onAnswered, onCancel, backLabel, currencyCode, fxRate, reviewMode = false,
 }: {
   onAnswered: (answer: PlanAnswer) => void;
   onCancel?: () => void;
@@ -91,10 +91,12 @@ export function ArchitecturePlanGate({
   /** The project country's currency and rate, so a bill can be shown in both. */
   currencyCode?: string | null;
   fxRate?: number | null;
+  /** When returning via Back from Summary, open directly on the upload/review slide. */
+  reviewMode?: boolean;
 }) {
   const t = useT();
   const { lang } = useLanguage();
-  const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
+  const [slide, setSlide] = useState<'ask' | 'upload'>(reviewMode ? 'upload' : 'ask');
   const [selectedHasPlan, setSelectedHasPlan] = useState<boolean | null>(null);
   const [floorPlans, setFloorPlans] = useState<File[]>([]);
   /** The person confirmed an upload with no sign of a drawing IS their floor plan. Reset per upload. */

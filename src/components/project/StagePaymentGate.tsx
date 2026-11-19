@@ -6,7 +6,7 @@ import { useProjectMoneyContext } from '@/lib/budget/project-money-context';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib/payments/receipt-reading';
 import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
-import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess } from '@/lib/payments/stage-receipt-balance';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
 import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentReceipt, signReceiptUrl,
   type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
@@ -83,6 +83,15 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
 
   const errorText = (error: unknown) => receiptErrorText(t, error);
+  // Overpayment (18 Nov). Confirmed money already past the stage price, and an amount being
+  // typed that would go past what is still due. Both only warn: the receipt is accepted and
+  // project_payment_allocation carries the excess forward to the next stages.
+  const stageDue = payment ? scheduledAmount ?? payment.amount * fxRate : null;
+  const excessNow = balance ? stageReceiptExcess(balance, stageDue) : null;
+  const typedAmount = canonicalReceiptAmount(activeDraft.amount);
+  const typedDue = split ? (payingPart ? Number(payingPart.remaining) : null) : balance?.remaining ?? null;
+  // Only compared in the project currency; another currency is converted by the server.
+  const typedOver = !!typedAmount && selectedCurrency === code && typedDue != null && Number(typedAmount) > typedDue;
 
   async function upload(file: File | null = activeDraft.file) {
     if (!allowed || pendingWork.current === scope) return;
@@ -174,6 +183,10 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(balance.remaining, code)}</dd></div>
       {(balance.pending == null || balance.pending > 0) && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.pendingTotal')}</dt><dd className="mt-1 font-mono">{format(balance.pending, code)}</dd></div>}
     </dl>}
+    {excessNow != null && excessNow > 0 && <div role="status" data-excess-payment className="rounded-lg border border-state-held/40 bg-state-held/10 p-3 text-xs leading-relaxed">
+      <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
+      <p className="mt-1 text-brand-mid-grey">{t(isContractor ? 'contractorView.overBy' : 'project.receiptFlow.excessCarried', { excessAmount: format(excessNow, code) })}</p>
+    </div>}
     {/* Why a receipt cannot be added here yet. On a contractor-created project this is the
         agreed order (work updates, the client's approval, then payment), and on 16 November
         one small grey line was all that said so: the upload looked broken. */}
@@ -268,6 +281,10 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
           onChange={event => { const raw = event.target.value; setDraft({ ...activeDraft, amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); setFailure(null); }}
           className={cn('min-h-11 w-full min-w-0 rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono dark:bg-[#141414]', clientPresentation ? 'text-base sm:text-sm' : 'text-sm')} />
         <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.amountHint')}</p>
+        {typedOver && <div role="alert" data-excess-warning className="rounded-lg border border-state-held/40 bg-state-held/10 p-3 text-xs leading-relaxed">
+          <p className="font-semibold text-brand-near-black dark:text-white">{t('project.receiptFlow.excessPaymentWarningTitle')}</p>
+          <p className="mt-1 text-brand-mid-grey">{t('project.receiptFlow.excessPaymentWarningBody', { amount: format(Number(typedAmount), code), due: format(typedDue, code) })}</p>
+        </div>}
         {fileQueue.scope===scope&&fileQueue.files.length>0&&<p className="text-xs">{t('project.receiptFlow.additionalFiles',{count:fileQueue.files.length+1})}</p>}
         {activeDraft.file && <p className="break-all text-xs text-brand-mid-grey">{activeDraft.file.name}</p>}
         <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-40" disabled={!allowed || busy}>

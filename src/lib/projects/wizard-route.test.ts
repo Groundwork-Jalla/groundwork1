@@ -19,17 +19,16 @@ const DOCS = stepRoute(true, 9);
 const PLAIN = stepRoute(false, 9);
 
 describe('the document route', () => {
-  it('visits three screens', () => {
-    // Where you are building, the summary, the confirmation. "What are you building"
-    // and "what type" are gone: the documents answered them, and `document-identity`
-    // reads those answers rather than asking again.
-    expect(DOCS).toEqual([1, 8, 9]);
-    expect(DOCS).toHaveLength(3);
+  it('visits four screens', () => {
+    // Where you are building (1), the document gate (2), the summary (8), the confirmation (9).
+    // Step 2 stays on the route so Back from Summary returns to the document gate.
+    expect(DOCS).toEqual([1, 2, 8, 9]);
+    expect(DOCS).toHaveLength(4);
   });
 
-  it('whose last one is step 9, not step 3', () => {
+  it('whose last one is step 9, not step 4', () => {
     // The whole bug in one assertion: the count and the final index differ.
-    expect(DOCS.length).toBe(3);
+    expect(DOCS.length).toBe(4);
     expect(DOCS[DOCS.length - 1]).toBe(9);
   });
 
@@ -38,23 +37,25 @@ describe('the document route', () => {
   });
 
   it('never lands on a step it is meant to skip', () => {
-    for (const skipped of [2, 3, 4, 5, 6, 7]) {
+    for (const skipped of [3, 4, 5, 6, 7]) {
       expect(DOCUMENT_ROUTE as readonly number[]).not.toContain(skipped);
     }
-    expect(nextStep(DOCS, 1)).toBe(8);
-    expect(prevStep(DOCS, 8)).toBe(1);
+    expect(nextStep(DOCS, 1)).toBe(2);
+    expect(nextStep(DOCS, 2)).toBe(8);
+    expect(prevStep(DOCS, 8)).toBe(2);
+    expect(prevStep(DOCS, 2)).toBe(1);
   });
 
-  it('walks forward 1 → 8 → 9 and stops', () => {
+  it('walks forward 1 → 2 → 8 → 9 and stops', () => {
     const seen = [1];
-    for (let i = 0; i < 4; i++) seen.push(nextStep(DOCS, seen[seen.length - 1]!));
-    expect(seen).toEqual([1, 8, 9, 9, 9]);
+    for (let i = 0; i < 5; i++) seen.push(nextStep(DOCS, seen[seen.length - 1]!));
+    expect(seen).toEqual([1, 2, 8, 9, 9, 9]);
   });
 
-  it('and backward 9 → 8 → 1 and stops', () => {
+  it('and backward 9 → 8 → 2 → 1 and stops', () => {
     const seen = [9];
-    for (let i = 0; i < 4; i++) seen.push(prevStep(DOCS, seen[seen.length - 1]!));
-    expect(seen).toEqual([9, 8, 1, 1, 1]);
+    for (let i = 0; i < 5; i++) seen.push(prevStep(DOCS, seen[seen.length - 1]!));
+    expect(seen).toEqual([9, 8, 2, 1, 1, 1]);
   });
 });
 
@@ -70,7 +71,7 @@ describe('goTo lands on the route, never on a count', () => {
   });
 
   it('a skipped step goes forward to the next real one, not back to a count', () => {
-    for (const skipped of [2, 3, 4, 5, 6, 7]) expect(clampToRoute(DOCS, skipped)).toBe(8);
+    for (const skipped of [3, 4, 5, 6, 7]) expect(clampToRoute(DOCS, skipped)).toBe(8);
   });
 
   it('beyond the end is the end; before the start is the start', () => {
@@ -87,7 +88,7 @@ describe('a step that is not on the route at all', () => {
   });
 
   it('and backward onto it', () => {
-    expect(prevStep(DOCS, 6)).toBe(1);
+    expect(prevStep(DOCS, 6)).toBe(2);
   });
 
   it('with nothing ahead, it settles on the last step', () => {

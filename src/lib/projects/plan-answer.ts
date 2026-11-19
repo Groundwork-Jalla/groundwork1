@@ -186,6 +186,9 @@ export function planQuestionDue(state: {
   if (state.hasPlan === null) return true;
   // Answered NO. Nothing to upload, nothing to ask again.
   if (state.hasPlan === false) return false;
+  // On step 2 (e.g. Back from Summary on the document route), re-show the upload screen
+  // so the user can review or replace their floor plans and BOQ without resetting to step 1.
+  if (state.step === 2) return true;
   // Answered YES: due only while the documents are still genuinely outstanding.
   return !(state.hasPlanDoc && state.hasBqDoc) && !state.seen;
 }

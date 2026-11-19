@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verifications';
-import { stageReceiptBalance } from './stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess } from './stage-receipt-balance';
 
 const receipt = (patch: Partial<StagePaymentReceipt> = {}): StagePaymentReceipt => ({
   id: 'receipt', stageId: 'stage', path: 'proof', submittedAt: '', amount: 30, currency: 'USD',
@@ -48,5 +48,17 @@ describe('stage balances across partial payments and currencies', () => {
     const corrected = receipt({ id: 'corrected', amount: 40, amountUsd: 40, projectAmount: 24000 });
     expect(stageReceiptBalance(payment([old, corrected, corrected]), 'XAF', 600, 60000))
       .toEqual({ received: 24000, pending: 0, remaining: 36000 });
+  });
+  it('computes excess amount when confirmed receipts exceed the stage price', () => {
+    const over = receipt({ amount: 80000, currency: 'XAF', projectAmount: 80000 });
+    const bal = stageReceiptBalance(payment([over]), 'XAF', 600, 60000);
+    expect(bal.remaining).toBe(0);
+    expect(stageReceiptExcess(bal, 60000)).toBe(20000);
+    const exact = stageReceiptBalance(payment([receipt({ amount: 60000, currency: 'XAF', projectAmount: 60000 })]), 'XAF', 600, 60000);
+    expect(stageReceiptExcess(exact, 60000)).toBe(0);
+    const under = stageReceiptBalance(payment([receipt({ amount: 25000, currency: 'XAF', projectAmount: 25000 })]), 'XAF', 600, 60000);
+    expect(stageReceiptExcess(under, 60000)).toBe(0);
+    expect(stageReceiptExcess(under, 60000, 50000)).toBe(15000);
+    expect(stageReceiptExcess({ received: null, remaining: null }, 60000)).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/format';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
-import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
+import { stageReceiptBalance, stageReceiptExcess } from '@/lib/payments/stage-receipt-balance';
 import { decideStagePaymentReceipt, signReceiptUrl, type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { useSubstagePayments } from '@/lib/supabase/substage-payments';
 import { substageLabelWith } from '@/lib/stage-labels';
@@ -66,6 +66,9 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
   const partLabel = part ? t('project.historyView.part', { n: part.number ?? '', name: substageLabelWith(t, { name: part.name, substage_key: part.key }) }) : null;
   const projected = stageReceiptBalance({ ...payment, receipts: payment.receipts?.map(row => row.id === receipt.id ? { ...row, decision: 'received' as const } : row) }, currency, rate, scheduled);
   const remainingAfter = projected.remaining;
+  // Accepting this receipt would take the stage past its price (18 Nov): say by how much.
+  // The excess still carries forward to the next stages; nothing here changes that.
+  const excessAfter = stageReceiptExcess(projected, scheduled);
 
   async function decide(action: Decision) {
     if (busy.current) return;
@@ -122,6 +125,10 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
             <div className="flex items-baseline justify-between gap-3 px-4 py-3"><dt className="text-brand-mid-grey">{t('contractorView.stillDueAfter')}</dt>
               <dd className="font-mono font-semibold tabular-nums">{money(remainingAfter, currency)}</dd></div>
           </dl>
+          {excessAfter != null && excessAfter > 0 && <div role="status" data-excess-indicator className="mt-3 rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3 text-[13px] leading-relaxed">
+            <p className="flex items-center gap-2 font-semibold text-brand-near-black dark:text-white"><AlertCircle className="size-4 shrink-0 text-state-held" aria-hidden />{t('contractorView.overBy', { excessAmount: money(excessAfter, currency) })}</p>
+            <p className="mt-1 text-brand-mid-grey">{t('contractorView.excessPaymentBody', { receiptAmount: money(receipt.projectAmount ?? receipt.amount, receipt.projectAmount != null ? receipt.projectCurrency : receipt.currency), expectedAmount: money(scheduled, currency), excessAmount: money(excessAfter, currency) })}</p>
+          </div>}
           <p className="mt-3 flex items-center gap-2 text-[13px] text-brand-near-black dark:text-white"><AlertCircle className="size-4 shrink-0 text-state-held" aria-hidden />{t('contractorView.checkAccount')}</p>
           {receipt.decisionNote && <p className="mt-2 whitespace-pre-wrap text-xs text-brand-mid-grey">{receipt.decisionNote}</p>}
 

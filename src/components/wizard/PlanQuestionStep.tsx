@@ -67,6 +67,7 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
       // Back returns to the country step rather than leaving the wizard: they are
       // inside it now, and the only way out of a wizard is its own Back.
       onCancel={back}
+      reviewMode={data.hasArchitecturePlan === true && (planDocumentsSeen || uploadedPlanDocs || uploadedBq)}
       currencyCode={constructionRate?.currency_code ?? getCurrencyCode(data.country)}
       fxRate={liveRate}
       onAnswered={(answer: PlanAnswer) => {

@@ -13,6 +13,7 @@ import {
 interface Props {
   stageId: string; stageName: string; projectName: string;
   clientPresentation?: boolean;
+  isContractor?: boolean;
   onChanged: () => void | Promise<void>;
 }
 type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal?: BreakdownProposal; hash: string };
@@ -27,7 +28,7 @@ type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal
  *
  * Quiet by default: a stage nobody has split shows only the contractor's button.
  */
-export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, onChanged }: Props) {
+export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, isContractor = false, onChanged }: Props) {
   const t = useT(); const { lang } = useLanguage(); const { substageLabel } = useStageLabels();
   const [read, setRead] = useState<{ stage: string; context: StageBreakdownContext } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -65,8 +66,9 @@ export function StageBreakdownPanel({ stageId, stageName, projectName, clientPre
 
   if (failed && !context) return null;
   if (!context) return null;
-  // Nothing to show: no split, nothing proposed, and this person cannot propose one.
-  if (!context.split && !pending && !context.can_propose && !context.history.length) return null;
+  const lockedForContractor = isContractor && !context.editable && !context.can_propose && !pending;
+  // Nothing to show: no split, nothing proposed, not locked-for-contractor, and this person cannot propose one.
+  if (!context.split && !pending && !context.can_propose && !lockedForContractor && !context.history.length) return null;
 
   function start() {
     if (!context) return;
@@ -116,8 +118,15 @@ export function StageBreakdownPanel({ stageId, stageName, projectName, clientPre
     </ul>}
     {!context.split && !pending && !editing && <p className="text-brand-mid-grey">{t(context.can_propose ? 'project.breakdown.hintContractor' : 'project.breakdown.notSplit', { amount: format(context.stage_amount) })}</p>}
 
-    {context.can_propose && !pending && !editing && <button type="button" onClick={start} className="font-semibold text-brand-green underline underline-offset-4 dark:text-[#b4d8bf]">
+    {context.can_propose && !pending && !editing && <button type="button" onClick={start} data-action="split-stage"
+      className="inline-flex items-center rounded-lg border border-brand-green/40 bg-brand-green/5 px-3 py-1.5 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
       {t(context.split ? 'project.breakdown.revise' : 'project.breakdown.propose')}</button>}
+    {lockedForContractor && !editing && <div className="space-y-1" data-split-locked>
+      <button type="button" disabled title={t('project.breakdown.lockedAfterWork')}
+        className="inline-flex cursor-not-allowed items-center rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-1.5 font-semibold text-brand-mid-grey opacity-60 dark:border-[#2c2c2c] dark:bg-[#141414]">
+        {t(context.split ? 'project.breakdown.revise' : 'project.breakdown.propose')}</button>
+      <p className="text-brand-mid-grey">{t('project.breakdown.lockedAfterWork')}</p>
+    </div>}
 
     {/* The contractor's draft. */}
     {editing && preview && <form className="space-y-3" data-breakdown-form onSubmit={event => { event.preventDefault(); if (preview.ready) setReview({ kind: 'submit', hash: context.base_hash }); }}>

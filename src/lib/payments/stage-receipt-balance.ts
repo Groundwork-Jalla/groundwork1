@@ -26,3 +26,17 @@ export function stageReceiptBalance(payment: StagePayment, currency: string, pro
     pending: pendingKnown ? Number(pending) / 1e6 : null,
     remaining: receivedKnown && due != null ? Number(due > received ? due - received : 0n) / 1e6 : null };
 }
+
+/**
+ * How far confirmed money (plus, optionally, an amount about to be sent) goes past the
+ * stage price, in the project currency. `remaining` above stops at zero, so it cannot
+ * say this. Display only: the carry-forward itself is project_payment_allocation's job.
+ * Null when the figures are not all known, 0 when nothing is over.
+ */
+export function stageReceiptExcess(balance: { received: number | null; remaining: number | null },
+  scheduled: number | null | undefined, adding = 0): number | null {
+  const due = units(scheduled ?? null); const received = units(balance.received); const extra = units(adding);
+  if (due == null || received == null || extra == null) return null;
+  const total = received + extra;
+  return total > due ? Number(total - due) / 1e6 : 0;
+}

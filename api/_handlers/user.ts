@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
+import { enrollForEvent } from '../_lib/lifecycle.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { routingFields } from '../ghl/_routing-fields.js';
 
@@ -85,6 +86,27 @@ export async function handler(req: any, res: any) {
       return;
     }
   } else if (profile.synced_to_ghl) {
+    // GHL contact already mirrored (e.g. invite pre-provisioning or contractor onboarding),
+    // but lifecycle enrollment runs inside forwardToGhl which this guard bypassed — so the
+    // welcome email was never queued. Enroll now; the upsert is idempotent (ignoreDuplicates).
+    const email = (profile.email as string | null) ?? user.email ?? '';
+    const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', user.id);
+    const signupRoles = new Set((roleRows ?? []).map(r => String(r.role)));
+    const signupRole = signupRoles.has('contractor') || user.user_metadata?.signup_intent === 'contractor'
+      ? 'contractor' : 'client';
+    try {
+      await enrollForEvent(admin, 'user_signup', {
+        email,
+        fullName: profile.full_name as string | null,
+        lang: profile.preferred_lang as string | null,
+        phone: (profile.phone as string | null) ?? null,
+      }, {
+        user_id: user.id,
+        ...routingFields({ userRole: signupRole, entrySource: 'independent_signup' }),
+      });
+    } catch (e) {
+      console.error('[lifecycle] enrollment for pre-synced user failed:', e instanceof Error ? e.message : e);
+    }
     res.status(200).json({ ok: true, alreadySynced: true });
     return;
   }

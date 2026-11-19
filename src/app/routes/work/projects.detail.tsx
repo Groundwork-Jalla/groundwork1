@@ -952,7 +952,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;
   const breakdown = priceable
     ? <div data-tour={isOpen ? 'price-by-part' : undefined}>
-        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} onChanged={onSubmitted}
+        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor onChanged={onSubmitted}
           stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`} />
       </div>
     : null;
@@ -1031,6 +1031,8 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
               {balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
             </div>}
           </div>
+
+          {breakdown}
 
           {blockedText && stage.status !== 'complete' && !stage.pre_existing && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{blockedText}</p>}
 
@@ -1116,7 +1118,6 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
             </ul>
           )}
 
-          {breakdown}
           {showGate && (
             <div data-tour="confirm-payment">
             {/* Share the project's canonical budget basis with the client payment
