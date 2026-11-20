@@ -107,7 +107,7 @@ export function AppSidebar({
             const isActive = to === activeTo;
             return (
               <Fragment key={to}>
-                {calm && to === '/profile' && <div aria-hidden className="mt-auto border-t border-brand-border-grey pt-2" />}
+                {to === '/profile' && <div aria-hidden className="mt-auto border-t border-brand-border-grey pt-2 dark:border-white/10" />}
                 <Link
                   to={to}
                   onClick={onNavigate}

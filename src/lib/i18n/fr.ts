@@ -4268,7 +4268,7 @@ export const fr: Mirror<EnDict> = {
     deleteTitle:         'Supprimer le compte',
     deleteBody:          'La suppression du compte est irréversible. Tous les projets, documents et données seront définitivement effacés.',
     deleteSubmitted:     'Demande de suppression de compte envoyée. Notre équipe la traitera sous 48 heures.',
-    deleteFailed:        "Nous n'avons pas pu envoyer votre demande. Écrivez à contact@tryjalla.com pour qu'elle ne soit pas perdue.",
+    deleteFailed:        "Nous n'avons pas pu envoyer votre demande. Écrivez à support@tryjalla.com pour qu'elle ne soit pas perdue.",
     deleteTypePrefix:    'Saisissez',
     // Deliberately NOT translated: the user must type this word exactly, and the
     // component compares against it. Translating the label but not the comparison —
@@ -4436,7 +4436,7 @@ export const fr: Mirror<EnDict> = {
     yourName: "Votre nom",
     subjectHint: "De quoi s'agit-il ?",
     messageHint: "Dites-nous comment vous aider…",
-    sendFailed: "Une erreur s'est produite. Réessayez ou écrivez-nous directement à contact@tryjalla.com",
+    sendFailed: "Une erreur s'est produite. Réessayez ou écrivez-nous directement à support@tryjalla.com",
     openResources: "Voir les guides",
     bookNow: "Réserver",
     sendCta: "Envoyer un message",

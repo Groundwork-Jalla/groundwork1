@@ -69,7 +69,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             this reached production in the first place. */}
         <meta name="google" content="notranslate" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#1f4d36" />
+        <meta name="theme-color" content="#122d2b" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Groundwork by Jalla</title>

@@ -104,7 +104,7 @@ export function SiteNav() {
               the moment anyone switched to dark mode. */}
           <Button
             asChild
-            className="group h-9 shrink-0 rounded-md bg-brand-green px-3 text-[11px] font-bold text-white shadow-[0_1px_12px_rgba(31,77,54,0.35)] hover:bg-brand-green-hover sm:h-auto sm:px-7 sm:py-2.5 sm:text-[13px]"
+            className="group h-9 shrink-0 rounded-md bg-[#ffffff] px-3 text-[11px] font-bold text-[#0a0a0a] shadow-[0_1px_12px_rgba(255,255,255,0.18)] hover:bg-[#f0f0f0] sm:h-auto sm:px-7 sm:py-2.5 sm:text-[13px]"
           >
             {/* Destination follows the hero button — a browser that has signed in here
                 before gets the log-in page. The bar carries no separate log-in link, so

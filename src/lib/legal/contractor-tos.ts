@@ -70,7 +70,7 @@ export const CONTRACTOR_TOS: readonly AgreementLine[] = [
 
   ['h2', '4. Account security'],
   ['p', 'Your Contractor Account is personal to you or your authorized organization. You must maintain the confidentiality of login credentials, use reasonable security measures, and restrict access to authorized personnel. You may not share credentials, permit unauthorized use, or attempt to conceal who is using the account.'],
-  ['p', 'You must promptly notify contact@tryjalla.com if you suspect unauthorized access, credential compromise, payment fraud, loss of a device containing Platform or project information, or another security incident. You remain responsible for activity conducted through your account until Jalla has had a reasonable opportunity to secure it.'],
+  ['p', 'You must promptly notify support@tryjalla.com if you suspect unauthorized access, credential compromise, payment fraud, loss of a device containing Platform or project information, or another security incident. You remain responsible for activity conducted through your account until Jalla has had a reasonable opportunity to secure it.'],
 
   ['h2', '5. Contractor access is not Partner status'],
   ['p', 'Creating a Contractor Account gives you standard access to the Platform. It does not make you a Jalla employee, agent, representative, joint venturer, Founding Partner, Certified Partner, approved contractor, verified professional, or member of Jalla’s contractor directory.'],
@@ -114,7 +114,7 @@ export const CONTRACTOR_TOS: readonly AgreementLine[] = [
   ['h2', '13. Privacy, data protection, and security'],
   ['p', 'Jalla processes personal information as described in the Contractor Privacy Notice. You must comply with applicable privacy and data-protection law when collecting, using, sharing, or uploading personal information through Groundwork. You must provide required notices and have a valid legal basis or authorization for client, employee, subcontractor, emergency-contact, and other third-party information you provide.'],
   ['p', 'Unless a separate data-processing agreement states otherwise, each party acts as an independent controller or business for personal information it determines how and why to process. You may access personal information through Groundwork only for authorized professional and project purposes and may not sell it, use it for unrelated marketing, combine it with improperly obtained data, or disclose it to unauthorized persons.'],
-  ['p', 'You must use reasonable administrative, physical, and technical safeguards. You must notify contact@tryjalla.com without undue delay, and no later than twenty-four hours after discovery, of suspected unauthorized access, loss, misuse, disclosure, alteration, or destruction of Platform credentials or personal or project information. You must preserve relevant evidence and reasonably cooperate with investigation, containment, notice, and remediation.'],
+  ['p', 'You must use reasonable administrative, physical, and technical safeguards. You must notify support@tryjalla.com without undue delay, and no later than twenty-four hours after discovery, of suspected unauthorized access, loss, misuse, disclosure, alteration, or destruction of Platform credentials or personal or project information. You must preserve relevant evidence and reasonably cooperate with investigation, containment, notice, and remediation.'],
 
   ['h2', '14. Contractor Content'],
   ['p', '"Contractor Content" means information, documents, images, videos, designs, reports, messages, profiles, and other materials you or your authorized users submit to Groundwork. As between you and Jalla, you retain ownership of your Contractor Content, subject to the rights of clients and other parties.'],
@@ -184,5 +184,5 @@ export const CONTRACTOR_TOS: readonly AgreementLine[] = [
   ['p', 'The English version controls unless Jalla expressly states that another language version is authoritative. A translated version may be provided for convenience. Nothing in these Terms limits nonwaivable rights under applicable law.'],
 
   ['h2', '28. Contact information'],
-  ['p', 'Questions, notices, privacy requests, or legal correspondence may be sent to Jalla Technologies Inc., 120 Waterfront St, Suite 420 #2075, National Harbor, Maryland 20745, United States, email: contact@tryjalla.com.'],
+  ['p', 'Questions, notices, privacy requests, or legal correspondence may be sent to Jalla Technologies Inc., 120 Waterfront St, Suite 420 #2075, National Harbor, Maryland 20745, United States, email: support@tryjalla.com.'],
 ];

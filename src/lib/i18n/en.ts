@@ -4336,7 +4336,7 @@ export const en = {
     // The success line was hardcoded English and printed whether or not the request was
     // stored — it never was, because the table did not exist. Both outcomes are real now.
     deleteSubmitted:     'Account deletion request submitted. Our team will process it within 48 hours.',
-    deleteFailed:        'We could not submit your request. Please email contact@tryjalla.com so it is not lost.',
+    deleteFailed:        'We could not submit your request. Please email support@tryjalla.com so it is not lost.',
     deleteTypePrefix:    'Type',
     deleteConfirmWord:   'DELETE',
     confirmDeletion:     'Confirm deletion',
@@ -4503,7 +4503,7 @@ export const en = {
     yourName: "Your name",
     subjectHint: "What's this about?",
     messageHint: "Tell us how we can help…",
-    sendFailed: "Something went wrong. Please try again or email us directly at contact@tryjalla.com",
+    sendFailed: "Something went wrong. Please try again or email us directly at support@tryjalla.com",
     openResources: "Browse guides",
     bookNow: "Book now",
     sendCta: "Send a message",

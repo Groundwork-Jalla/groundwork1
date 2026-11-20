@@ -19,7 +19,7 @@ import { siteUrl } from '../src/lib/site-url.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
 import { applicationSender } from './_lib/communication-email.js';
 import { handleCors } from './_lib/cors.js';
-const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
+const TEAM_INBOX = process.env.TEAM_INBOX ?? 'support@tryjalla.com';
 
 function esc(s: unknown): string {
   return String(s ?? '')

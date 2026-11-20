@@ -53,7 +53,7 @@ export function ClientProjectNextAction({ project, stages }: { project: ProjectR
       <p className="mt-3 text-sm leading-relaxed text-white/85">{t(`dashboard.architecture.actions.${action.kind}.body`)}</p>
       {current.failed && <p role="status" className="mt-3 text-xs leading-relaxed text-white/85">{t('dashboard.architecture.actionUnavailable')}{' '}<button type="button" onClick={() => setAttempt(value => value + 1)} className="font-semibold underline underline-offset-4">{t('common.retry')}</button></p>}
     </div>
-    <Link to={href} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffffff] px-4 py-3 text-center text-sm font-semibold text-brand-green transition-colors hover:bg-[#f2f1ee] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white dark:bg-[#f0f0f0] dark:text-[#1f4d36] dark:hover:bg-[#e4e3df]">
+    <Link to={href} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffffff] px-4 py-3 text-center text-sm font-semibold text-brand-green transition-colors hover:bg-[#f2f1ee] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white dark:bg-[#f0f0f0] dark:text-[#122d2b] dark:hover:bg-[#e4e3df]">
       {t(`dashboard.architecture.actions.${action.kind}.button`)}<ArrowUpRight className="size-4" aria-hidden />
     </Link>
   </section>;

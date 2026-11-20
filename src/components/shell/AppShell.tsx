@@ -134,7 +134,7 @@ export function AppShell({
               className={({ isActive }) =>
                 cn(
                   'flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
-                  isActive ? sidebarAppearance === 'calm' ? 'text-[#1f4d36] dark:text-[#b4d8bf]' : 'text-[#0a0a0a] dark:text-white' : 'text-[#5a5a57] dark:text-white/55',
+                  isActive ? sidebarAppearance === 'calm' ? 'text-[#122d2b] dark:text-[#b4d8bf]' : 'text-[#0a0a0a] dark:text-white' : 'text-[#5a5a57] dark:text-white/55',
                 )
               }
             >

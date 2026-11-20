@@ -34,7 +34,7 @@ export interface LegalDoc {
 const UPDATED_EN = '8 August 2026';
 const UPDATED_FR = '8 août 2026';
 
-const CONTACT = 'contact@tryjalla.com';
+const CONTACT = 'support@tryjalla.com';
 
 // ── Privacy ───────────────────────────────────────────────
 

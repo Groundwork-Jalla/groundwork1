@@ -19,17 +19,17 @@ const config: CapacitorConfig = {
   ios: {
     // Let Groundwork's own CSS `env(safe-area-inset-*)` classes manage notch & home indicator padding.
     contentInset: 'never',
-    backgroundColor: '#1f4d36',
+    backgroundColor: '#122d2b',
   },
   android: {
-    backgroundColor: '#1f4d36',
+    backgroundColor: '#122d2b',
     allowMixedContent: false,
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,
       launchAutoHide: true,
-      backgroundColor: '#1f4d36',
+      backgroundColor: '#122d2b',
       showSpinner: false,
     },
     StatusBar: {
