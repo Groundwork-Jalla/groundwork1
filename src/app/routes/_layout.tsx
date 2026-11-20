@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RoleTour } from '@/components/tour/RoleTour';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { LiveChatWidget } from '@/components/chat/LiveChatWidget';
 import { AppShell } from '@/components/shell/AppShell';
 import { CLIENT_NAV, ADMIN_NAV } from '@/components/shell/nav-config';
 import { WorkShell } from '@/components/shell/WorkShell';
@@ -76,7 +77,7 @@ export default function ProtectedLayout() {
     navigate('/', { replace: true });
   }
 
-  const content = <><Outlet /><RoleTour /></>;
+  const content = <><Outlet /><RoleTour /><LiveChatWidget /></>;
   const bell = <NotificationBell userId={user?.id ?? ''} />;
   if (accountRole === 'contractor') return <WorkShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</WorkShell>;
   if (accountRole === 'verifier') return <VerifierShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</VerifierShell>;

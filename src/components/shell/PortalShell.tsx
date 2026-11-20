@@ -86,11 +86,11 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
         <nav aria-label={t('nav.mainNavigation')} className="space-y-2">
           {links.map(({ to, label, icon: Icon, matchPrefix }) => {
             const active = to === home ? location.pathname === home && !location.hash : matchPrefix ? location.pathname.startsWith(to) : `${location.pathname}${location.hash}` === to;
-            const cls = cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium', active ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]');
+            const cls = cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors', active ? 'bg-brand-green text-white' : 'text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]');
             // Inert, not hidden: still legible, but it goes nowhere until the screen
             // behind it has been answered.
             if (navLocked) return <span key={to} aria-disabled="true" className={cn(cls, 'cursor-not-allowed opacity-40 hover:bg-transparent dark:hover:bg-transparent')}><Icon className="size-5" />{t(label)}</span>;
-            return <Link key={to} to={to} onClick={() => setOpen(false)} aria-current={active ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium', active ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]')}><Icon className="size-5" />{t(label)}</Link>;
+            return <Link key={to} to={to} onClick={() => setOpen(false)} aria-current={active ? 'page' : undefined} className={cls}><Icon className="size-5" />{t(label)}</Link>;
           })}
         </nav>
         <div className="mt-auto pt-12">
@@ -120,7 +120,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
               </>
             );
             const cls = cn('flex flex-1 flex-col items-center gap-1.5 py-1.5',
-              active ? 'font-semibold text-brand-near-black dark:text-white' : 'text-brand-mid-grey');
+              active ? 'font-semibold text-brand-green dark:text-[#86efac]' : 'text-brand-mid-grey');
             // Inert while the surface is gated, exactly as the drawer behaves.
             if (navLocked) return <span key={to} aria-disabled="true" className={cn(cls, 'opacity-40')}>{body}</span>;
             return (

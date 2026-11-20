@@ -266,7 +266,7 @@ export default function TakeoffDetail() {
           </button>
           <button
             type="button" onClick={handleSubmit} disabled={busy !== null}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-brand-near-black"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {busy === 'submit' ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
             {t('takeoff.submit')}

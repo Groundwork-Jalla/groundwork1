@@ -112,7 +112,7 @@ function YesNo({ label, hint, value, onChange }: {
             className={cn(
               'flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors',
               value === v
-                ? 'border-brand-near-black bg-brand-near-black text-white'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey bg-white text-brand-mid-grey hover:border-brand-near-black',
             )}
           >
@@ -152,7 +152,7 @@ function CheckGroup({ label, options, selected, onToggle, required }: {
             >
               <span className={cn(
                 'flex size-4 shrink-0 items-center justify-center rounded border',
-                on ? 'border-brand-near-black bg-brand-near-black' : 'border-brand-border-grey',
+                on ? 'border-brand-green bg-brand-green' : 'border-brand-border-grey',
               )}>
                 {on && <CheckCircle2 className="size-3 text-white" />}
               </span>
@@ -592,7 +592,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
         className="text-center py-10 px-4"
       >
-        <span className="inline-flex size-14 items-center justify-center rounded-full bg-brand-near-black mb-5">
+        <span className="inline-flex size-14 items-center justify-center rounded-full bg-brand-green mb-5">
           <CheckCircle2 className="size-7 text-white" />
         </span>
         <h3 className="font-sans text-xl font-bold text-brand-near-black">{f('successTitle')}</h3>
@@ -671,7 +671,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
           aria-label={f('stepOf', { n: step + 1, total: STEPS.length })}
         >
           <div
-            className="h-full rounded-full bg-brand-near-black transition-[width] duration-300 ease-out"
+            className="h-full rounded-full bg-brand-green transition-[width] duration-300 ease-out"
             style={{ width: `${stepPct}%` }}
           />
         </div>
@@ -1011,7 +1011,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
           >
             <span className={cn(
               'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border',
-              agreed ? 'border-brand-near-black bg-brand-near-black' : 'border-brand-border-grey',
+              agreed ? 'border-brand-green bg-brand-green' : 'border-brand-border-grey',
             )}>
               {agreed && <CheckCircle2 className="size-3 text-white" />}
             </span>

@@ -76,7 +76,7 @@ export default function AdminNotifications() {
             }, { replace: true })} aria-pressed={unreadOnly}
               className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                 unreadOnly
-                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                  ? 'border-brand-green bg-brand-green text-white'
                   : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#252525]')}>
               {t('admin.notifications.unread')}<span className="ml-1.5 tabular-nums">{unread}</span>
             </button>

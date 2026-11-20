@@ -89,7 +89,7 @@ export default function ProjectPayments({
               onClick={() => setView(id)}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors',
-                view === id ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                view === id ? 'bg-brand-green text-white'
                             : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >

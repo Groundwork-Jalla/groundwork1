@@ -139,17 +139,17 @@ export default function Step10PlanSelection() {
                   // `.bg-brand-near-black.text-white.rounded-xl` in dark mode, which would
                   // turn the featured column white.
                   'relative flex h-full w-full flex-col rounded-2xl border p-4 text-left transition-all duration-150 sm:p-5',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2',
                   featured
-                    ? 'border-brand-near-black bg-brand-near-black text-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]'
-                    : 'border-brand-border-grey bg-white hover:border-brand-dark-grey',
-                  selected && 'ring-2 ring-brand-near-black ring-offset-2',
+                    ? 'border-brand-green bg-brand-green text-white shadow-[0_12px_40px_rgba(31,77,54,0.2)]'
+                    : 'border-brand-border-grey bg-white hover:border-brand-green/60',
+                  selected && 'ring-2 ring-brand-green ring-offset-2',
                 )}
               >
                 {d.tag && !selected && (
                   <span className={cn(
                     'absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.06em]',
-                    featured ? 'bg-white text-brand-near-black' : 'bg-brand-near-black text-white',
+                    featured ? 'bg-white text-brand-green' : 'bg-brand-green text-white',
                   )}>
                     {d.tag}
                   </span>
@@ -158,9 +158,9 @@ export default function Step10PlanSelection() {
                 {selected && (
                   <span className={cn(
                     'absolute -top-2.5 left-1/2 flex size-5 -translate-x-1/2 items-center justify-center rounded-full',
-                    featured ? 'bg-white' : 'bg-brand-near-black',
+                    featured ? 'bg-white' : 'bg-brand-green',
                   )}>
-                    <Check className={cn('size-3 stroke-3', featured ? 'text-brand-near-black' : 'text-white')} />
+                    <Check className={cn('size-3 stroke-3', featured ? 'text-brand-green' : 'text-white')} />
                   </span>
                 )}
 
@@ -216,10 +216,10 @@ export default function Step10PlanSelection() {
                     'text-xs font-semibold transition-colors',
                     selected
                       ? featured
-                        ? 'bg-white text-brand-near-black'
-                        : 'bg-brand-near-black text-white'
+                        ? 'bg-white text-brand-green'
+                        : 'bg-brand-green text-white'
                       : featured
-                        ? 'border border-white/25 text-white'
+                        ? 'border border-white/30 text-white'
                         : 'border border-brand-border-grey text-brand-near-black',
                   )}
                 >

@@ -51,7 +51,7 @@ export default function ProgressBar() {
       <div className="relative h-1.5 w-full rounded-full bg-brand-border-grey overflow-visible">
         {/* Fill */}
         <motion.div
-          className="absolute inset-y-0 left-0 rounded-full bg-brand-near-black dark:bg-white"
+          className="absolute inset-y-0 left-0 rounded-full bg-brand-green"
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         />

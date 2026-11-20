@@ -260,7 +260,7 @@ export function ContractorPaymentVerificationBar({
         <button type="button" onClick={() => { setAnswer('no'); setError(null); }}
           data-action="stage-paid-no"
           className={answer === 'no'
-            ? 'rounded-lg bg-brand-near-black px-3 py-1.5 font-semibold text-white dark:bg-white dark:text-brand-near-black'
+            ? 'rounded-lg bg-brand-green px-3 py-1.5 font-semibold text-white'
             : 'rounded-lg border border-brand-border-grey px-3 py-1.5 font-semibold text-brand-near-black hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white'}>
           {t('contractorView.stagePaymentNo')}
         </button>

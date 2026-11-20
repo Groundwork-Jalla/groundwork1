@@ -246,7 +246,7 @@ export default function WorkNewClient() {
           <p className="mt-1.5 text-sm text-brand-mid-grey">{t('contractorOnboarding.gateBody')}</p>
           <Link
             to="/work/onboarding"
-            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white"
           >
             {t('contractorOnboarding.gateCta')}
           </Link>

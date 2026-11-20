@@ -79,7 +79,7 @@ export default function ContractorPayouts() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div data-clarity-mask="true" className="flex flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
@@ -88,7 +88,7 @@ export default function ContractorPayouts() {
           <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorPayout.subtitle')}</p>
         </div>
         <button type="button" onClick={() => setAdding(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-sm font-semibold text-white">
           <Plus className="size-4" aria-hidden />{t('contractorPayout.addTitle')}
         </button>
       </header>
@@ -113,7 +113,7 @@ export default function ContractorPayouts() {
           <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('contractorPayout.empty')}</p>
           <button
             type="button" onClick={() => setAdding(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white"
           >
             <Plus className="size-4" aria-hidden />{t('contractorPayout.emptyCta')}
           </button>
@@ -459,7 +459,7 @@ function AddDestination({ ownerId, firstOne, onDone, onCancel }: {
               aria-pressed={method === m}
               className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
                 method === m
-                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                  ? 'border-brand-green bg-brand-green text-white'
                   : 'border-brand-border-grey text-brand-near-black dark:border-[#2c2c2c] dark:text-white'}`}
             >
               {t(m === 'mobile_money' ? 'contractorPayout.mobileMoney' : 'contractorPayout.bank')}
@@ -517,7 +517,7 @@ function AddDestination({ ownerId, firstOne, onDone, onCancel }: {
       <div className="mt-4 flex items-center gap-2">
         <button
           type="button" onClick={submit} disabled={busy}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
         >
           {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {busy ? t('contractorPayout.adding') : t('contractorPayout.add')}

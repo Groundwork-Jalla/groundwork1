@@ -130,7 +130,7 @@ export function WhatsAppCrm({ rows, previews, projectsByPerson, people, staff, s
               {([['all', counts.all], ['needsReply', counts.needsReply], ['mine', counts.mine], ['newNumbers', counts.newNumbers]] as [ChatFilter, number][]).map(([key, n]) => (
                 <button key={key} type="button" onClick={() => setFilter(key)} aria-pressed={filter === key} data-filter={key}
                   className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold',
-                    filter === key ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]' : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:hover:text-white')}>
+                    filter === key ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:hover:text-white')}>
                   {t(`admin.whatsappCrm.filter.${key}` as TKey)}<span className="font-mono opacity-70">{n}</span>
                 </button>
               ))}

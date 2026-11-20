@@ -129,7 +129,7 @@ export function RecordDecisionModal({ projectId, ownerId, stages, conversationId
 
         <div className="flex gap-2 border-t border-brand-border-grey px-6 py-4 dark:border-[#2c2c2c]">
           <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-brand-border-grey py-2 text-xs font-semibold text-brand-near-black hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#252525]">{t('common.cancel')}</button>
-          <button type="button" onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-near-black py-2 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+          <button type="button" onClick={submit} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-green py-2 text-xs font-semibold text-white disabled:opacity-40">
             {busy && <Loader2 className="size-3.5 animate-spin" />}{t('admin.decision.record')}
           </button>
         </div>

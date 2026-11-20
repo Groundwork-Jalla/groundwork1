@@ -111,7 +111,7 @@ export default function VerifierSettings() {
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy}
-            className="rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
+            className="rounded-lg bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
             {busy ? t('common.saving') : t('common.save')}
           </button>
           {saved && <span className="flex items-center gap-1 text-xs text-brand-mid-grey">

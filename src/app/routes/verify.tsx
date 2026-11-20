@@ -183,7 +183,7 @@ function CertificateCard({ cert }: { cert: CertRow }) {
               target="_blank"
               rel="noopener noreferrer"
               download
-              className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3 hover:bg-black transition-colors"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-green text-white text-sm font-semibold py-3 hover:bg-brand-green-hover transition-colors"
             >
               <Download className="size-4" />
               {t('verify.downloadPdf')}

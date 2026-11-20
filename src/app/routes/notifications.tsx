@@ -161,7 +161,7 @@ export default function NotificationsPage() {
             {title}
           </p>
           {!n.read_at && (
-            <span className="size-2 rounded-full bg-brand-near-black dark:bg-white shrink-0" />
+            <span className="size-2 rounded-full bg-brand-green shrink-0" />
           )}
         </div>
         <p className="text-xs text-brand-mid-grey leading-relaxed">{body}</p>
@@ -216,7 +216,7 @@ export default function NotificationsPage() {
             onClick={() => setFilter(tab.value)}
             className={
               filter === tab.value
-                ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-3 py-1.5 text-xs font-semibold'
+                ? 'bg-brand-green text-white rounded-full px-3 py-1.5 text-xs font-semibold'
                 : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white rounded-full px-3 py-1.5 text-xs font-medium transition-colors'
             }
           >

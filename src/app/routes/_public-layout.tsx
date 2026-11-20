@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { SiteNav } from '@/components/shell/SiteNav';
 import { SiteFooter } from '@/components/shell/SiteFooter';
+import { LiveChatWidget } from '@/components/chat/LiveChatWidget';
 
 /**
  * Every signed-out page: landing, pricing, contractor application,
@@ -20,6 +21,7 @@ export default function PublicLayout() {
         <Outlet />
       </main>
       <SiteFooter />
+      <LiveChatWidget />
     </div>
   );
 }

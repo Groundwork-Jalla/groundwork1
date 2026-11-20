@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import { Check, Lock, Clock, Camera, Loader2 } from 'lucide-react';
+import { Check, Lock, Clock, Camera, Loader2, Receipt } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { EvidenceThumbs } from '@/components/project/EvidenceThumbs';
-import { Button } from '@/components/ui/button';
+import { InlineReceiptUploader } from '@/components/project/InlineReceiptUploader';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { errorMessage } from '@/lib/errors';
@@ -71,6 +71,17 @@ function EvidencePills({ urls, review = false }: { urls: string[]; review?: bool
 
 // ── Substage row ──────────────────────────────────────────
 
+interface SubstageReceiptAction {
+  projectId: string;
+  stageId: string;
+  splitByPart: boolean;
+  initialAmount?: string;
+  initialCurrency?: string;
+  remainingDue?: number | null;
+  requestedLabel?: string | null;
+  onUploaded: () => void | Promise<void>;
+}
+
 interface SubstageRowProps {
   substage: ProjectSubstageRow;
   tier: string;
@@ -80,6 +91,8 @@ interface SubstageRowProps {
   /** Project assignment permission, independent of the client's approval permission. */
   canUploadEvidence?: boolean;
   approvalContext?: { projectName: string; stageName: string; description: string; lastUpdate: boolean };
+  /** Inline per-substage receipt upload action for Homeowners (mirrors contractor's right-side buttons). */
+  receiptAction?: SubstageReceiptAction;
   compactEvidence?: boolean;
   onMarkComplete?: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
@@ -99,6 +112,7 @@ export function SubstageRow({
   stagePaid = true,
   canUploadEvidence = false,
   approvalContext,
+  receiptAction,
   compactEvidence = false,
   onMarkComplete,
   onEvidenceUploaded,
@@ -109,6 +123,7 @@ export function SubstageRow({
   const [error, setError] = useState<string | null>(null);
   const markingRef = useRef(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const clientPresentation = !!approvalContext;
 
   const hasEvidence = substage.evidence_urls.length > 0;
@@ -145,29 +160,70 @@ export function SubstageRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <span className={cn(
-            clientPresentation ? 'text-sm font-semibold leading-relaxed' : 'text-xs leading-snug',
-            isComplete
-              ? clientPresentation ? 'text-brand-near-black' : 'line-through text-brand-mid-grey'
-              : isLocked
-                ? 'text-brand-mid-grey'
-                : 'text-brand-near-black font-medium',
-          )}>
-            {substageLabel(substage)}
-          </span>
+          <div className="min-w-0 flex-1">
+            <span className={cn(
+              clientPresentation ? 'text-sm font-semibold leading-relaxed' : 'text-xs leading-snug',
+              isComplete
+                ? clientPresentation ? 'text-brand-near-black' : 'line-through text-brand-mid-grey'
+                : isLocked
+                  ? 'text-brand-mid-grey'
+                  : 'text-brand-near-black font-medium',
+            )}>
+              {substageLabel(substage)}
+            </span>
+            {receiptAction?.requestedLabel && (
+              <span className="mt-1 block">
+                <span className="inline-block rounded-full bg-state-held/12 px-2 py-0.5 text-[11px] font-semibold text-state-held">
+                  {receiptAction.requestedLabel}
+                </span>
+              </span>
+            )}
+          </div>
 
-          {/* Status chips */}
-          {isPendingReview && (
-            <span className="shrink-0 inline-flex items-center rounded-full border border-brand-border-grey bg-brand-off-white px-2 py-px text-[9px] font-medium text-brand-near-black whitespace-nowrap">
-              {t('project.stages.badgeYourApproval')}
-            </span>
-          )}
-          {isComplete && substage.approved_by && (
-            <span className="shrink-0 text-[9px] text-brand-mid-grey whitespace-nowrap">
-              {t('project.stages.approved')}
-            </span>
-          )}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {/* Status chips */}
+            {isPendingReview && (
+              <span className="shrink-0 inline-flex items-center rounded-full border border-brand-border-grey bg-brand-off-white px-2 py-px text-[9px] font-medium text-brand-near-black whitespace-nowrap">
+                {t('project.stages.badgeYourApproval')}
+              </span>
+            )}
+            {isComplete && substage.approved_by && (
+              <span className="shrink-0 text-[9px] text-brand-mid-grey whitespace-nowrap">
+                {t('project.stages.approved')}
+              </span>
+            )}
+            {receiptAction && !isComplete && !isLocked && (
+              <button
+                type="button"
+                data-action="substage-upload-receipt"
+                aria-expanded={receiptOpen}
+                onClick={() => setReceiptOpen(open => !open)}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
+              >
+                <Receipt className="size-3.5" aria-hidden />
+                {t('project.clientUi.uploadReceipt')}
+              </button>
+            )}
+          </div>
         </div>
+
+        {receiptAction && receiptOpen && !isComplete && !isLocked && (
+          <InlineReceiptUploader
+            projectId={receiptAction.projectId}
+            stageId={receiptAction.stageId}
+            substageId={substage.id}
+            substageName={substageLabel(substage)}
+            splitByPart={receiptAction.splitByPart}
+            initialAmount={receiptAction.initialAmount}
+            initialCurrency={receiptAction.initialCurrency}
+            remainingDue={receiptAction.remainingDue}
+            onUploaded={async () => {
+              setReceiptOpen(false);
+              await receiptAction.onUploaded();
+            }}
+            onCancel={() => setReceiptOpen(false)}
+          />
+        )}
 
         {!hasEvidence && !isComplete && !isLocked && <p className="mt-1 text-xs text-brand-mid-grey">{t('project.review.updatesWillAppear')}</p>}
         {/* Evidence pills */}
@@ -223,7 +279,7 @@ export function SubstageRow({
       </div>
       {approvalContext && <ConfirmModal open={confirmOpen} variant="client" title={t('project.clientUi.approveUpdate')}
         eyebrow={`${approvalContext.projectName} · ${approvalContext.stageName}`} description={approvalContext.description}
-        confirmLabel={t('project.clientUi.confirmApproval')} cancelLabel={t('project.clientUi.reviewAgain')}
+        confirmLabel={t('project.clientUi.confirmApproval')} cancelLabel={t('common.cancel')}
         error={error} loading={marking} onConfirm={() => { if (canMarkComplete) return handleMarkComplete(); }}
         onCancel={() => { if (!markingRef.current) setConfirmOpen(false); }}>
         <div className="space-y-3">

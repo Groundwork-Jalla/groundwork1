@@ -337,7 +337,7 @@ export default function AdminApplicationDetail() {
             {!editing && (
               <button
                 type="button" onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-near-black/90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green/90"
               >
                 <Pencil className="size-3.5" /> {t('admin.apps.editButton')}
               </button>
@@ -370,7 +370,7 @@ export default function AdminApplicationDetail() {
                 className={cn(
                   'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
                   app.status === s
-                    ? 'border-brand-near-black bg-brand-near-black text-white'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white',
                 )}
               >
@@ -390,7 +390,7 @@ export default function AdminApplicationDetail() {
                     key={r} type="button" onClick={() => setReason(r)}
                     className={cn('rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                       reason === r
-                        ? 'border-brand-near-black bg-brand-near-black text-white'
+                        ? 'border-brand-green bg-brand-green text-white'
                         : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}
                   >
                     {t(`adminPipeline.why.${r}` as TKey)}
@@ -416,7 +416,7 @@ export default function AdminApplicationDetail() {
                     setRejecting(false);
                     void decide('rejected', { reason, note });
                   }}
-                  className="rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                  className="rounded-lg bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
                 >
                   {t('admin.apps.rejectConfirm')}
                 </button>

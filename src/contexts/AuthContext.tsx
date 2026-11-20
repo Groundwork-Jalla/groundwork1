@@ -3,6 +3,7 @@ import { rememberThisDevice } from '@/lib/supabase/user-devices';
 import type { Session, User } from "@supabase/supabase-js";
 import { useAccountAccess } from '@/hooks/useAccountAccess';
 import type { AccountRole } from '@/lib/auth/account-role';
+import { parseStaffRoles, type StaffRole } from '@/lib/admin/rbac';
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
@@ -14,6 +15,10 @@ interface AuthContextValue {
   loading: boolean;
   /** True when the signed-in user is a platform admin (canonical: user_roles via is_admin RPC). */
   isAdmin: boolean;
+  /** Staff RBAC roles held by this user (`admin`, `ops`, `finance`, `growth`). */
+  staffRoles: StaffRole[];
+  /** True when the user holds any staff role (`admin`, `ops`, `finance`, `growth`). */
+  isStaff: boolean;
   /** False until the admin check has resolved for the current session. */
   adminChecked: boolean;
   /** True when the signed-in user holds the `verifier` role (user_roles, RLS-trusted). */
@@ -34,6 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { access, checked, refresh: refreshRoles } = useAccountAccess(session?.user?.id, loading, session?.access_token);
   const isAdmin = access?.isAdmin ?? false;
+  const staffRoles = parseStaffRoles(access?.roles, isAdmin);
+  const isStaff = staffRoles.length > 0;
   const isVerifier = access?.isVerifier ?? false;
   const isContractor = access?.isContractor ?? false;
   const adminChecked = checked; const rolesChecked = checked;
@@ -81,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, isContractor, rolesChecked, accountRole, refreshRoles, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, staffRoles, isStaff, adminChecked, isVerifier, isContractor, rolesChecked, accountRole, refreshRoles, signOut }}>
       {children}
     </AuthContext.Provider>
   );

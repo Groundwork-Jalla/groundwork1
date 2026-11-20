@@ -184,7 +184,7 @@ export function ContactForm({ userEmail, userId }: { userEmail: string; userId: 
       <button
         type="submit"
         disabled={formState === 'submitting'}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold px-5 py-2.5 transition-opacity hover:opacity-80 disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-green text-white text-sm font-semibold px-5 py-2.5 transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {formState === 'submitting' ? t('help.sending') : t('help.sendMessage')}
       </button>

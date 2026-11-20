@@ -128,7 +128,7 @@ export default function TrackerTool() {
           </div>
           <div className="h-3 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
             <div
-              className="h-full bg-brand-near-black dark:bg-white rounded-full transition-all duration-500"
+              className="h-full bg-brand-green rounded-full transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -192,7 +192,7 @@ export default function TrackerTool() {
                 <span className={cn(
                   'size-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold',
                   isComplete
-                    ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                    ? 'bg-brand-green text-white'
                     : isOpen
                       ? 'border-2 border-brand-near-black dark:border-white text-brand-near-black dark:text-white'
                       : 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey',
@@ -207,7 +207,7 @@ export default function TrackerTool() {
 
                 {/* Mini progress */}
                 <div className="hidden sm:block w-20 h-1 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden shrink-0">
-                  <div className="h-full bg-brand-near-black dark:bg-white rounded-full transition-all duration-300" style={{ width: `${stagePct}%` }} />
+                  <div className="h-full bg-brand-green rounded-full transition-all duration-300" style={{ width: `${stagePct}%` }} />
                 </div>
 
                 <span className="text-xs font-semibold tabular-nums text-brand-mid-grey w-8 text-right">{t('tools.pctValue', { pct: stagePct })}</span>
@@ -278,7 +278,7 @@ export default function TrackerTool() {
         <p className="text-xs text-brand-mid-grey">
           <span className="font-semibold text-brand-near-black dark:text-white">{t('tools.managingReal')}</span> {t('tools.trackerCta')}
         </p>
-        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
+        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-green text-white px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}
         </Link>
       </div>

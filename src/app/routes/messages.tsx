@@ -82,7 +82,7 @@ export default function MessagesPage() {
                   className={cn(
                     'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
                     active?.projectId === r.projectId
-                      ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                      ? 'border-brand-green bg-brand-green text-white'
                       : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]',
                   )}
                 >

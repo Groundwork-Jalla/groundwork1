@@ -99,7 +99,7 @@ export function RecordVerificationModal({
                 {t('common.cancel')}
               </button>
               <button type="button" onClick={submit} disabled={busy || !reason.trim()}
-                className="flex-1 rounded-lg bg-brand-near-black py-2 text-xs font-semibold text-white disabled:opacity-40">
+                className="flex-1 rounded-lg bg-brand-green py-2 text-xs font-semibold text-white disabled:opacity-40">
                 {busy ? t('admin.verification.recording') : t('admin.verification.recordDecision')}
               </button>
             </div>

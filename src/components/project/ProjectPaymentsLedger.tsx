@@ -234,7 +234,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                 {receiptError && <p role="alert" className="mt-1 text-[11px] text-state-alert">{receiptError}</p>}
                 <button
                   type="button" onClick={report} disabled={reporting}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 >
                   {reporting && <Loader2 className="size-4 animate-spin" />}
                   {t('project.pay.reportAction')}

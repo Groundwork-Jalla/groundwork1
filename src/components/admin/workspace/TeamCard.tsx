@@ -129,7 +129,7 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
               placeholder={t('admin.workspace.team.contractorEmailHint')}
               className="min-w-0 flex-1 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white" />
             <button type="button" onClick={assign} disabled={busy || !email.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
               {busy && <Loader2 className="size-3.5 animate-spin" />}{t('admin.workspace.team.assign')}
             </button>
           </div>

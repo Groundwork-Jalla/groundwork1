@@ -619,7 +619,7 @@ export default function AdminProjects() {
                 type="button"
                 onClick={handleAssign}
                 disabled={assigning || !assignEmail.trim()}
-                className="flex-1 rounded-lg bg-brand-near-black py-2 text-xs font-semibold text-white disabled:opacity-40"
+                className="flex-1 rounded-lg bg-brand-green py-2 text-xs font-semibold text-white disabled:opacity-40"
               >
                 {assigning ? t('admin.assigning') : t('admin.assign')}
               </button>

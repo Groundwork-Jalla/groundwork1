@@ -181,7 +181,7 @@ export default function WizardShell({
                 type="button"
                 onClick={handleContinue}
                 disabled={!canContinue || isSubmitting}
-                className="bg-brand-near-black text-white hover:bg-brand-rich-black gap-1.5 min-w-32"
+                className="bg-brand-green text-white hover:bg-brand-green-hover gap-1.5 min-w-32"
               >
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />

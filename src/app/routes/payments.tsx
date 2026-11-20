@@ -202,7 +202,7 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
               </button>
               <button
                 type="submit"
-                className="flex-1 h-10 rounded-xl bg-brand-near-black dark:bg-white text-sm font-semibold text-white dark:text-brand-near-black hover:opacity-90 transition-opacity"
+                className="flex-1 h-10 rounded-xl bg-brand-green text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
               >
                 {t('finances.record')}
               </button>
@@ -422,7 +422,7 @@ export default function PaymentsPage() {
                         </div>
                         <div className="h-2.5 w-full rounded-full bg-brand-light-grey dark:bg-[#2c2c2c] overflow-hidden">
                           <div className="h-full rounded-full bg-brand-off-white dark:bg-[#1c1c1c] relative" style={{ width: `${barPct}%` }}>
-                            <motion.div className="absolute inset-y-0 left-0 rounded-full bg-brand-near-black dark:bg-white"
+                            <motion.div className="absolute inset-y-0 left-0 rounded-full bg-brand-green"
                               initial={{ width: 0 }} animate={{ width: `${spentPct}%` }}
                               transition={{ duration: 1, ease: 'easeOut' }} />
                           </div>

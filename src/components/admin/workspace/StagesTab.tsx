@@ -336,7 +336,7 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
                 </select>
                 <button type="button" disabled={!verifier || busy !== null}
                   onClick={() => run('request_verification', () => requestVerification(view.stage.id, verifier)).then(ok => { if (ok) { setPicker(false); setVerifier(''); } })}
-                  className="rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+                  className="rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
                   {busy === 'request_verification' ? t('admin.verification.requesting') : t('admin.verification.request')}
                 </button>
               </div>

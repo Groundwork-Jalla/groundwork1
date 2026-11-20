@@ -154,7 +154,7 @@ export default function BudgetTool() {
                   onClick={() => setFinishLevel(fl.value)}
                   className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                     finishLevel === fl.value
-                      ? 'border-brand-near-black dark:border-white bg-brand-near-black dark:bg-white'
+                      ? 'border-brand-green bg-brand-green'
                       : 'border-brand-border-grey dark:border-[#2c2c2c] hover:border-brand-near-black dark:hover:border-[#555]'
                   }`}
                 >
@@ -193,7 +193,7 @@ export default function BudgetTool() {
                 <div key={s.key} className="flex items-center gap-3">
                   <span className="w-28 shrink-0 text-xs text-brand-mid-grey">{t(s.labelKey)}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-                    <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${shares[s.key]}%` }} />
+                    <div className="h-full bg-brand-green rounded-full" style={{ width: `${shares[s.key]}%` }} />
                   </div>
                   <span className="text-xs font-medium text-brand-near-black dark:text-white tabular-nums w-20 text-right">{f.money(budget[s.key])}</span>
                 </div>
@@ -211,7 +211,7 @@ export default function BudgetTool() {
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-4">
             <p className="text-xs font-semibold text-brand-near-black dark:text-white mb-1">{t('tools.trackReal')}</p>
             <p className="text-[11px] text-brand-mid-grey mb-3">{t('tools.trackRealBody')}</p>
-            <Link to="/auth/signup" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
+            <Link to="/auth/signup" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green text-white px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
               {t('tools.getStartedFree')}
             </Link>
           </div>

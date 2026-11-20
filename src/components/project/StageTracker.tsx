@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, Loader2, Lock } from 'lucide-react';
+import { Check, Download, Loader2, Lock, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { StageMarker } from './StageMarker';
@@ -11,6 +11,8 @@ import { MoneyValue } from './MoneyValue';
 import { DocumentViewer } from './DocumentViewer';
 import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase/certificates';
 import { formatShare } from '@/lib/budget/stage-shares';
+import { useProjectMoneyContext } from '@/lib/budget/project-money-context';
+import { stageReceiptBalance, stageReceiptExcess, stageReceiptTotalExcess } from '@/lib/payments/stage-receipt-balance';
 import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { currencyFractionDigits } from '@/lib/format';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
@@ -133,6 +135,33 @@ interface StageDetailProps {
   }) => React.ReactNode;
 }
 
+function scrollToStageReceipt(stageId: string) {
+  if (typeof document === 'undefined') return;
+  const target = document.getElementById(`stage-payment-form-${stageId}`) ?? document.getElementById(`stage-payment-${stageId}`);
+  target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const input = document.getElementById(`receipt-amount-${stageId}`) as HTMLInputElement | null;
+  if (input) window.setTimeout(() => input.focus({ preventScroll: true }), 260);
+}
+
+function summarizeStagePayment(
+  stage: Pick<ProjectStageRow, 'milestone_amount' | 'payment_milestone_usd' | 'pre_existing'>,
+  payment: StagePayment | undefined,
+  code: string,
+  fxRate: number,
+) {
+  if (stage.pre_existing || !payment) return null;
+  const scheduled = stage.milestone_amount ?? (stage.payment_milestone_usd != null ? stage.payment_milestone_usd * fxRate : null);
+  if (scheduled != null && scheduled <= 0 && !payment.receipts?.length && !payment.receiptPath) return null;
+  const balance = stageReceiptBalance(payment, code, fxRate, stage.milestone_amount);
+  const due = stage.milestone_amount ?? payment.amount * fxRate;
+  const excessConfirmed = stageReceiptExcess(balance, due);
+  const excessTotal = stageReceiptTotalExcess(balance, due);
+  const excessNow = excessConfirmed != null && excessConfirmed > 0 ? excessConfirmed : (excessTotal != null && excessTotal > 0 ? excessTotal : 0);
+  const settled = payment.state === 'funded' || payment.state === 'reconciled';
+  const fullyPaid = settled && (balance.remaining === 0 || (balance.received == null && !payment.receipts?.length));
+  return { balance, excessNow, settled, fullyPaid, due };
+}
+
 function StageDetail({
   clientPresentation = false, projectName, evidenceFirst = false,
   stage,
@@ -159,6 +188,13 @@ function StageDetail({
   // The milestone in the project's currency (9 Nov 2026) — project-money-context.tsx.
   const t = useT();
   const { lang } = useLanguage();
+  const currency = useProjectMoneyContext();
+  const code = currency?.code ?? 'USD';
+  const fxRate = currency?.budgetRate ?? currency?.rate ?? 1;
+  const formatMoney = (value: number | null | undefined) => value == null
+    ? t('project.receiptFlow.amountUnknown')
+    : `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(code) }).format(value)} ${code}`;
+  const paymentSummary = summarizeStagePayment(stage, payment, code, fxRate);
   const openStageRequests = paymentRequests.filter(r => r.stage_id === stage.id && r.status === 'open');
   const formatRequestAmount = (amount: number | null, iso: string | null) => {
     if (amount == null || !Number.isFinite(amount)) return '';
@@ -197,6 +233,9 @@ function StageDetail({
   // is paid, so with no payment record it rendered no payment section and no message.
   const missingPayment = hasPrimaryContractor && canAct && !payment
     && (stage.payment_milestone_usd == null || stage.payment_milestone_usd > 0);
+  const canUploadReceiptNow = clientPresentation && !isContractor && canApprove && hasPrimaryContractor
+    && !!payment && paymentEnabled && (!paymentSummary?.settled || (paymentSummary?.balance.remaining ?? 0) > 0)
+    && (!paidByPart || !!parts?.next_payable);
 
   async function handleApprove() {
     if (approvalBusy.current) return;
@@ -243,9 +282,82 @@ function StageDetail({
         </div>
       </div>
 
+      {/* Stage payment action & compact summary bar (Homeowner view) */}
+      {clientPresentation && !isContractor && paymentSummary && (hasPrimaryContractor || !!payment?.receipts?.length || !!payment?.receiptPath) && (
+        <div
+          data-client-stage-payment-bar
+          data-clarity-mask="true"
+          className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white/70 px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#141414]"
+        >
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+            <div>
+              <span className="text-brand-mid-grey">{t('project.clientUi.paidLabel')}: </span>
+              <span className={cn('font-mono font-semibold tabular-nums', (paymentSummary.balance.received ?? 0) > 0 ? 'text-brand-green dark:text-[#86efac]' : 'text-brand-near-black dark:text-white')}>
+                {formatMoney(paymentSummary.balance.received)}
+              </span>
+            </div>
+            <div>
+              <span className="text-brand-mid-grey">{t('project.clientUi.leftLabel')}: </span>
+              <span className="font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">
+                {formatMoney(paymentSummary.balance.remaining)}
+              </span>
+            </div>
+            {paymentSummary.balance.pending != null && paymentSummary.balance.pending > 0 && (
+              <div>
+                <span className="text-brand-mid-grey">{t('project.clientUi.pendingLabel')}: </span>
+                <span className="font-mono font-semibold tabular-nums text-state-held">
+                  {formatMoney(paymentSummary.balance.pending)}
+                </span>
+              </div>
+            )}
+            {paymentSummary.excessNow > 0 && (
+              <span
+                data-stage-summary-excess
+                className="inline-flex items-center gap-1 rounded-full border border-state-held/40 bg-state-held/12 px-2.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-state-held"
+              >
+                {t('project.clientUi.excessLabel')}: +{formatMoney(paymentSummary.excessNow)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {canUploadReceiptNow ? (
+              <button
+                type="button"
+                data-action="stage-upload-receipt"
+                onClick={() => scrollToStageReceipt(stage.id)}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
+              >
+                <Receipt className="size-3.5" aria-hidden />
+                {t('project.clientUi.uploadReceipt')}
+              </button>
+            ) : paymentSummary.fullyPaid ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-xs font-semibold text-brand-green dark:text-[#86efac]">
+                <Check className="size-3.5" aria-hidden />
+                {t('project.clientUi.paidInFull')}
+              </span>
+            ) : !paymentEnabled && !paymentSummary.settled ? (
+              <span className="text-[11px] text-brand-mid-grey">{paymentBlockedReason}</span>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {!isContractor && openStageRequests.length > 0 && (
         <div role="status" data-client-payment-requests className="mb-4 space-y-2 rounded-xl border border-state-held/40 bg-state-held/10 p-3.5 text-xs">
-          <p className="font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.paymentRequestedTitle')}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.paymentRequestedTitle')}</p>
+            {canUploadReceiptNow && (
+              <button
+                type="button"
+                onClick={() => scrollToStageReceipt(stage.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-green-hover"
+              >
+                <Receipt className="size-3" aria-hidden />
+                {t('project.clientUi.uploadReceipt')}
+              </button>
+            )}
+          </div>
           <ul className="space-y-1.5">
             {openStageRequests.map(req => {
               const sub = req.substage_id ? substages.find(s => s.id === req.substage_id) : undefined;
@@ -283,27 +395,46 @@ function StageDetail({
           {clientPresentation && <h3 className="mb-4 text-sm font-semibold text-brand-near-black">{t('project.clientUi.contractorUpdates')}</h3>}
           {clientPresentation && allSubstagesReady && <div className="mb-4"><EvidenceThumbs paths={[...new Set(substages.flatMap(sub => sub.evidence_urls))]} size="review" /></div>}
           <div className={clientPresentation ? 'space-y-3' : 'divide-y divide-brand-border-grey/60'}>
-            {substages.map(sub => (
-              <SubstageRow
-                key={sub.id}
-                substage={sub}
-                tier={tier}
-                userId={userId}
-                isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
-                stagePaid={stagePaid}
-                compactEvidence={clientPresentation && allSubstagesReady}
-                canUploadEvidence={canUploadEvidence && canAct && (workAllowed || (paidByPart && !!parts?.parts?.some(part => part.work_ready && part.status !== 'complete')))
-                  && partWorkReady(parts, paidByPart, sub.id)}
-                approvalContext={clientPresentation ? {
-                  projectName, stageName: `${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`,
-                  lastUpdate: approvalsRemaining === 1,
-                  description: t(approvalsRemaining === 1 ? evidenceFirst && (stage.payment_milestone_usd ?? 0) > 0 ? 'project.clientUi.reviewedStageNext' : 'project.clientUi.fundedStageNext' : 'project.clientUi.approveUpdateBody'),
-                } : undefined}
-                onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
-                onEvidenceUploaded={onEvidenceUploaded}
-                renderEvidenceUpload={renderEvidenceUpload}
-              />
-            ))}
+            {substages.map(sub => {
+              const subPart = paidByPart ? parts?.parts?.find(p => p.id === sub.id) : undefined;
+              const subRequest = openStageRequests.find(r => r.substage_id === sub.id);
+              const subCanUploadReceipt = canUploadReceiptNow && (!paidByPart || !!subPart?.payable);
+              const remainingAfterPending = paymentSummary?.balance.remaining != null
+                ? Math.max(0, Math.round((paymentSummary.balance.remaining - (paymentSummary.balance.pending ?? 0)) * 1e6) / 1e6)
+                : null;
+              const requestedAmt = subRequest ? formatRequestAmount(subRequest.amount, subRequest.currency) : '';
+              return (
+                <SubstageRow
+                  key={sub.id}
+                  substage={sub}
+                  tier={tier}
+                  userId={userId}
+                  isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
+                  stagePaid={stagePaid}
+                  compactEvidence={clientPresentation && allSubstagesReady}
+                  canUploadEvidence={canUploadEvidence && canAct && (workAllowed || (paidByPart && !!parts?.parts?.some(part => part.work_ready && part.status !== 'complete')))
+                    && partWorkReady(parts, paidByPart, sub.id)}
+                  approvalContext={clientPresentation ? {
+                    projectName, stageName: `${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`,
+                    lastUpdate: approvalsRemaining === 1,
+                    description: t(approvalsRemaining === 1 ? evidenceFirst && (stage.payment_milestone_usd ?? 0) > 0 ? 'project.clientUi.reviewedStageNext' : 'project.clientUi.fundedStageNext' : 'project.clientUi.approveUpdateBody'),
+                  } : undefined}
+                  receiptAction={subCanUploadReceipt ? {
+                    projectId,
+                    stageId: stage.id,
+                    splitByPart: paidByPart,
+                    initialAmount: subRequest?.amount != null ? String(subRequest.amount) : subPart?.remaining ? String(subPart.remaining) : '',
+                    initialCurrency: subRequest?.currency ?? (paidByPart ? (parts?.currency ?? code) : code),
+                    remainingDue: subPart ? Number(subPart.remaining) : remainingAfterPending,
+                    requestedLabel: requestedAmt ? t('project.clientUi.paymentRequestedAmount', { amount: requestedAmt }) : null,
+                    onUploaded: onPaymentChanged,
+                  } : undefined}
+                  onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
+                  onEvidenceUploaded={onEvidenceUploaded}
+                  renderEvidenceUpload={renderEvidenceUpload}
+                />
+              );
+            })}
           </div>
 
           {showApproveButton && (
@@ -443,7 +574,15 @@ export function StageTracker({
   renderEvidenceUpload,
 }: StageTrackerProps) {
   const t = useT();
+  const { lang } = useLanguage();
   const { stageLabel } = useStageLabels();
+  const currency = useProjectMoneyContext();
+  const code = currency?.code ?? 'USD';
+  const fxRate = currency?.budgetRate ?? currency?.rate ?? 1;
+  const formatMoney = (value: number | null | undefined) => value == null
+    ? t('project.receiptFlow.amountUnknown')
+    : `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(code) }).format(value)} ${code}`;
+  const [pendingReceiptScroll, setPendingReceiptScroll] = useState<string | null>(null);
 
   // Only an actual, unrevoked issued PDF offers a certificate action.
   const [issued, setIssued] = useState<{ projectId: string; rows: Map<string, IssuedCertificate> }>({ projectId, rows: new Map() });
@@ -563,33 +702,91 @@ export function StageTracker({
     </div>
   );
 
+  useEffect(() => {
+    if (!pendingReceiptScroll || selectedStage?.id !== pendingReceiptScroll) return;
+    const id = window.setTimeout(() => {
+      scrollToStageReceipt(pendingReceiptScroll);
+      setPendingReceiptScroll(null);
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [pendingReceiptScroll, selectedStage?.id]);
+
   if (clientPresentation) return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[15rem_minmax(0,1fr)] xl:items-start">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[16.5rem_minmax(0,1fr)] xl:items-start">
       <aside className="min-w-0 overflow-hidden rounded-xl border border-brand-border-grey bg-white xl:sticky xl:top-5">
         <div className="border-b border-brand-border-grey px-4 py-4">
           <h2 className="text-sm font-bold text-brand-near-black">{t('project.clientUi.stagesTitle')}</h2>
           <p className="mt-1 text-xs text-brand-mid-grey">{t('project.stages.completeCount', { done: completedCount, total: stages.length })}</p>
         </div>
         <nav ref={clientStageNav} aria-label={t('project.clientUi.stagesTitle')} className="flex gap-1 overflow-x-auto p-2 xl:block xl:space-y-1 xl:overflow-visible">
-          {orderedStages.map(stage => (
-            <div key={stage.id} className="min-w-44 shrink-0 xl:min-w-0">
-              <button type="button" aria-current={selectedStage?.id === stage.id ? 'step' : undefined}
-                onClick={() => { navigation.current.version++; setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id }); }}
-                className={cn('flex min-h-20 w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-green', selectedStage?.id === stage.id ? 'bg-brand-green/8' : 'hover:bg-brand-off-white')}>
-                <span className="mt-0.5 shrink-0">{stage.status === 'locked' ? <span className="flex size-9 items-center justify-center rounded-full bg-brand-off-white"><Lock className="size-4 text-brand-mid-grey" aria-hidden /></span> : <StageCircle status={stage.status} current={stage.id === currentStage?.id} number={stage.stage_number} selected={selectedStage?.id === stage.id} />}</span>
-                <span className="min-w-0">
-                  <span className="block text-xs font-semibold leading-relaxed text-brand-near-black">{stage.stage_number}. {stageLabel(stage)}</span>
-                  <span className="mt-1 block text-[10px] leading-relaxed text-brand-mid-grey">
-                    {t(stage.pre_existing ? 'project.costing.completedBeforeTracking' : stage.status === 'complete' ? 'common.complete' : stage.review_payment_pending ? 'project.receiptFlow.reviewedPaymentBadge' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.stages.badgeActive')}
+          {orderedStages.map(stage => {
+            const stagePay = payments?.get(stage.id);
+            const railSummary = !isContractor ? summarizeStagePayment(stage, stagePay, code, fxRate) : null;
+            const stageCanUpload = !isContractor && canApprove && hasPrimaryContractor && !projectArchived
+              && (!projectPaused || stage.status === 'complete')
+              && canSubmitStageReceipt(stage, orderedStages, workflowOrigin)
+              && !!railSummary && (!railSummary.settled || (railSummary.balance.remaining ?? 0) > 0);
+            return (
+              <div key={stage.id} className="min-w-52 shrink-0 xl:min-w-0">
+                <button type="button" aria-current={selectedStage?.id === stage.id ? 'step' : undefined}
+                  onClick={() => { navigation.current.version++; setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id }); }}
+                  className={cn('flex min-h-20 w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-green', selectedStage?.id === stage.id ? 'bg-brand-green/8' : 'hover:bg-brand-off-white')}>
+                  <span className="mt-0.5 shrink-0">{stage.status === 'locked' ? <span className="flex size-9 items-center justify-center rounded-full bg-brand-off-white"><Lock className="size-4 text-brand-mid-grey" aria-hidden /></span> : <StageCircle status={stage.status} current={stage.id === currentStage?.id} number={stage.stage_number} selected={selectedStage?.id === stage.id} />}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold leading-relaxed text-brand-near-black">{stage.stage_number}. {stageLabel(stage)}</span>
+                    <span className="mt-0.5 block text-[10px] leading-relaxed text-brand-mid-grey">
+                      {t(stage.pre_existing ? 'project.costing.completedBeforeTracking' : stage.status === 'complete' ? 'common.complete' : stage.review_payment_pending ? 'project.receiptFlow.reviewedPaymentBadge' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.stages.badgeActive')}
+                    </span>
+                    <span className="mt-1 block break-words font-mono text-[11px] leading-relaxed text-brand-mid-grey"><MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} /></span>
+                    {railSummary && (
+                      <span data-rail-stage-payment data-clarity-mask="true" className="mt-1.5 block space-y-0.5 border-t border-brand-border-grey/70 pt-1.5 text-[10px] leading-snug">
+                        {railSummary.fullyPaid ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-brand-green dark:text-[#86efac]">
+                            <Check className="size-2.5" aria-hidden />{t('project.clientUi.paidInFull')}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="block text-brand-mid-grey">
+                              {t('project.clientUi.paidLabel')}: <span className="font-mono font-medium text-brand-near-black dark:text-white">{formatMoney(railSummary.balance.received)}</span>
+                            </span>
+                            <span className="block text-brand-mid-grey">
+                              {t('project.clientUi.leftLabel')}: <span className="font-mono font-medium text-brand-near-black dark:text-white">{formatMoney(railSummary.balance.remaining)}</span>
+                            </span>
+                          </>
+                        )}
+                        {railSummary.excessNow > 0 && (
+                          <span className="inline-block rounded-full bg-state-held/12 px-1.5 py-px font-mono font-semibold text-state-held">
+                            {t('project.clientUi.excessLabel')}: +{formatMoney(railSummary.excessNow)}
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </span>
-                  <span className="mt-1 block break-words font-mono text-[11px] leading-relaxed text-brand-mid-grey"><MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} /></span>
-                </span>
-              </button>
-              {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && <button type="button"
-                onClick={() => setCertificate({ projectId, name: `${stageLabel(stage)}.pdf`, url: issued.rows.get(stage.id)!.pdfUrl! })}
-                className="mb-2 inline-flex min-h-9 items-center gap-1 px-3 text-xs text-brand-green underline dark:text-[#b4d8bf]"><Download className="size-3" aria-hidden />{t('project.stages.certificate')}</button>}
-            </div>
-          ))}
+                </button>
+                {stageCanUpload && (
+                  <div className="mb-1.5 pl-14 pr-3">
+                    <button
+                      type="button"
+                      data-action="rail-upload-receipt"
+                      onClick={() => {
+                        navigation.current.version++;
+                        setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id });
+                        if (selectedStage?.id === stage.id) scrollToStageReceipt(stage.id);
+                        else setPendingReceiptScroll(stage.id);
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-green-hover"
+                    >
+                      <Receipt className="size-3" aria-hidden />
+                      {t('project.clientUi.uploadReceipt')}
+                    </button>
+                  </div>
+                )}
+                {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && <button type="button"
+                  onClick={() => setCertificate({ projectId, name: `${stageLabel(stage)}.pdf`, url: issued.rows.get(stage.id)!.pdfUrl! })}
+                  className="mb-2 inline-flex min-h-9 items-center gap-1 px-3 text-xs text-brand-green underline dark:text-[#b4d8bf]"><Download className="size-3" aria-hidden />{t('project.stages.certificate')}</button>}
+              </div>
+            );
+          })}
         </nav>
       </aside>
       <div className="min-w-0 space-y-4">

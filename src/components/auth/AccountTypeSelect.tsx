@@ -24,16 +24,9 @@ import type { SignupAccountType } from '@/lib/auth/signup-account';
 
 const OPTIONS: readonly SignupAccountType[] = ['homeowner', 'contractor'] as const;
 
-const STYLE: Record<SignupAccountType, { on: string; off: string }> = {
-  homeowner: {
-    on:  'border-brand-green bg-brand-green text-white',
-    off: 'border-brand-green bg-white text-brand-green hover:bg-brand-green/10 dark:border-[#4e9e78] dark:bg-transparent dark:text-[#86efac] dark:hover:bg-[#4e9e78]/15',
-  },
-  contractor: {
-    on:  'border-brand-near-black bg-brand-near-black text-white dark:border-[#f0f0f0] dark:bg-[#f0f0f0] dark:text-[#0a0a0a]',
-    off: 'border-brand-near-black bg-white text-brand-near-black hover:bg-brand-light-grey dark:border-[#f0f0f0]/75 dark:bg-transparent dark:text-[#f0f0f0] dark:hover:bg-white/10',
-  },
-};
+const SELECTED_STYLE = 'border-brand-green bg-brand-green text-white';
+const UNSELECTED_STYLE =
+  'border-brand-border-grey bg-white text-brand-near-black hover:border-brand-green hover:text-brand-green dark:border-[#2c2c2c] dark:bg-transparent dark:text-[#f0f0f0] dark:hover:border-[#4e9e78] dark:hover:text-[#86efac]';
 
 export default function AccountTypeSelect({ value, onChange, disabled = false }: {
   value: SignupAccountType;
@@ -58,9 +51,9 @@ export default function AccountTypeSelect({ value, onChange, disabled = false }:
               onClick={() => { if (!selected) onChange(type); }}
               className={cn(
                 'min-h-12 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-colors',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-near-black',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green',
                 'disabled:pointer-events-none disabled:opacity-50',
-                selected ? STYLE[type].on : STYLE[type].off,
+                selected ? SELECTED_STYLE : UNSELECTED_STYLE,
               )}
             >
               {t(type === 'contractor' ? 'auth.signup.contractor' : 'auth.signup.homeowner')}

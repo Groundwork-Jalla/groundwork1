@@ -93,7 +93,7 @@ function ProgressBar({ progress }: { progress: number }) {
   return (
     <div className="h-0.5 w-full bg-brand-border-grey overflow-hidden">
       <motion.div
-        className="h-full bg-brand-near-black"
+        className="h-full bg-brand-green"
         initial={{ width: '0%' }}
         animate={{ width: `${progress}%` }}
         transition={{ ease: 'easeOut', duration: 0.15 }}
@@ -322,7 +322,7 @@ export function CategorySelectModal({
               className={cn(
                 'rounded-lg border px-3 py-2 text-xs font-medium text-left transition-colors',
                 selected === cat
-                  ? 'border-brand-near-black dark:border-white bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                  ? 'border-brand-green bg-brand-green text-white'
                   : 'border-brand-border-grey dark:border-[#2c2c2c] text-brand-near-black dark:text-white hover:bg-brand-off-white dark:hover:bg-[#282828]',
               )}
             >
@@ -577,7 +577,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
                     'h-full rounded-full',
                     storageUsed / storageLimit > 0.9 ? 'bg-state-alert'
                     : storageUsed / storageLimit > 0.7 ? 'bg-state-held'
-                    : 'bg-brand-near-black'
+                    : 'bg-brand-green'
                   )}
                   style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
                 />
@@ -619,7 +619,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
             className={cn(
               'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
               filterCategory === 'all'
-                ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                ? 'bg-brand-green text-white'
                 : 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
             )}
           >
@@ -633,7 +633,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
               className={cn(
                 'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
                 filterCategory === cat
-                  ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                  ? 'bg-brand-green text-white'
                   : 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >

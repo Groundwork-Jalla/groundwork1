@@ -136,7 +136,7 @@ export default function AdminFinance() {
               {PERIODS.map(n => (
                 <button key={n} type="button" onClick={() => setPeriod(n)} aria-pressed={period === n}
                   className={cn('rounded-md px-2.5 py-1 text-xs font-semibold transition-colors',
-                    period === n ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white')}>
+                    period === n ? 'bg-brand-green text-white' : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white')}>
                   {t('admin.finance.months', { n })}
                 </button>
               ))}

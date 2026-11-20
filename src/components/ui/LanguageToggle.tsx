@@ -47,9 +47,7 @@ export function LanguageToggle({
               className={cn(
                 'rounded-md px-2 py-1 transition-colors',
                 active
-                  ? onDark
-                    ? 'bg-white text-brand-near-black'
-                    : 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black'
+                  ? 'bg-brand-green text-white'
                   : onDark
                     ? 'text-white/60 hover:text-white'
                     : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',

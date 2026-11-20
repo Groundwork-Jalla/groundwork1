@@ -125,7 +125,7 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
       {rows.length > 0 && <div role="group" aria-label={t('project.historyView.filters')} className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto px-1 pb-0.5">
         {FILTERS.map(key => <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}
           className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${filter === key
-            ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]'
+            ? 'border-brand-green bg-brand-green text-white'
             : 'border-brand-border-grey bg-white text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:bg-transparent dark:hover:text-white'}`}>
           {!client && key === 'pending' ? t('contractorView.toConfirm') : t(`project.historyView.${key}`)}<span className="font-mono opacity-75">{counts[key]}</span>
         </button>)}

@@ -8,6 +8,7 @@ import { personLabel, projectContext, type ProjectContext } from '@/lib/admin/in
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
 import { NewJallaMessage } from '@/components/admin/NewJallaMessage';
 import { WhatsAppCrm } from '@/components/admin/whatsapp/WhatsAppCrm';
+import { LiveChatConsole } from '@/components/admin/live-chat/LiveChatConsole';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -145,6 +146,10 @@ export default function AdminInbox() {
   const projectName = (projectId: string, personId: string | null) =>
     (personId ? projectsByPerson.get(personId) ?? [] : []).find(p => p.id === projectId)?.name ?? '';
 
+  if (channelFilter === 'live_chat') {
+    return <LiveChatConsole />;
+  }
+
   // The sidebar's WhatsApp entry (this page, ?channel=whatsapp) is the WhatsApp CRM
   // (18 Nov): the same rows, laid out as chats, the conversation and the person.
   if (channelFilter === 'whatsapp' && rows !== null && !error && available) {
@@ -177,7 +182,7 @@ export default function AdminInbox() {
           <button type="button" onClick={() => setStatus(needsReplyOn ? null : 'waiting_on_us')} aria-pressed={needsReplyOn}
             className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
               needsReplyOn
-                ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#252525]')}>
             {t('admin.inbox.needsReply')}
             <span className={cn('ml-1.5 tabular-nums', needsReplyOn ? '' : 'text-brand-mid-grey')}>{needsReply}</span>

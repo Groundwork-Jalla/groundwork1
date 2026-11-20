@@ -130,7 +130,7 @@ export function ClientDocuments({
             />
             <button
               type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-brand-near-black"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-green px-3.5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {uploading
                 ? <Loader2 className="size-4 animate-spin" aria-hidden />

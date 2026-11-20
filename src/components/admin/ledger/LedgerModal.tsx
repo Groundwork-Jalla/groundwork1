@@ -99,7 +99,7 @@ export function LedgerModal({ modal, projectName, stage, contractors, onClose, o
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-brand-border-grey px-4 py-2 text-xs font-semibold text-brand-near-black">{t('common.cancel')}</button>
           <button type="button" onClick={submit} disabled={busy || (modal.kind === 'authorise' && (!beneficiary || !(Number(amount) > 0)))}
-            className="flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
+            className="flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
             {busy && <Loader2 className="size-3.5 animate-spin" />}
             {modal.kind === 'confirm' ? t('admin.ledger.confirm') : modal.kind === 'authorise' ? t('admin.ledger.authorise') : t('admin.ledger.openReconciliation')}
           </button>

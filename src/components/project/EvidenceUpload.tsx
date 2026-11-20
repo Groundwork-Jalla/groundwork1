@@ -400,7 +400,7 @@ export function EvidenceUpload({
                     ? 'bg-state-alert'
                     : storageUsed / storageLimit > 0.7
                     ? 'bg-state-held'
-                    : 'bg-brand-near-black'
+                    : 'bg-brand-green'
                 )}
                 style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
               />
@@ -510,7 +510,7 @@ export function EvidenceUpload({
                     <motion.div
                       className={cn(
                         'h-full rounded-full',
-                        f.done ? 'bg-state-complete' : 'bg-brand-near-black'
+                        f.done ? 'bg-state-complete' : 'bg-brand-green'
                       )}
                       initial={{ width: '0%' }}
                       animate={{ width: `${f.progress}%` }}
@@ -582,7 +582,7 @@ export function EvidenceUpload({
                     onClick={() => setDeleteTarget(item.path)}
                     className={cn(
                       'absolute top-1.5 right-1.5 size-5 rounded-full',
-                      'bg-brand-near-black text-white flex items-center justify-center',
+                      'bg-brand-green text-white flex items-center justify-center',
                       'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
                       'transition-opacity duration-150',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-brand-near-black'

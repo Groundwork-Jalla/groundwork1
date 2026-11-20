@@ -25,12 +25,12 @@ const sidebar = (pathname: string, search = '', nav = ADMIN_NAV) => {
 const links = (html: string) => [...html.matchAll(/<a href="([^"]+)"([^>]*)>/g)].map(m => ({ href: m[1].replace(/&amp;/g, '&'), current: m[2].includes('aria-current="page"') }));
 
 describe('the admin sidebar in dropdowns keeps every item', () => {
-  it('groups all 38 items, each once, in the same order', () => {
+  it('groups all 35 active items (4 placeholders retired, Live Chat added), each once, in order', () => {
     const groups = navGroups(ADMIN_NAV);
     expect(groups.flatMap(group => group.items)).toEqual(ADMIN_NAV);
-    expect(ADMIN_NAV).toHaveLength(38);
+    expect(ADMIN_NAV).toHaveLength(35);
     expect(groups.map(group => [label(group.section!), group.items.length, group.collapsible])).toEqual([
-      ['Overview', 2, false], ['Work', 5, true], ['Finance', 4, true], ['People', 8, true], ['Communication', 6, true],
+      ['Overview', 2, false], ['Work', 3, true], ['Finance', 4, true], ['People', 6, true], ['Communication', 7, true],
       ['Acquisition', 6, true], ['Support', 1, false], ['Analytics', 1, false], ['System', 5, true]]);
   });
 
@@ -57,7 +57,7 @@ describe('the admin sidebar in dropdowns keeps every item', () => {
   it('opens only the current page\'s dropdown; the others show their name and count', () => {
     const html = sidebar('/admin/inbox', '?channel=whatsapp');
     const hrefs = links(html).map(link => link.href);
-    for (const to of ['/admin/inbox', '/admin/inbox?channel=whatsapp', '/admin/notifications', '/admin/inbox?channel=jalla', '/admin/inbox?channel=email', '/admin/inbox?channel=call']) expect(hrefs).toContain(to);
+    for (const to of ['/admin/inbox', '/admin/inbox?channel=live_chat', '/admin/inbox?channel=whatsapp', '/admin/notifications', '/admin/inbox?channel=jalla', '/admin/inbox?channel=email', '/admin/inbox?channel=call']) expect(hrefs).toContain(to);
     expect(hrefs).not.toContain('/admin/projects');
     expect(hrefs).toEqual(expect.arrayContaining(['/admin', '/admin/action-center', '/admin/support', '/admin/analytics']));
     expect(html).toMatch(/aria-expanded="true"[^>]*data-nav-group="nav.sectionCommunication"/);

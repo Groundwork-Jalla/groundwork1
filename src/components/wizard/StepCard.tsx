@@ -43,7 +43,7 @@ export default function StepCard({
       )}
     >
       {floatingBadge && (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
+        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-green text-white text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
           {floatingBadge}
         </span>
       )}
@@ -54,7 +54,7 @@ export default function StepCard({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.18, ease: 'backOut' }}
-          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-brand-near-black dark:bg-white"
+          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-brand-green"
         >
           <Check className="size-3 text-white dark:text-brand-near-black" strokeWidth={3} />
         </motion.span>
@@ -69,7 +69,7 @@ export default function StepCard({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-semibold text-sm text-brand-near-black dark:text-white leading-tight">{label}</p>
           {badge && (
-            <span className="rounded-full bg-brand-near-black px-2 py-0.5 text-[9px] font-bold text-white dark:bg-white dark:text-brand-near-black">
+            <span className="rounded-full bg-brand-green px-2 py-0.5 text-[9px] font-bold text-white">
               {badge}
             </span>
           )}

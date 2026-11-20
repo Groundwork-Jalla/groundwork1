@@ -110,7 +110,7 @@ export default function ClaimContractorAccount() {
         <>
           <button
             type="button" onClick={claimNow} disabled={busy}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
           >
             {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
             {t('claim.cta')}
@@ -121,7 +121,7 @@ export default function ClaimContractorAccount() {
         <div className="mt-6 space-y-2">
           <Link
             to={signupUrl}
-            className="flex w-full items-center justify-center rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
+            className="flex w-full items-center justify-center rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white"
           >
             {t('claim.createAccount')}
           </Link>

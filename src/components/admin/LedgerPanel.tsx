@@ -120,7 +120,7 @@ export default function LedgerPanel() {
                       </div>
                       {p.state === 'expected' && (
                         <button type="button" onClick={() => setModal({ kind: 'confirm', payment: p })}
-                          className="shrink-0 rounded-xl border border-brand-near-black px-3 py-2 text-xs font-semibold text-brand-near-black hover:bg-brand-near-black hover:text-white transition-colors">
+                          className="shrink-0 rounded-xl bg-brand-green px-3 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover transition-colors">
                           {t('admin.ledger.confirmFunding')}
                         </button>
                       )}

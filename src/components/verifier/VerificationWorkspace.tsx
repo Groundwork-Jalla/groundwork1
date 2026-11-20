@@ -201,7 +201,7 @@ function RecordFinding({ verificationId, initialVisit, onRecorded }: {
           <label htmlFor="findings" className="text-xs text-brand-mid-grey">{t('verifier.dashboard.findings')}</label>
           <textarea id="findings" rows={3} required disabled={busy} value={findings} onChange={e => setFindings(e.target.value)} placeholder={t('verifier.detail.findingsHint')} className={`mt-1 ${field}`} />
         </div>
-        <button type="submit" disabled={busy || (needsVisit && !visitedAt) || !findings.trim()} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-near-black px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+        <button type="submit" disabled={busy || (needsVisit && !visitedAt) || !findings.trim()} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">
           {busy && <Loader2 className="size-3.5 animate-spin" />}{t('verifier.detail.submit')}
         </button>
         {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}

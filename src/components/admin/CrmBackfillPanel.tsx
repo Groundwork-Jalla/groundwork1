@@ -62,7 +62,7 @@ export function CrmBackfillPanel({ kind }: { kind: 'contractors' | 'users' }) {
         {counts && counts.send > 0 && (
           <button
             type="button" disabled={busy} onClick={() => void run(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {t('admin.crmSync.send', { n: counts.send })}
           </button>

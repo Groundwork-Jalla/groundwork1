@@ -45,7 +45,7 @@ export function AdminTopBarActions({ userId }: { userId: string }) {
           onClick={() => setOpen(v => !v)}
           aria-haspopup="menu"
           aria-expanded={open}
-          className="flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-brand-near-black dark:hover:bg-white/90"
+          className="flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
         >
           <Plus className="size-3.5" />
           {t('admin.header.new')}

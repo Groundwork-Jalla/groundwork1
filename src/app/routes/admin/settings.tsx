@@ -175,7 +175,7 @@ function Field({ setting, updated, onSaved }: {
         {setting.editable && (
           <button
             type="button" disabled={busy || !dirty} onClick={save}
-            className="shrink-0 rounded-lg bg-brand-near-black px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-[#0a0a0a]"
+            className="shrink-0 rounded-lg bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
           >
             {busy ? t('common.saving') : t('common.save')}
           </button>

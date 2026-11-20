@@ -103,7 +103,7 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
   const button = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-50';
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 backdrop-blur-[1px] sm:justify-end sm:p-4" role="dialog" aria-modal="true" aria-labelledby="receipt-decision-title"
-      onClick={event => { if (event.target === event.currentTarget && !busy.current) onClose(); }} data-receipt-decision={receipt.id}>
+      onClick={event => { if (event.target === event.currentTarget && !busy.current) onClose(); }} data-receipt-decision={receipt.id} data-clarity-mask="true">
       <div className="flex h-full w-full flex-col overflow-y-auto bg-white dark:bg-[#1e1e1e] sm:grid sm:h-full sm:max-h-full sm:max-w-[820px] sm:grid-cols-[300px_minmax(0,1fr)] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-brand-green/35 sm:shadow-2xl">
         <div className="flex items-center justify-between border-b border-brand-border-grey bg-brand-green/[0.04] px-4 py-3 sm:hidden dark:border-[#2c2c2c]">
           <button type="button" onClick={onClose} disabled={working} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-green dark:text-state-complete"><ArrowLeft className="size-4" aria-hidden />{t('common.cancel')}</button>

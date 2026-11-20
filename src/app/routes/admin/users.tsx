@@ -101,7 +101,7 @@ export default function AdminUsers() {
           </div>
           <Link
             to="/admin/users/new"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-near-black/90"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-green/90"
           >
             <UserPlus className="size-4" /> {t('admin.provision.button')}
           </Link>

@@ -228,7 +228,7 @@ export function TwoFactorSection() {
             </button>
             <button
               type="submit" disabled={busy || code.length !== 6}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
             >
               {busy && <Loader2 className="size-3.5 animate-spin" />}
               {t('profile.mfa.verify')}

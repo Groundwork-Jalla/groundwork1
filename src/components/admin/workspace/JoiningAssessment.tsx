@@ -105,7 +105,7 @@ export function JoiningAssessmentPanel({ projectId, stageId }: { projectId: stri
               {JOINING_CONDITIONS.map(c => (
                 <label key={c}
                   className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs ${condition === c
-                    ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey text-brand-near-black dark:border-[#2c2c2c] dark:text-white'}`}>
                   <input type="radio" name="jcond" value={c} checked={condition === c}
                     onChange={() => setCondition(c)} className="sr-only" />

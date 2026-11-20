@@ -136,7 +136,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
             type="button"
             onClick={handleConfirm}
             disabled={submitting || finalBudget <= 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-5 py-2.5 hover:bg-black transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-5 py-2.5 hover:bg-brand-green-hover transition-colors disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
             {submitting ? 'Starting…' : 'Confirm & Start'}

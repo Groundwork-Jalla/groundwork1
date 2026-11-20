@@ -65,7 +65,7 @@ function Nudge({ icon, title, body, to, cta }: {
         <p className="text-sm font-semibold text-brand-near-black dark:text-white">{title}</p>
         <p className="text-xs text-brand-mid-grey">{body}</p>
       </div>
-      <Link to={to} className="shrink-0 rounded-xl bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white hover:bg-black dark:bg-white dark:text-brand-near-black">
+      <Link to={to} className="shrink-0 rounded-xl bg-brand-green px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover">
         {cta}
       </Link>
     </div>

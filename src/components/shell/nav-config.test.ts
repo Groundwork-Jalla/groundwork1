@@ -47,17 +47,15 @@ describe('admin nav shape', () => {
     expect(sections).toEqual(['nav.sectionOverview', 'nav.sectionWork', 'nav.sectionFinance', 'nav.sectionPeople', 'nav.sectionCommunication', 'nav.sectionAcquisition', 'nav.sectionSupport', 'nav.sectionAnalytics', 'nav.sectionSystem']);
   });
 
-  it('every unbuilt item has a placeholder entry and every placeholder has a sidebar item — the list is temporary and must not drift', () => {
+  it('every live sidebar item points at a built page — retired placeholders are no longer shown in the sidebar', () => {
     const built = new Set([...declared].filter(p => p.startsWith('/admin') && !p.includes(':')));
     for (const item of ADMIN_NAV) {
-      // A nav link may carry a filter (the WhatsApp entry is the Inbox, one channel of
-      // it). The page it lands on is what must be built.
       const path = item.to.split('?')[0];
-      const key = path.replace('/admin/', '');
-      if (built.has(path)) expect(ADMIN_PLACEHOLDERS[key], `${item.to} is built but still listed as a placeholder`).toBeUndefined();
-      else expect(ADMIN_PLACEHOLDERS[key], `${item.to} has neither a page nor a placeholder`).toBeDefined();
+      expect(built.has(path), `${item.to} is in ADMIN_NAV without a built page`).toBe(true);
     }
-    for (const key of Object.keys(ADMIN_PLACEHOLDERS)) expect(ADMIN_NAV.some(i => i.to.split('?')[0] === `/admin/${key}`), `placeholder ${key} has no sidebar item`).toBe(true);
+    for (const key of Object.keys(ADMIN_PLACEHOLDERS)) {
+      expect(ADMIN_NAV.some(i => i.to.split('?')[0] === `/admin/${key}`), `retired placeholder ${key} should not appear in ADMIN_NAV`).toBe(false);
+    }
   });
 
   it('every admin page is reachable from the sidebar', () => {

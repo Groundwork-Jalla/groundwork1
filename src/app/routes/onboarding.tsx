@@ -81,7 +81,7 @@ function WelcomeStep({
         type="button"
         onClick={onStart}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2.5 bg-brand-near-black text-white font-semibold text-sm px-7 py-3.5 rounded-xl hover:bg-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2.5 bg-brand-green text-white font-semibold text-sm px-7 py-3.5 rounded-xl hover:bg-brand-green-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2 disabled:opacity-60"
       >
         {loading ? (
           <Loader2 className="size-4 animate-spin" />

@@ -44,7 +44,7 @@ function downloadUrl(url: string, title: string): string {
 }
 
 const STATUS_META: Record<RequestStatus, { labelKey: TKey; cls: string }> = {
-  new:         { labelKey: 'admin.requests.statusNew',        cls: 'bg-brand-near-black text-white' },
+  new:         { labelKey: 'admin.requests.statusNew',        cls: 'bg-brand-green text-white' },
   in_progress: { labelKey: 'admin.requests.statusInProgress', cls: 'bg-state-held/15 text-state-held border border-state-held/30' },
   delivered:   { labelKey: 'admin.requests.statusDelivered',  cls: 'bg-state-active/10 text-state-active border border-state-active/30' },
   declined:    { labelKey: 'admin.requests.statusDeclined',   cls: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
@@ -152,7 +152,7 @@ export default function AdminRequests() {
           <button
             type="button"
             onClick={() => setComposing(true)}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover"
           >
             <Plus className="size-4" /> {t('admin.requests.newCta')}
           </button>
@@ -443,7 +443,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
             className={cn(
               'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               preset === p.id
-                ? 'border-brand-near-black bg-brand-near-black text-white'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
             )}
           >
@@ -471,7 +471,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
                 className={cn(
                   'flex-1 rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
                   language === l.id
-                    ? 'border-brand-near-black bg-brand-near-black text-white'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey',
                 )}
               >
@@ -493,7 +493,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
                 className={cn(
                   'flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-medium transition-colors',
                   format === f.id
-                    ? 'border-brand-near-black bg-brand-near-black text-white'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey',
                 )}
               >
@@ -534,7 +534,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:opacity-40"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
           {t('admin.requests.submit')}

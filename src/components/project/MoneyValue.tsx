@@ -8,7 +8,7 @@ export function MoneyValue({ usd, amount, className, secondaryClassName }: {
   const money = useMoney();
   const currency = useProjectMoneyContext();
   const pair = currency?.pair(usd, amount);
-  return <span className={cn('inline-flex flex-col font-mono tabular-nums', className)}>
+  return <span data-clarity-mask="true" className={cn('inline-flex flex-col font-mono tabular-nums', className)}>
     <span>{usd == null && amount == null ? '—' : money(usd, amount)}</span>
     {pair?.usd && <span className={cn('mt-0.5 text-xs font-normal text-brand-mid-grey', secondaryClassName)}>≈ {pair.usd}</span>}
   </span>;

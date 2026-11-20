@@ -33,7 +33,7 @@ export default function StagesTool() {
           <div
             key={s.stage_number}
             title={t('tools.stageTooltip', { n: s.stage_number, pct: s.budget_pct })}
-            className="bg-brand-near-black dark:bg-white opacity-60 hover:opacity-100 transition-opacity"
+            className="bg-brand-green opacity-60 hover:opacity-100 transition-opacity"
             style={{ width: `${s.budget_pct}%` }}
           />
         ))}
@@ -54,7 +54,7 @@ export default function StagesTool() {
                 <span className={cn(
                   'size-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold',
                   isOpen
-                    ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                    ? 'bg-brand-green text-white'
                     : 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey',
                 )}>
                   {stage.stage_number}
@@ -71,7 +71,7 @@ export default function StagesTool() {
 
                 {/* Progress bar */}
                 <div className="hidden sm:block w-20 h-1 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden shrink-0">
-                  <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${stage.budget_pct * 4}%` }} />
+                  <div className="h-full bg-brand-green rounded-full" style={{ width: `${stage.budget_pct * 4}%` }} />
                 </div>
 
                 {isOpen
@@ -123,7 +123,7 @@ export default function StagesTool() {
         <p className="text-xs text-brand-mid-grey">
           <span className="font-semibold text-brand-near-black dark:text-white">{t('tools.buildingSoon')}</span> {t('tools.stagesCta')}
         </p>
-        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
+        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-green text-white px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}
         </Link>
       </div>

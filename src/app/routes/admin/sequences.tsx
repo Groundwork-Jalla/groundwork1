@@ -235,7 +235,7 @@ export default function AdminSequences() {
         {([['attention', `Needs attention · ${attentionCount}`], ['tracking', t('communications.tracking.title')], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['whatsapp','WhatsApp'], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('rounded-full border px-3 py-1.5 text-sm font-medium',
-              tab === k ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
+              tab === k ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
             {label}
           </button>
         ))}
@@ -312,7 +312,7 @@ export default function AdminSequences() {
                           <input className={field} placeholder="Libellé du bouton (FR)" value={st.cta_label_fr} onChange={e => patchStep(st.id, { cta_label_fr: e.target.value })} />
                         </div>
                       )}
-                      <button disabled={savingSteps.includes(st.id)||!stepDrafts.current.has(st.id)} onClick={() => saveStep(st)} className="mt-2 rounded-lg bg-brand-near-black px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40">{t(savingSteps.includes(st.id)?'common.loading':'communications.journeys.saveStep')}</button>
+                      <button disabled={savingSteps.includes(st.id)||!stepDrafts.current.has(st.id)} onClick={() => saveStep(st)} className="mt-2 rounded-lg bg-brand-green px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40">{t(savingSteps.includes(st.id)?'common.loading':'communications.journeys.saveStep')}</button>
                     </div>
                   ))}
                   <button onClick={() => addStep(s.key)} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-blue">

@@ -196,7 +196,7 @@ export default function ContractorProfile() {
 
             {editing && <div className="mt-4 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void saveDetails()} disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-near-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                 {saving && <Loader2 className="size-4 animate-spin" />}{t('profile.saveChanges')}
               </button>
               {saved && <span role="status" className="text-xs text-state-complete">{t('common.saved')}</span>}
@@ -360,7 +360,7 @@ function Segmented({ options, value, onPick }: {
         <button key={id} type="button" onClick={() => onPick(id)} aria-pressed={value === id}
           className={cn('px-3 py-1.5 text-xs font-semibold transition-colors',
             value === id
-              ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black'
+              ? 'bg-brand-green text-white'
               : 'text-brand-mid-grey')}>
           {label}
         </button>
@@ -376,7 +376,7 @@ function Toggle({ on, onChange, label }: {
     <button type="button" role="switch" aria-checked={on} aria-label={label}
       onClick={() => onChange(!on)}
       className={cn('relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors',
-        on ? 'bg-brand-near-black dark:bg-white' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')}>
+        on ? 'bg-brand-green' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')}>
       <span className={cn(
         'absolute top-[3px] size-4 rounded-full bg-white shadow transition-all dark:bg-[#1e1e1e]',
         on ? 'left-[19px]' : 'left-[3px]')} />

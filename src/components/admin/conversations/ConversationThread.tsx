@@ -239,7 +239,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           )}
           {decision && (
             <button type="button" onClick={() => setRecording(true)}
-              className="rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
+              className="rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white">
               {t('admin.decision.record')}
             </button>
           )}

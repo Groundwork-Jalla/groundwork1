@@ -83,7 +83,7 @@ function CompletionMeter({ meta }: { meta: ProfileMeta }) {
       {/* Bar */}
       <div className="h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#2c2c2c] overflow-hidden mb-3">
         <motion.div
-          className="h-full rounded-full bg-brand-near-black dark:bg-white"
+          className="h-full rounded-full bg-brand-green"
           initial={{ width: 0 }}
           animate={{ width: `${displayPct}%` }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
@@ -111,7 +111,7 @@ function CompletionMeter({ meta }: { meta: ProfileMeta }) {
               className={cn(
                 'flex size-4 shrink-0 items-center justify-center rounded-full border',
                 item.filled
-                  ? 'bg-brand-near-black dark:bg-white border-brand-near-black dark:border-white'
+                  ? 'bg-brand-green border-brand-green'
                   : 'bg-white dark:bg-brand-dark-grey border-brand-border-grey dark:border-[#2c2c2c]',
               )}
             >
@@ -174,14 +174,14 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
       className={cn(
         'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black dark:focus-visible:ring-white',
         checked
-          ? 'bg-brand-near-black dark:bg-white'
+          ? 'bg-brand-green'
           : 'bg-brand-light-grey dark:bg-[#333]',
       )}
     >
       <motion.span
         className={cn(
           'absolute top-0.5 size-5 rounded-full shadow-sm',
-          checked ? 'bg-white dark:bg-brand-near-black' : 'bg-white dark:bg-brand-mid-grey',
+          checked ? 'bg-white' : 'bg-white dark:bg-brand-mid-grey',
         )}
         animate={{ x: checked ? 18 : 2 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -454,7 +454,7 @@ export default function ProfilePage() {
 
   // ── Render ─────────────────────────────────────────────
   return (
-    <div className="bg-brand-off-white dark:bg-[#111] min-h-full">
+    <div data-clarity-mask="true" className="bg-brand-off-white dark:bg-[#111] min-h-full">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -593,7 +593,7 @@ export default function ProfilePage() {
                           'flex items-center gap-2 rounded-xl text-sm font-semibold px-5 py-2.5 h-auto transition-all',
                           saveState === 'saved'
                             ? 'bg-state-complete hover:bg-state-complete text-white'
-                            : 'bg-brand-near-black hover:bg-black text-white',
+                            : 'bg-brand-green hover:bg-brand-green-hover text-white',
                         )}
                       >
                         {saveState === 'saving' && <Loader2 className="size-3.5 animate-spin" />}
@@ -700,7 +700,7 @@ export default function ProfilePage() {
                     // directly — no reset link, no waiting on an inbox.
                     <Link
                       to="/auth/new-password?reason=google"
-                      className="inline-flex self-start items-center rounded-xl bg-brand-near-black px-4 py-2 text-sm font-semibold text-white hover:bg-black transition-colors"
+                      className="inline-flex self-start items-center rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
                     >
                       {t('profile.setPassword')}
                     </Link>

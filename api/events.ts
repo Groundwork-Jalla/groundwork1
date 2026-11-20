@@ -43,6 +43,7 @@ import { handler as whatsappAdmin } from './_handlers/whatsapp-admin.js';
 import { handler as whatsappProfile } from './_handlers/whatsapp-profile.js';
 import { handler as whatsappWebhook } from './_handlers/whatsapp-webhook.js';
 import { handler as paymentRequestNotify } from './_handlers/payment-request-notify.js';
+import { handler as liveChat } from './_handlers/live-chat.js';
 
 /**
  * One endpoint, several actions.
@@ -78,13 +79,14 @@ type Action =
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'person-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
   | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt'
   | 'communication-reply' | 'communication-unsubscribe' | 'communication-status'
-  | 'whatsapp-admin' | 'whatsapp-profile' | 'whatsapp-webhook' | 'payment-request-notify';
+  | 'whatsapp-admin' | 'whatsapp-profile' | 'whatsapp-webhook' | 'payment-request-notify' | 'live-chat';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'whatsapp-admin': whatsappAdmin,
   'whatsapp-profile': whatsappProfile,
   'whatsapp-webhook': whatsappWebhook,
   'payment-request-notify': paymentRequestNotify,
+  'live-chat': liveChat,
   'crm-user':    crmUser,
   'crm-project': crmProject,
   'crm-resync':  crmResync,

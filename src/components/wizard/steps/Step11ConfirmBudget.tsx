@@ -533,7 +533,7 @@ export default function Step11ConfirmBudget() {
                 </button>
                 <button type="button" disabled={busy} onClick={() => { setHasInitialPayment(false); setInitialCurrency(''); setInitialAmount(''); setInitialStages([]); setInitialNote(''); }}
                   className={cn('rounded-lg px-3 py-1.5 text-xs font-semibold',
-                    !hasInitialPayment ? 'bg-brand-near-black text-white' : 'border border-brand-border-grey text-brand-near-black')}>
+                    !hasInitialPayment ? 'bg-brand-green text-white' : 'border border-brand-border-grey text-brand-near-black')}>
                   {t('wizard.initialPayments.no')}
                 </button>
               </div>
@@ -704,7 +704,7 @@ export default function Step11ConfirmBudget() {
             disabled={!canSubmit}
             onClick={handleCreate}
             whileTap={{ scale: 0.99 }}
-            className="w-full rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-40 inline-flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-brand-green text-white text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-40 inline-flex items-center justify-center gap-2"
           >
             {busy && <Loader2 className="size-4 animate-spin" />}
             {busy ? t('wizard.confirmBudget.creating') : t('wizard.confirmBudget.cta')}

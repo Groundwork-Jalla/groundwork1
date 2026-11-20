@@ -276,7 +276,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
             <p className="mt-3 text-sm leading-relaxed text-brand-mid-grey">{t('auth.roleSignup.alreadyHave')}</p>
             <Link
               to={cfg.surface}
-              className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white"
             >
               {t('auth.roleSignup.goToWork')}
             </Link>
@@ -321,7 +321,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
         {cfg.noTokenHref && cfg.noTokenCta && (
           <Link
             to={cfg.noTokenHref}
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white"
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white"
           >
             {t(cfg.noTokenCta)}
           </Link>
@@ -345,7 +345,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
         <p className="mt-3 text-sm leading-relaxed text-brand-mid-grey">{t('auth.roleSignup.claimedBody')}</p>
         <Link
           to="/auth/login"
-          className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white"
+          className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white"
         >
           {t('auth.login.submit')}
         </Link>

@@ -146,7 +146,7 @@ export function PayoutDialog({ onSaved, onClose }: {
                   className={cn(
                     'rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
                     method === m
-                      ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                      ? 'border-brand-green bg-brand-green text-white'
                       : 'border-brand-border-grey text-brand-near-black dark:border-[#444] dark:text-white',
                   )}
                 >

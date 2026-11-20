@@ -83,7 +83,7 @@ export default function ToolsIndex() {
         </div>
         <Link
           to="/auth/signup"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-green text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           {t('tools.getStartedFree')}
         </Link>

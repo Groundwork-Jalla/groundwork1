@@ -56,7 +56,7 @@ describe('the privacy policy names only processors that actually process somethi
   it('both languages disclose the same set of processors', () => {
     // A processor dropped from one translation only is the same defect, half-hidden.
     const named = (lang: Lang) =>
-      ['Supabase', 'Resend', 'Stripe', 'GoHighLevel', 'Google', 'Vercel', 'Sentry']
+      ['Supabase', 'Resend', 'Stripe', 'GoHighLevel', 'Google', 'Vercel', 'Sentry', 'Microsoft Clarity']
         .filter(name => sharingLines(lang).some(b => b.includes(name)))
         .sort();
     expect(named('fr')).toEqual(named('en'));

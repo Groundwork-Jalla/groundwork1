@@ -120,7 +120,7 @@ function ProfileCompletion({ nameSet, hasProject }: {
         {items.map(item => (
           <div key={item.label} className="flex items-center gap-2">
             <div className={`flex size-4 shrink-0 items-center justify-center rounded-full ${
-              item.done ? 'bg-brand-near-black' : 'border-2 border-brand-border-grey'
+              item.done ? 'bg-brand-green' : 'border-2 border-brand-border-grey'
             }`}>
               {item.done && <Check className="size-2.5 text-white stroke-3" />}
             </div>
@@ -316,7 +316,7 @@ function EmptyBuilds() {
       <motion.div
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-        className="flex size-16 items-center justify-center rounded-full bg-brand-off-white group-hover:bg-brand-near-black transition-colors">
+        className="flex size-16 items-center justify-center rounded-full bg-brand-off-white group-hover:bg-brand-green transition-colors">
         <HardHat className="size-8 text-brand-mid-grey group-hover:text-white transition-colors" />
       </motion.div>
       <div>

@@ -115,7 +115,7 @@ export default function AdminNewUser() {
                 {(['client', 'contractor', 'verifier'] as const).map(r => (
                   <label
                     key={r}
-                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm ${role === r ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey text-brand-near-black'}`}
+                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm ${role === r ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey text-brand-near-black'}`}
                   >
                     <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} className="sr-only" />
                     {t(ROLE_COPY[r].label)}
@@ -171,7 +171,7 @@ export default function AdminNewUser() {
                 {(['en', 'fr'] as const).map(l => (
                   <label
                     key={l}
-                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm ${lang === l ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey text-brand-near-black'}`}
+                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm ${lang === l ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey text-brand-near-black'}`}
                   >
                     <input type="radio" name="lang" value={l} checked={lang === l} onChange={() => setLang(l)} className="sr-only" />
                     {l === 'en' ? 'English' : 'Français'}
@@ -249,7 +249,7 @@ function Handover({ account, fullName, role, onAnother }: { account: Provisioned
         {role === 'client' && (
           <Link
             to={`/admin/projects/new?for=${account.userId}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-near-black/90"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green/90"
           >
             <FolderPlus className="size-4" /> {t('admin.provision.createProject')}
           </Link>

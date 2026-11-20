@@ -23,7 +23,7 @@ const CATEGORY_ICONS: Record<ResourceCategory, React.ComponentType<{ className?:
 // keeps the inverted treatment because it is the one tag that ranks: it marks the
 // handful of articles we want read first, which is a real distinction, not a label.
 const TAG_COLORS: Record<ResourceTag, string> = {
-  essential: 'bg-brand-near-black text-white border-transparent dark:bg-white dark:text-brand-near-black',
+  essential: 'bg-brand-green text-white border-transparent',
   popular:   'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
   new:       'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
   important: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
@@ -43,7 +43,7 @@ function Pill({
       onClick={onClick}
       className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
         active
-          ? 'bg-brand-near-black text-white border-brand-near-black dark:bg-white dark:text-brand-near-black dark:border-white'
+          ? 'bg-brand-green text-white border-brand-green'
           : 'bg-white text-brand-mid-grey border-brand-border-grey hover:border-brand-near-black hover:text-brand-near-black dark:bg-[#1e1e1e] dark:text-white/60 dark:border-[#2c2c2c] dark:hover:border-white/40 dark:hover:text-white'
       }`}
     >

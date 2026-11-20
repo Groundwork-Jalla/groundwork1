@@ -37,14 +37,14 @@ export default function HeroSection() {
             className="w-full rounded-lg"
             animate={{
               boxShadow: [
-                "0 0 0 0 rgba(10,10,10,0.12)",
-                "0 0 0 14px rgba(10,10,10,0)",
-                "0 0 0 0 rgba(10,10,10,0.12)",
+                "0 0 0 0 rgba(31,77,54,0.18)",
+                "0 0 0 14px rgba(31,77,54,0)",
+                "0 0 0 0 rgba(31,77,54,0.18)",
               ],
             }}
             transition={{ duration: 2.5, repeat: Infinity }}
           >
-            <Button asChild className="w-full bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
+            <Button asChild className="w-full bg-brand-green text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-green-hover group">
               <Link to={join} className="flex items-center justify-center gap-2">
                 {t('landing.signup.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />

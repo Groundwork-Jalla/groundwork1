@@ -93,7 +93,7 @@ export default function ContractorProjects() {
           <p className="mt-1 text-sm text-brand-mid-grey">{t('contractor.projects.subtitle')}</p>
         </div>
         <Link to="/projects/new"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-sm font-semibold text-white">
           <Plus className="size-4" aria-hidden />{t('contractorOwnProject.promptCta')}
         </Link>
       </header>
@@ -120,7 +120,7 @@ export default function ContractorProjects() {
           </p>
           <p className="mt-1 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p>
           <Link to="/projects/new"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">
             <Plus className="size-4" aria-hidden />{t('contractorOwnProject.promptCta')}
           </Link>
         </div>
@@ -136,7 +136,7 @@ export default function ContractorProjects() {
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   filter === f.id
-                    ? 'border-brand-near-black bg-brand-near-black font-semibold text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                    ? 'border-brand-green bg-brand-green font-semibold text-white'
                     : 'border-brand-border-grey bg-white text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:text-white',
                 )}
               >
@@ -216,7 +216,7 @@ function ProjectRow({ assigned, client }: {
           <span aria-hidden className={cn('size-1.5 rounded-full',
             state.tone === 'complete' && 'bg-state-complete',
             state.tone === 'locked'   && 'bg-brand-border-grey',
-            state.tone === 'active'   && 'bg-brand-near-black dark:bg-white',
+            state.tone === 'active'   && 'bg-brand-green',
           )} />
           {state.label}
         </p>

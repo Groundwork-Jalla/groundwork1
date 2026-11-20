@@ -138,7 +138,7 @@ export default function StageFundsPanel({
                   <button
                     type="button"
                     onClick={() => onPay(s)}
-                    className="rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-[11px] font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity"
+                    className="rounded-lg bg-brand-green text-white text-[11px] font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity"
                   >
                     {t('project.payments.pay')}
                   </button>

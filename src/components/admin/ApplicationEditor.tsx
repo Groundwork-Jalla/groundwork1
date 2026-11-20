@@ -83,7 +83,7 @@ export function ApplicationEditor({ app, onCancel, onSaved }: Props) {
     <div className="flex flex-wrap items-center gap-3">
       <button
         type="submit" disabled={saving}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-near-black/90 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white hover:bg-brand-green/90 disabled:opacity-50"
       >
         {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
         {saving ? t('admin.apps.edit.saving') : t('admin.apps.edit.save')}
@@ -288,7 +288,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
         {[true, false].map(v => (
           <button key={String(v)} type="button" onClick={() => onChange(v)} aria-pressed={value === v}
                   className={cn('rounded-lg border px-3 py-1.5 text-xs font-medium',
-                    value === v ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}>
+                    value === v ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}>
             {v ? t('admin.apps.yes') : t('admin.apps.no')}
           </button>
         ))}
@@ -309,7 +309,7 @@ function Checks({ label, options, selected, onToggle, invalid }: {
           const on = selected.includes(o.key);
           return (
             <label key={o.key} className={cn('cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium',
-              on ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}>
+              on ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}>
               <input type="checkbox" className="sr-only" checked={on} onChange={() => onToggle(o.key)} />
               {o.label}
             </label>

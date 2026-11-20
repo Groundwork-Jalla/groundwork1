@@ -222,7 +222,7 @@ export function NewJallaMessage({ onClose, onCreated }: {
             </p>
             <button
               type="button" disabled={busy} onClick={() => start(picked)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-[#0a0a0a]"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               {busy ? <Loader2 className="size-3.5 animate-spin" /> : <MessagesSquare className="size-3.5" />}
               {t('admin.jalla.start')}

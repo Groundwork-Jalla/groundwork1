@@ -311,7 +311,7 @@ export function ArchitecturePlanGate({
               if (selectedHasPlan === true) setSlide('upload');
               else if (selectedHasPlan === false) onAnswered({ hasPlan: false });
             }}
-            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
             {t('planGate.continue')}<ArrowRight className="size-4" aria-hidden />
           </motion.button>
@@ -539,7 +539,7 @@ export function ArchitecturePlanGate({
           onClick={() => { if (!uploadReading.notADrawing && !(uploadReading.noPlanEvidence && !planVouched)) onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
           }); }}
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
+          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
           {scanning && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {t('planGate.continue')}<ArrowRight className="size-4" aria-hidden />

@@ -60,7 +60,7 @@ export function DocumentViewer({ name, url, loading, onClose }: {
   return (
     <div
       className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 sm:items-center sm:p-6"
-      role="dialog" aria-modal="true" aria-label={name}
+      role="dialog" aria-modal="true" aria-label={name} data-clarity-mask="true"
       // Only a click on the backdrop itself, never one that bubbled up from the file.
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -104,7 +104,7 @@ export function DocumentViewer({ name, url, loading, onClose }: {
               </p>
               <a
                 href={url} download={name} target="_blank" rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white"
               >
                 <Download className="size-4" aria-hidden />{t('contractorDocs.download')}
               </a>

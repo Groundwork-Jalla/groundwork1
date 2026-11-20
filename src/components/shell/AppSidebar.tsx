@@ -119,7 +119,7 @@ export function AppSidebar({
                     calm
                       ? isActive ? 'bg-brand-green/8 text-brand-green dark:bg-white/10 dark:text-[#b4d8bf]' : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white'
                       : isActive
-                      ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
+                      ? 'bg-brand-green text-white'
                       : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white',
                   )}
                 >

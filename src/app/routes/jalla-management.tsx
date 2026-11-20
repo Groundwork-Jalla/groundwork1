@@ -116,7 +116,7 @@ function StepShell({ n, icon, state, titleKey, bodyKey, doneKey, lockedKey, chil
             'flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums',
             state === 'locked'
               ? 'border border-brand-border-grey text-brand-border-grey'
-              : 'bg-brand-near-black text-white',
+              : 'bg-brand-green text-white',
           )}>
             {state === 'done' ? <Check className="size-4 stroke-[3]" /> : n}
           </span>

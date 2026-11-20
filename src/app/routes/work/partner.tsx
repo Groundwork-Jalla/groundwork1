@@ -585,7 +585,7 @@ export default function PartnerApplication() {
 
   const chip = (on: boolean) => cn(
     'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
-    on ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+    on ? 'border-brand-green bg-brand-green text-white'
        : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]');
   // text-base below sm so iOS does not zoom the page on focus; see ui/input.tsx.
   const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-white';
@@ -626,7 +626,7 @@ export default function PartnerApplication() {
           </div>
         </div>
         <Link to="/work"
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white">
           {t('partner.stopped.dashboard')}
         </Link>
       </div>
@@ -825,13 +825,13 @@ export default function PartnerApplication() {
         )}
         {page < PAGES - 1 ? (
           <button type="button" onClick={advance} disabled={busy || !isAnswered(page)}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
             {busy && <Loader2 className="size-4 animate-spin" />}
             {t('common.next')}
           </button>
         ) : (
           <button type="submit" disabled={busy || !complete}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
             {busy && <Loader2 className="size-4 animate-spin" />}
             {t('partner.submit')}
           </button>
@@ -885,7 +885,7 @@ function YesNo({ label, value, onChange, chip }: {
   const optionClass = (selected: boolean) => cn(
     'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors',
     selected
-      ? 'border-brand-near-black bg-brand-near-black/5 text-brand-near-black dark:border-white dark:bg-white/10 dark:text-white'
+      ? 'border-brand-green bg-brand-green/8 text-brand-green dark:border-brand-green dark:bg-brand-green/15 dark:text-[#86efac]'
       : 'border-brand-border-grey bg-white text-brand-mid-grey hover:border-brand-near-black/40 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-brand-mid-grey dark:hover:border-white/40',
     chip(selected),
   );

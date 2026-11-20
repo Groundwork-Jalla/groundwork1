@@ -162,7 +162,7 @@ export function RepriceCard({ projectId, onChanged }: { projectId: string; onCha
               type="button"
               onClick={onApply}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-brand-near-black"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {busy === 'apply' && <Loader2 className="size-3 animate-spin" />}
               {busy === 'apply'

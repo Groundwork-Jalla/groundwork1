@@ -129,7 +129,7 @@ export default function AdminPartnerPipeline() {
                   'w-full rounded-xl border px-3 py-2 text-left transition-colors',
                   'disabled:cursor-default disabled:opacity-60',
                   stage === st
-                    ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey bg-white hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:border-white')}
               >
                 <span className={cn('block truncate text-[11px]',
@@ -334,7 +334,7 @@ function PipelineEditor({ row, onSaved }: { row: PipelineRow; onSaved: () => Pro
             :                            { agreementSigned: !reached(s) })}
             className={cn('rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50',
               reached(s)
-                ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]')}
           >
             {t(`adminPipeline.mark.${s}` as TKey)}
@@ -390,7 +390,7 @@ function PipelineEditor({ row, onSaved }: { row: PipelineRow; onSaved: () => Pro
             activationDeadline: deadline || undefined,
             notes: notes.trim() || undefined,
           })}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {busy && <Loader2 className="size-4 animate-spin" />}
           {t('adminPipeline.save')}

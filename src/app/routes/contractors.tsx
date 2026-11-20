@@ -245,7 +245,7 @@ function ContractorProfileModal({
           <button
             type="button"
             onClick={() => { onRequestQuote(contractor); onClose(); }}
-            className="w-full rounded-xl bg-brand-near-black py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="w-full rounded-xl bg-brand-green py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             {t('contractors.requestIntroduction')}
           </button>
@@ -349,7 +349,7 @@ function ContractorCard({
         <button
           type="button"
           onClick={() => onRequestQuote(contractor)}
-          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors group/btn"
+          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-green text-white text-xs font-semibold py-2.5 hover:bg-brand-green-hover transition-colors group/btn"
         >
           {t('contractors.requestQuote')}
           <ChevronRight className="size-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
@@ -470,7 +470,7 @@ function QuoteRequestDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-2.5 hover:bg-black transition-colors"
+                className="mt-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-6 py-2.5 hover:bg-brand-green-hover transition-colors"
               >
                 {t('common.close')}
               </button>
@@ -552,7 +552,7 @@ function QuoteRequestDialog({
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors disabled:opacity-60"
+                className="w-full flex items-center justify-center rounded-xl bg-brand-green text-white text-sm font-semibold py-2.5 hover:bg-brand-green-hover transition-colors disabled:opacity-60"
               >
                 {sending ? t('common.loading') : t('contractors.inquiry.send')}
               </button>
@@ -693,7 +693,7 @@ export default function ContractorsPage() {
                 onClick={() => setActiveFilter(f)}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                   activeFilter === f
-                    ? 'bg-brand-near-black text-white'
+                    ? 'bg-brand-green text-white'
                     : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey hover:border-brand-near-black hover:text-brand-near-black'
                 }`}
               >

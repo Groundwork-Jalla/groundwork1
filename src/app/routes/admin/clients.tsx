@@ -77,7 +77,7 @@ export default function AdminClients() {
           <button type="button" onClick={() => setParam('projects', withProjects ? null : 'with')} aria-pressed={withProjects}
             className={cn('rounded-full border px-3.5 py-2 text-[13px] font-semibold transition-colors',
               withProjects
-                ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey bg-white text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white')}>
             {t('admin.clients.building')}<span className="ml-1.5 tabular-nums">{data ? building : '—'}</span>
           </button>

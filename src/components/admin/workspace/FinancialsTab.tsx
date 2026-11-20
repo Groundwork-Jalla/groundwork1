@@ -224,7 +224,7 @@ export function FinancialsTab({ loaded, onChanged }: { loaded: LoadedWorkspace; 
                   </div>
                   {p.state === 'expected' && (
                     <button type="button" onClick={() => setModal({ kind: 'confirm', payment: p })}
-                      className="shrink-0 rounded-xl border border-brand-near-black px-3 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:bg-brand-near-black hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-brand-near-black">
+                      className="shrink-0 rounded-xl bg-brand-green px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">
                       {t('admin.ledger.confirmFunding')}
                     </button>
                   )}

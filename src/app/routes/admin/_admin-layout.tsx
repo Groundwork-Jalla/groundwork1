@@ -1,22 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
+import { ShieldAlert } from 'lucide-react';
 import { AppShell } from '@/components/shell/AppShell';
 import { ADMIN_NAV } from '@/components/shell/nav-config';
 import { AdminTopBarActions } from '@/components/admin/AdminTopBarActions';
 import { AdminSearch } from '@/components/admin/AdminSearch';
+import { canAccessAdminPath, filterAdminNavForRoles, primaryStaffRole } from '@/lib/admin/rbac';
 import { useAuth } from '@/contexts/AuthContext';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 /**
- * Admin area. Renders the same AppShell as the client app, so it inherits the
- * mobile drawer, tab bar, top bar and theme toggle it never had — and its nav
- * labels are translated now that they come from the dictionary.
+ * Admin area. Renders the same AppShell as the client app, with Wave 3 Staff RBAC
+ * role-scoped navigation (`admin`, `ops`, `finance`, `growth`).
  */
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, session, loading, isAdmin, adminChecked, signOut } = useAuth();
+  const { user, session, loading, isAdmin, isStaff, staffRoles, adminChecked, signOut } = useAuth();
   const t = useT();
+
+  const hasStaffAccess = isAdmin || isStaff;
+  const scopedNav = useMemo(
+    () => filterAdminNavForRoles(ADMIN_NAV, staffRoles.length > 0 ? staffRoles : (isAdmin ? ['admin'] : [])),
+    [staffRoles, isAdmin],
+  );
+  const allowed = canAccessAdminPath(location.pathname, staffRoles.length > 0 ? staffRoles : (isAdmin ? ['admin'] : []));
+  const roleBadgeKey = primaryStaffRole(staffRoles.length > 0 ? staffRoles : (isAdmin ? ['admin'] : []));
 
   useEffect(() => {
     if (loading) return;
@@ -26,10 +35,10 @@ export default function AdminLayout() {
       navigate(`/admin/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
       return;
     }
-    if (adminChecked && !isAdmin) navigate('/dashboard', { replace: true });
-  }, [loading, session, isAdmin, adminChecked, navigate, location.pathname]);
+    if (adminChecked && !hasStaffAccess) navigate('/dashboard', { replace: true });
+  }, [loading, session, hasStaffAccess, adminChecked, navigate, location.pathname]);
 
-  if (loading || !session || !adminChecked || !isAdmin) {
+  if (loading || !session || !adminChecked || !hasStaffAccess) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-border-grey border-t-brand-near-black" />
@@ -50,19 +59,26 @@ export default function AdminLayout() {
 
   return (
     <AppShell
-      nav={ADMIN_NAV}
+      nav={scopedNav}
       displayName={displayName}
-      badge={t('nav.admin')}
+      badge={roleBadgeKey ? t(`admin.team.roles.${roleBadgeKey}` as TKey) : t('nav.admin')}
       // The admin sidebar in the new theme (18 Nov): green highlight, dropdown groups.
       sidebarStyle="calm"
       onLogout={handleLogout}
-      // The support (074) and inquiry (076) triggers have written admin notifications
-      // since they shipped; without this the only place an admin could see them was the
-      // client shell's /notifications page, which admins never open.
       topBarActions={<AdminTopBarActions userId={user?.id ?? ''} />}
       topBarSearch={<AdminSearch />}
     >
-      <Outlet />
+      {allowed ? (
+        <Outlet />
+      ) : (
+        <div className="mx-auto max-w-lg px-6 py-16 text-center">
+          <div className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-state-held/15 text-state-held">
+            <ShieldAlert className="size-5" aria-hidden />
+          </div>
+          <h1 className="mt-4 text-lg font-bold text-brand-near-black dark:text-white">{t('admin.team.restrictedTitle')}</h1>
+          <p className="mt-1.5 text-sm text-brand-mid-grey">{t('admin.team.restrictedBody')}</p>
+        </div>
+      )}
     </AppShell>
   );
 }

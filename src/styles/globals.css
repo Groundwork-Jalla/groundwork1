@@ -16,8 +16,8 @@
 
   /* ── Foundations v1 · ink and paper ──────────────────────
      Semantic, not decorative. A colour means one thing and only that thing. */
-  --color-ink:      #0a0a0a;  /* primary text, active nav, primary button fill */
-  --color-brand-green: #1f4d36;
+  --color-ink:      #0a0a0a;  /* primary text */
+  --color-brand-green: #1f4d36; /* primary buttons, CTAs, active nav & selections */
   --color-brand-green-hover: #173c2a;
   --color-ink-60:   #5a5a57;  /* supporting lines, column headers, descriptions */
   --color-ink-35:   #9a9a96;  /* timestamps, eyebrows, locked figures */
@@ -185,11 +185,7 @@ html.dark .hover\:bg-white:hover {
   background-color: #2a2a2a;
 }
 
-/* Active nav item chip — only flip the small rounded-xl chip, not full-bleed panels */
-html.dark .bg-brand-near-black.text-white.rounded-xl {
-  background-color: #f0f0f0;
-  color: #0a0a0a;
-}
+/* Primary buttons and active pills use bg-brand-green across both light and dark themes. */
 
 /* Input / select / textarea */
 html.dark input,

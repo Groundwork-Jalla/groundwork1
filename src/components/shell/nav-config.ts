@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FolderOpen, BookOpen, HardHat, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
   FileText, Mailbox, FilePen, Radio, Clapperboard, LifeBuoy, MessagesSquare,
-  ListChecks, Camera, SearchCheck, ListTodo, UserRound, UserCog, Handshake,
+  ListChecks, Camera, UserRound, Handshake,
   Inbox, MessageCircle, Mail, Phone, FileQuestion, BarChart3, Plug, ShieldCheck, ScrollText, ClipboardList } from 'lucide-react';
 import type { TKey } from '@/lib/i18n';
 
@@ -73,8 +73,6 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/projects',           labelKey: 'nav.projects',           icon: FolderOpen,     section: 'nav.sectionWork' },
   { to: '/admin/reviews',            labelKey: 'nav.reviewsApprovals',   icon: ClipboardCheck },
   { to: '/admin/site-updates',       labelKey: 'nav.siteUpdates',        icon: Camera },
-  { to: '/admin/inspections',        labelKey: 'nav.inspections',        icon: SearchCheck },
-  { to: '/admin/tasks',              labelKey: 'nav.tasks',              icon: ListTodo },
 
   { to: '/admin/finance',                  labelKey: 'nav.financeOverview',    icon: Landmark,       section: 'nav.sectionFinance' },
   { to: '/admin/finance/inflows',          labelKey: 'nav.inflows',            icon: ArrowDownLeft },
@@ -89,11 +87,10 @@ export const ADMIN_NAV: NavItem[] = [
   // this one is the list somebody actually works from.
   { to: '/admin/partners',           labelKey: 'nav.partnerPipeline',    icon: Handshake },
   { to: '/admin/verifiers',          labelKey: 'nav.verifiers',          icon: ShieldCheck },
-  { to: '/admin/site-managers',      labelKey: 'nav.siteManagers',       icon: UserCog },
   { to: '/admin/users',              labelKey: 'nav.users',              icon: Users },
-  { to: '/admin/agents',             labelKey: 'nav.agents',             icon: Handshake },
 
   { to: '/admin/inbox',              labelKey: 'nav.inbox',              icon: Inbox,          section: 'nav.sectionCommunication' },
+  { to: '/admin/inbox?channel=live_chat',          labelKey: 'nav.liveChat',           icon: MessageCircle },
   { to: '/admin/inbox?channel=whatsapp',           labelKey: 'nav.whatsapp',           icon: MessageCircle },
   { to: '/admin/notifications',      labelKey: 'nav.notifications',      icon: Bell },
   { to: '/admin/inbox?channel=jalla',            labelKey: 'nav.jallaMessages',      icon: MessagesSquare },

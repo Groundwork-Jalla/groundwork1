@@ -233,7 +233,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
             type="button"
             onClick={handleConfirm}
             disabled={submitting || uploading || finalBudget <= 0}
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold px-5 py-3 hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-5 py-3 hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
             {submitting ? t('project.gate.starting') : t('project.gate.confirm')}

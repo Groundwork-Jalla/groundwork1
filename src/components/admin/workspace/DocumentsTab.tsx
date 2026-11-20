@@ -183,7 +183,7 @@ function Chip({ on, onClick, label, n }: { on: boolean; onClick: () => void; lab
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
       className={cn('inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
-        on ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]'
+        on ? 'border-brand-green bg-brand-green text-white'
           : 'border-brand-border-grey bg-white text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white')}>
       {label}<span className="tabular-nums opacity-70">{n}</span>
     </button>

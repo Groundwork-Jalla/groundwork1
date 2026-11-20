@@ -393,7 +393,7 @@ export default function AdminCrm() {
                   {missingCount !== null && missingCount > 0 && (
                     <button
                       type="button" disabled={fieldsBusy} onClick={() => void checkFields('create')}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                     >
                       {t('admin.crm.fieldsCreate', { n: missingCount })}
                     </button>

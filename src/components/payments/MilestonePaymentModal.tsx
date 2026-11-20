@@ -183,7 +183,7 @@ export default function MilestonePaymentModal({
                 type="button"
                 onClick={handleConfirm}
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                 {submitting ? t('common.loading') : t('project.payments.confirmPayment')}

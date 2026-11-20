@@ -68,6 +68,7 @@ export default function AdminSupport() {
   const [projects, setProjects] = useState<Map<string, InboxProject[]>>(new Map());
   /** The ticket whose chooser is open. Nothing is linked until a row in it is clicked. */
   const [choosing, setChoosing] = useState<SupportTicket | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -154,6 +155,11 @@ export default function AdminSupport() {
       .sort((a, b) => Number(b.kind === 'account_deletion') - Number(a.kind === 'account_deletion'));
   }, [rows, query, filter]);
 
+  const selected = useMemo(
+    () => filtered.find(r => r.id === selectedId) ?? filtered[0] ?? null,
+    [filtered, selectedId],
+  );
+
   const fmt = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime())
@@ -162,49 +168,105 @@ export default function AdminSupport() {
           { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const renderThreadAction = (r: SupportTicket) => {
+    const resolved = ticketThread(r, threads, byId);
+    if (resolved.kind === 'linked' || resolved.kind === 'single') {
+      const id = resolved.conversation.id;
+      return (
+        <Link
+          to={`/admin/inbox?conversation=${id}`}
+          onClick={() => noteLink(r, id)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-1.5 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white"
+        >
+          <MessagesSquare className="size-3.5" /> {t('admin.support.openThread')}
+        </Link>
+      );
+    }
+    if (resolved.kind === 'choose') {
+      return (
+        <button
+          type="button"
+          onClick={() => setChoosing(r)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-brand-near-black px-3 py-1.5 text-xs font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white dark:border-white dark:text-white"
+        >
+          <MessagesSquare className="size-3.5" />
+          {t('admin.support.chooseThread', { count: resolved.conversations.length })}
+        </button>
+      );
+    }
+    const why: TKey = resolved.kind === 'unavailable' ? 'admin.support.inboxUnavailable'
+                    : resolved.kind === 'linkedMissing' ? 'admin.support.threadUnreadable'
+                    : 'admin.support.noThreadHint';
+    return (
+      <span
+        title={t(why)}
+        className="inline-flex cursor-default items-center gap-1.5 rounded-xl border border-dashed border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-mid-grey dark:border-[#2c2c2c]"
+      >
+        <MessagesSquare className="size-3.5" /> {t('admin.support.noThread')}
+      </span>
+    );
+  };
+
   return (
-    <div className="p-6 sm:p-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.support.title')}</h1>
-        <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.support.subtitle')}</p>
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{t('admin.support.title')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.support.subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Chip active={filter === 'open'} onClick={() => setFilter('open')}>
+            {t('admin.support.filterOpen')} · {openCount}
+          </Chip>
+          <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
+            {t('admin.support.filterAll')} · {rows.length}
+          </Chip>
+        </div>
       </header>
 
+      {/* Split-Pane Ops KPI Strip */}
+      {!loading && !error && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <p className="text-xs font-medium text-brand-mid-grey">{t('admin.support.filterOpen')}</p>
+            <p className="mt-1 text-2xl font-extrabold tabular-nums text-brand-near-black dark:text-white">{openCount}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <p className="text-xs font-medium text-brand-mid-grey">{t('admin.support.kindDeletion')}</p>
+            <p className={cn('mt-1 text-2xl font-extrabold tabular-nums', deletionCount > 0 ? 'text-state-alert' : 'text-brand-near-black dark:text-white')}>{deletionCount}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <p className="text-xs font-medium text-brand-mid-grey">{t('admin.support.filterAll')}</p>
+            <p className="mt-1 text-2xl font-extrabold tabular-nums text-brand-near-black dark:text-white">{rows.length}</p>
+          </div>
+        </div>
+      )}
+
       {deletionCount > 0 && (
-        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-state-alert/40 bg-state-alert/5 px-4 py-3">
+        <div className="flex items-start gap-2.5 rounded-2xl border border-state-alert/40 bg-state-alert/5 px-4 py-3">
           <AlertTriangle className="mt-px size-4 shrink-0 text-state-alert" aria-hidden />
-          <p className="text-sm text-brand-near-black">
+          <p className="text-sm text-brand-near-black dark:text-white">
             {t('admin.support.deletionsPending', { count: deletionCount })}
           </p>
         </div>
       )}
 
       {!loading && !error && (
-        <div className="mb-5 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <Chip active={filter === 'open'} onClick={() => setFilter('open')}>
-              {t('admin.support.filterOpen')} · {openCount}
-            </Chip>
-            <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
-              {t('admin.support.filterAll')} · {rows.length}
-            </Chip>
-          </div>
-
-          <div className="relative ml-auto w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
-            <input
-              type="search"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder={t('admin.support.search')}
-              aria-label={t('admin.support.search')}
-              className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20"
-            />
-          </div>
+        <div className="relative w-full sm:w-80">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
+          <input
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={t('admin.support.search')}
+            aria-label={t('admin.support.search')}
+            className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+          />
         </div>
       )}
 
       {saveError && (
-        <p role="alert" className="mb-4 rounded-xl border border-state-alert/40 bg-state-alert/5 px-4 py-2.5 text-sm text-state-alert">
+        <p role="alert" className="rounded-xl border border-state-alert/40 bg-state-alert/5 px-4 py-2.5 text-sm text-state-alert">
           {saveError}
         </p>
       )}
@@ -214,107 +276,104 @@ export default function AdminSupport() {
           <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
         </p>
       ) : error ? (
-        <p role="alert" className="rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black">
+        <p role="alert" className="rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">
           {error}
         </p>
       ) : filtered.length === 0 ? (
-        <p className="py-12 text-center text-sm text-brand-mid-grey">
+        <p className="rounded-2xl border border-brand-border-grey bg-white py-12 text-center text-sm text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           {rows.length === 0 ? t('admin.support.empty') : t('admin.support.emptyFiltered')}
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {filtered.map(r => (
-            <li
-              key={r.id}
-              className={cn(
-                'rounded-xl border p-4',
-                r.kind === 'account_deletion'
-                  ? 'border-state-alert/40 bg-state-alert/[0.03]'
-                  : 'border-brand-border-grey bg-white',
-              )}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {r.kind === 'account_deletion' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-state-alert px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                        <AlertTriangle className="size-2.5" /> {t('admin.support.kindDeletion')}
-                      </span>
-                    )}
-                    <p className="text-sm font-semibold text-brand-near-black">{r.subject}</p>
-                  </div>
-                  <p className="mt-0.5 text-xs text-brand-mid-grey">
-                    {r.name ? `${r.name} · ` : ''}
-                    <span>{r.email}</span>
-                    {' · '}
-                    <span className="tabular-nums">{fmt(r.created_at)}</span>
-                    {/* The account may since have been closed; the ticket outlives it. */}
-                    {r.user_id === null && <> · {t('admin.support.accountGone')}</>}
-                  </p>
-                </div>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_25rem]">
+          {/* Left Triage Queue */}
+          <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+              {filtered.map(r => {
+                const active = r.id === selected?.id;
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(r.id)}
+                      className={cn(
+                        'flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-colors',
+                        active
+                          ? 'bg-brand-green/[0.06] shadow-[inset_3px_0_0_var(--color-brand-green)]'
+                          : r.kind === 'account_deletion'
+                            ? 'bg-state-alert/[0.03] hover:bg-state-alert/[0.06]'
+                            : 'hover:bg-brand-off-white dark:hover:bg-[#242424]',
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {r.kind === 'account_deletion' && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-state-alert px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              <AlertTriangle className="size-2.5" /> {t('admin.support.kindDeletion')}
+                            </span>
+                          )}
+                          <p className="truncate text-sm font-semibold text-brand-near-black dark:text-white">{r.subject}</p>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-brand-mid-grey">
+                          {r.name ? `${r.name} · ` : ''}{r.email}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className={cn(
+                          'rounded-full px-2 py-0.5 text-[10.5px] font-semibold',
+                          r.status === 'open' ? 'bg-state-alert/10 text-state-alert'
+                            : r.status === 'in_progress' ? 'bg-state-held/15 text-state-held'
+                            : 'bg-state-complete/10 text-state-complete',
+                        )}>
+                          {t(STATUS_KEY[r.status])}
+                        </span>
+                        <span className="text-[11px] tabular-nums text-brand-muted-grey">{fmt(r.created_at)}</span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                  {/* Reply where the conversation is, not in a mail client Groundwork
-                      cannot see. One thread opens; several ask; none says so. */}
-                  {(() => {
-                    const resolved = ticketThread(r, threads, byId);
-                    if (resolved.kind === 'linked' || resolved.kind === 'single') {
-                      const id = resolved.conversation.id;
-                      return (
-                        <Link
-                          to={`/admin/inbox?conversation=${id}`}
-                          onClick={() => noteLink(r, id)}
-                          className="flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
-                        >
-                          <MessagesSquare className="size-3" /> {t('admin.support.openThread')}
-                        </Link>
-                      );
-                    }
-                    if (resolved.kind === 'choose') {
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => setChoosing(r)}
-                          className="flex items-center gap-1.5 rounded-lg border border-brand-near-black px-2.5 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
-                        >
-                          <MessagesSquare className="size-3" />
-                          {t('admin.support.chooseThread', { count: resolved.conversations.length })}
-                        </button>
-                      );
-                    }
-                    const why: TKey = resolved.kind === 'unavailable' ? 'admin.support.inboxUnavailable'
-                                    : resolved.kind === 'linkedMissing' ? 'admin.support.threadUnreadable'
-                                    : 'admin.support.noThreadHint';
-                    return (
-                      <span
-                        title={t(why)}
-                        className="flex cursor-default items-center gap-1.5 rounded-lg border border-dashed border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey"
-                      >
-                        <MessagesSquare className="size-3" /> {t('admin.support.noThread')}
-                      </span>
-                    );
-                  })()}
-                  <select
-                    value={r.status}
-                    disabled={busyId === r.id}
-                    onChange={e => setStatus(r, e.target.value as TicketStatus)}
-                    aria-label={t('admin.support.status')}
-                    className="rounded-lg border border-brand-border-grey bg-white px-2 py-1.5 text-xs font-medium text-brand-near-black outline-none focus:ring-2 focus:ring-brand-near-black/20 disabled:opacity-50"
-                  >
-                    {STATUSES.map(s => (
-                      <option key={s} value={s}>{t(STATUS_KEY[s])}</option>
-                    ))}
-                  </select>
+          {/* Right Ticket Detail & Actions Pane */}
+          {selected && (
+            <aside className="sticky top-4 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  {selected.kind === 'account_deletion' && (
+                    <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-state-alert px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      <AlertTriangle className="size-2.5" /> {t('admin.support.kindDeletion')}
+                    </span>
+                  )}
+                  <h2 className="text-base font-extrabold text-brand-near-black dark:text-white">{selected.subject}</h2>
+                  <p className="mt-0.5 text-xs text-brand-mid-grey">
+                    {selected.name ? `${selected.name} · ` : ''}{selected.email} · {fmt(selected.created_at)}
+                    {selected.user_id === null && <> · {t('admin.support.accountGone')}</>}
+                  </p>
                 </div>
               </div>
 
-              {/* The reporter's own words. Not editable anywhere — a trigger pins them. */}
-              <p className="mt-3 whitespace-pre-wrap border-t border-brand-border-grey/60 pt-3 text-sm leading-relaxed text-brand-near-black">
-                {r.message}
-              </p>
-            </li>
-          ))}
-        </ul>
+              <div className="mt-4 rounded-xl border border-brand-border-grey bg-brand-off-white p-3.5 text-sm leading-relaxed text-brand-near-black whitespace-pre-wrap dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white">
+                {selected.message}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
+                {renderThreadAction(selected)}
+                <select
+                  value={selected.status}
+                  disabled={busyId === selected.id}
+                  onChange={e => setStatus(selected, e.target.value as TicketStatus)}
+                  aria-label={t('admin.support.status')}
+                  className="rounded-xl border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-semibold text-brand-near-black outline-none focus:border-brand-green disabled:opacity-50 dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+                >
+                  {STATUSES.map(s => (
+                    <option key={s} value={s}>{t(STATUS_KEY[s])}</option>
+                  ))}
+                </select>
+              </div>
+            </aside>
+          )}
+        </div>
       )}
 
       {choosing && (
@@ -423,7 +482,7 @@ function Chip({
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-brand-near-black bg-brand-near-black text-white'
+          ? 'border-brand-green bg-brand-green text-white'
           : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
       )}
     >

@@ -150,7 +150,7 @@ export default function AdminDrafts() {
                         <span className={cn(
                           'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
                           r.source === 'in_app'
-                            ? 'bg-brand-near-black text-white'
+                            ? 'bg-brand-green text-white'
                             : 'bg-brand-light-grey text-brand-mid-grey',
                         )}>
                           {t(r.source === 'in_app'
@@ -167,7 +167,7 @@ export default function AdminDrafts() {
                     <span className="hidden w-32 shrink-0 items-center gap-2 sm:flex">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-light-grey">
                         <span
-                          className="block h-full rounded-full bg-brand-near-black"
+                          className="block h-full rounded-full bg-brand-green"
                           style={{ width: `${r.progress_pct}%` }}
                         />
                       </span>
@@ -240,7 +240,7 @@ function Chip({
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-brand-near-black bg-brand-near-black text-white'
+          ? 'border-brand-green bg-brand-green text-white'
           : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
       )}
     >

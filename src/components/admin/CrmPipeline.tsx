@@ -207,7 +207,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-brand-near-black bg-brand-near-black text-white'
+          ? 'border-brand-green bg-brand-green text-white'
           : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black',
       )}
     >

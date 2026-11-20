@@ -349,7 +349,7 @@ export function StageCertificateModal({
           <button
             type="button"
             onClick={() => window.print()}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold py-2.5 hover:bg-brand-green-hover transition-colors"
           >
             <Printer className="size-4" />
             Print / Save PDF

@@ -342,7 +342,7 @@ function Detail({ inquiry, people, busy, onSave }: {
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-60',
                   current
-                    ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]'
+                    ? 'border-brand-green bg-brand-green text-white'
                     : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black dark:border-[#2c2c2c]',
                 )}
               >
@@ -374,7 +374,7 @@ function Detail({ inquiry, people, busy, onSave }: {
         <button
           type="button" disabled={busy || !dirty}
           onClick={() => onSave({ admin_notes: notes.trim() || null })}
-          className="mt-2 rounded-lg bg-brand-near-black px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-[#0a0a0a]"
+          className="mt-2 rounded-lg bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
         >
           {busy ? t('common.saving') : t('common.save')}
         </button>
@@ -463,7 +463,7 @@ function StatusPill({ status, label }: { status: InquiryStatus; label: string })
   return (
     <span className={cn(
       'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide',
-      status === 'open'       ? 'bg-brand-near-black text-white dark:bg-white dark:text-[#0a0a0a]'
+      status === 'open'       ? 'bg-brand-green text-white'
       : status === 'introduced' ? 'bg-state-complete/10 text-state-complete'
       : 'bg-brand-off-white text-brand-mid-grey dark:bg-[#252525]',
     )}>
@@ -479,7 +479,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]'
+          ? 'border-brand-green bg-brand-green text-white'
           : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey hover:text-brand-near-black dark:border-[#2c2c2c]',
       )}
     >

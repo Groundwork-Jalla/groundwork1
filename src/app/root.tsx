@@ -16,6 +16,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "@/lib/sentry";
 import { GA_ID } from "@/lib/analytics";
+import { ClarityTracker } from "@/lib/clarity";
 import "../styles/globals.css";
 import { useT } from '@/lib/i18n';
 
@@ -104,7 +105,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body translate="no">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:rounded-md focus:bg-brand-near-black focus:px-4 focus:py-2 focus:text-sm focus:text-white focus:shadow-lg"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:rounded-md focus:bg-brand-green focus:px-4 focus:py-2 focus:text-sm focus:text-white focus:shadow-lg"
         >
           Skip to main content
         </a>
@@ -142,7 +143,7 @@ function ErrorFallback() {
       <button
         type="button"
         onClick={() => { window.location.reload(); }}
-        className="rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+        className="rounded-lg bg-brand-green px-4 py-2 text-xs font-semibold text-white"
       >
         {t('errors.reload')}
       </button>
@@ -159,6 +160,7 @@ function AppInner() {
         <ThemeProvider>
           <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
             <div id="main-content">
+              <ClarityTracker />
               <AccountRoleSync />
               <Outlet />
             </div>

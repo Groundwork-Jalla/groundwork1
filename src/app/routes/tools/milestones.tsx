@@ -146,7 +146,7 @@ export default function MilestonesTool() {
         <p className="text-xs text-brand-mid-grey">
           <span className="font-semibold text-brand-near-black dark:text-white">{t('tools.buildingSoon')}</span> {t('tools.milestonesCta')}
         </p>
-        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
+        <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-green text-white px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}
         </Link>
       </div>

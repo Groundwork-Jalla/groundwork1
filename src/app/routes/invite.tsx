@@ -119,12 +119,12 @@ export default function InvitePage() {
         </p>
         {user ? (
           <button type="button" onClick={handleAcceptNow} disabled={accepting}
-            className="rounded-xl bg-brand-near-black px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+            className="rounded-xl bg-brand-green px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
             {t('invite.accept')}
           </button>
         ) : (
           <Link to={withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null)}
-            className="inline-flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 hover:bg-black transition-colors">
+            className="inline-flex items-center justify-center rounded-xl bg-brand-green text-white text-sm font-semibold px-6 py-3 hover:bg-brand-green-hover transition-colors">
             {t('common.logIn')}
           </Link>
         )}
@@ -176,7 +176,7 @@ export default function InvitePage() {
             type="button"
             onClick={handleAcceptNow}
             disabled={accepting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3.5 hover:bg-black transition-colors disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold py-3.5 hover:bg-brand-green-hover transition-colors disabled:opacity-60"
           >
             {accepting && <Loader2 className="size-4 animate-spin" />}
             {accepting ? t('invite.accepting') : t('invite.accept')}
@@ -193,7 +193,7 @@ export default function InvitePage() {
           <Link
             to={signupUrl}
             onClick={storeToken}
-            className="block w-full text-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3.5 hover:bg-black transition-colors mb-3"
+            className="block w-full text-center rounded-xl bg-brand-green text-white text-sm font-semibold py-3.5 hover:bg-brand-green-hover transition-colors mb-3"
           >
             {t('invite.createAccount')}
           </Link>

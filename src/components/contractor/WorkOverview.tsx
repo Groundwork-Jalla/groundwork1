@@ -52,7 +52,7 @@ export function WorkOverview({ projects, payments }: {
         <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-brand-border-grey px-5 py-5 text-center dark:border-[#444]">
           <Upload className="mb-3 size-7 text-brand-mid-grey" />
           <p className="max-w-sm text-xs leading-relaxed text-brand-mid-grey">{t(current.activeStage ? 'contractorDashboard.uploadHint' : 'contractorProject.noActiveStageBody')}</p>
-          <Link to={`/work/projects/${current.project.id}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">{t('contractor.needsAction.open')}<ArrowRight className="size-3" /></Link>
+          <Link to={`/work/projects/${current.project.id}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-green px-4 py-2 text-xs font-semibold text-white">{t('contractor.needsAction.open')}<ArrowRight className="size-3" /></Link>
         </div>
         <Evidence key={`${current.project.id}:${current.activeStage?.id}`} assigned={current} />
       </section>

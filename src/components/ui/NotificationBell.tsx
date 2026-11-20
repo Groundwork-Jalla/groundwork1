@@ -82,7 +82,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
              #0a0a0a in light, #f0f0f0 in dark. Against a fixed `text-white` that made
              the count white-on-near-white — an unread badge with an invisible number,
              which is what was reported. The ink flips with its background. */
-          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-state-active text-[9px] font-bold text-white dark:text-brand-near-black tabular-nums">
+          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-green text-[9px] font-bold text-white tabular-nums">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

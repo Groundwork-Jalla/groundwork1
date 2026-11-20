@@ -235,7 +235,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       ? format(activeContractorVer.amount, activeContractorVer.currency ?? code)
       : format(stageDue, code);
     return (
-      <section id={`stage-payment-${stageId}`} data-contractor-paid-summary
+      <section id={`stage-payment-${stageId}`} data-contractor-paid-summary data-clarity-mask="true"
         className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')}
         aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
         <h3 className={cn('flex items-center gap-2 font-semibold text-brand-near-black dark:text-white', clientPresentation ? 'text-base' : 'text-sm')}>
@@ -261,7 +261,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       </section>
     );
   }
-  return <section id={`stage-payment-${stageId}`} className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')} aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
+  return <section id={`stage-payment-${stageId}`} data-clarity-mask="true" className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')} aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
     <h3 className={cn('flex items-center gap-2 font-semibold text-brand-near-black dark:text-white', clientPresentation ? 'text-base' : 'text-sm')}><Receipt className={clientPresentation ? 'size-5 text-brand-green' : 'size-4'} aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
     {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
     {!clientPresentation && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>}
@@ -385,7 +385,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <button type="button" disabled={busy} onClick={()=>setDecisionForm(null)} className="text-xs underline">{t('common.cancel')}</button>
       </div>}
       {canUpload && !pending && !legacyPending && !requested && !settled && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.waitForReceipt')}</p>}
-    </> : readOnly ? null : allowed && planEditing !== scope && <form onSubmit={submit} className={cn('space-y-3', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
+    </> : readOnly ? null : allowed && planEditing !== scope && <form id={`stage-payment-form-${stageId}`} onSubmit={submit} className={cn('space-y-3 scroll-mt-6', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
       {clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.addReceipt')}</h4>}
       {payingPart && <p role="status" className="text-sm font-semibold">{t('project.parts.receiptFor', { part: partName(payingPart) })} <span className="font-mono font-normal text-brand-mid-grey">{t('project.parts.due', { amount: format(Number(payingPart.remaining), parts?.currency ?? code) })}</span></p>}
       <fieldset disabled={!allowed || busy} className="space-y-3 disabled:opacity-40">
