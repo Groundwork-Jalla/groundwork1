@@ -269,9 +269,19 @@ export default function ProjectDetail() {
     return () => { active = false; };
   }, [loadAll]);
 
-  // Real-time: update stage payment_status when it changes in Supabase
+  // Real-time: update stage payment_status when it changes in Supabase.
+  // Coalesce multi-table bursts (e.g. receipt approval + overpayment carry-forward)
+  // into one refresh so the page never shakes or re-renders several times in a row.
   useEffect(() => {
     if (!id) return;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void loadAll();
+      }, 250);
+    };
     const channel = supabase
       .channel(`project-stages-${id}`)
       .on(
@@ -290,14 +300,17 @@ export default function ProjectDetail() {
         if (currentScope.current !== scope || updated.project_id !== id) return;
         setSubstages(prev => prev.map(substage => substage.id === updated.id ? { ...substage, ...updated } : substage));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'substage_payment_requests', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, () => { void loadAll(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'substage_payment_requests', filter: `project_id=eq.${id}` }, scheduleRefresh)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, scheduleRefresh)
       .subscribe();
-    const refresh = () => { void loadAll(); };
-    window.addEventListener('focus', refresh);
-    return () => { window.removeEventListener('focus', refresh); supabase.removeChannel(channel); };
+    window.addEventListener('focus', scheduleRefresh);
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener('focus', scheduleRefresh);
+      supabase.removeChannel(channel);
+    };
   }, [id, scope, loadAll]);
 
   // ── Event handlers ─────────────────────────────────────

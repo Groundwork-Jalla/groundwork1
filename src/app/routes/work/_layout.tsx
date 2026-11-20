@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkShell } from '@/components/shell/WorkShell';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { LiveChatWidget } from '@/components/chat/LiveChatWidget';
 import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
 
 // =========================================================
@@ -171,7 +172,7 @@ export default function WorkLayout() {
   // Keep that project's work view inside the user's current account navigation.
   if (!isContractor) {
     const logout = () => { void signOut().then(() => navigate('/', { replace: true })); };
-    const content = <Outlet />;
+    const content = <><Outlet /><LiveChatWidget /></>;
     if (accountRole === 'verifier') return <VerifierShell displayName={displayName} onLogout={logout}>{content}</VerifierShell>;
     return <AppShell nav={accountRole === 'admin' ? ADMIN_NAV : CLIENT_NAV} displayName={displayName} onLogout={logout}
       topBarActions={<NotificationBell userId={user?.id ?? ''} />}>{content}</AppShell>;
@@ -193,7 +194,7 @@ export default function WorkLayout() {
       {/* Not while onboarding is unfinished: that screen deliberately leaves only its
           own two buttons live, and an arrow pointing at a locked sidebar would be the
           product contradicting itself. */}
-      {!(gate !== null && !(gate.decided && gate.complete)) && <RoleTour />}
+      {!(gate !== null && !(gate.decided && gate.complete)) && <><RoleTour /><LiveChatWidget /></>}
     </WorkShell>
   );
 }

@@ -289,74 +289,72 @@ function StageDetail({
           data-clarity-mask="true"
           className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white/70 px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#141414]"
         >
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
-            <div>
-              <span className="text-brand-mid-grey">{t('project.clientUi.paidLabel')}: </span>
-              <span className={cn('font-mono font-semibold tabular-nums', (paymentSummary.balance.received ?? 0) > 0 ? 'text-brand-green dark:text-[#86efac]' : 'text-brand-near-black dark:text-white')}>
-                {formatMoney(paymentSummary.balance.received)}
-              </span>
-            </div>
-            <div>
-              <span className="text-brand-mid-grey">{t('project.clientUi.leftLabel')}: </span>
-              <span className="font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">
-                {formatMoney(paymentSummary.balance.remaining)}
-              </span>
-            </div>
-            {paymentSummary.balance.pending != null && paymentSummary.balance.pending > 0 && (
-              <div>
-                <span className="text-brand-mid-grey">{t('project.clientUi.pendingLabel')}: </span>
-                <span className="font-mono font-semibold tabular-nums text-state-held">
-                  {formatMoney(paymentSummary.balance.pending)}
-                </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+                <div>
+                  <span className="text-brand-mid-grey">{t('project.clientUi.paidLabel')}: </span>
+                  <span className={cn('font-mono font-semibold tabular-nums', (paymentSummary.balance.received ?? 0) > 0 ? 'text-brand-green dark:text-[#86efac]' : 'text-brand-near-black dark:text-white')}>
+                    {formatMoney(paymentSummary.balance.received)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-brand-mid-grey">{t('project.clientUi.leftLabel')}: </span>
+                  <span className="font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">
+                    {formatMoney(paymentSummary.balance.remaining)}
+                  </span>
+                </div>
+                {paymentSummary.balance.pending != null && paymentSummary.balance.pending > 0 && (
+                  <div>
+                    <span className="text-brand-mid-grey">{t('project.clientUi.pendingLabel')}: </span>
+                    <span className="font-mono font-semibold tabular-nums text-state-held">
+                      {formatMoney(paymentSummary.balance.pending)}
+                    </span>
+                  </div>
+                )}
+                {paymentSummary.excessNow > 0 && (
+                  <span
+                    data-stage-summary-excess
+                    className="inline-flex items-center gap-1 rounded-full border border-state-held/40 bg-state-held/12 px-2.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-state-held"
+                  >
+                    {t('project.clientUi.excessLabel')}: +{formatMoney(paymentSummary.excessNow)}
+                  </span>
+                )}
               </div>
-            )}
-            {paymentSummary.excessNow > 0 && (
-              <span
-                data-stage-summary-excess
-                className="inline-flex items-center gap-1 rounded-full border border-state-held/40 bg-state-held/12 px-2.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-state-held"
-              >
-                {t('project.clientUi.excessLabel')}: +{formatMoney(paymentSummary.excessNow)}
-              </span>
-            )}
-          </div>
+              {canUploadReceiptNow && (
+                <p className="text-[11px] text-brand-mid-grey">{t('project.clientUi.payInFullHint')}</p>
+              )}
+            </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {canUploadReceiptNow ? (
-              <button
-                type="button"
-                data-action="stage-upload-receipt"
-                onClick={() => scrollToStageReceipt(stage.id)}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
-              >
-                <Receipt className="size-3.5" aria-hidden />
-                {t('project.clientUi.uploadReceipt')}
-              </button>
-            ) : paymentSummary.fullyPaid ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-xs font-semibold text-brand-green dark:text-[#86efac]">
-                <Check className="size-3.5" aria-hidden />
-                {t('project.clientUi.paidInFull')}
-              </span>
-            ) : !paymentEnabled && !paymentSummary.settled ? (
-              <span className="text-[11px] text-brand-mid-grey">{paymentBlockedReason}</span>
-            ) : null}
+            <div className="flex shrink-0 items-center gap-2">
+              {canUploadReceiptNow ? (
+                <button
+                  type="button"
+                  data-action="stage-upload-receipt"
+                  onClick={() => scrollToStageReceipt(stage.id)}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
+                >
+                  <Receipt className="size-3.5" aria-hidden />
+                  {t('project.clientUi.payInFullAction')}
+                </button>
+              ) : paymentSummary.fullyPaid ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-xs font-semibold text-brand-green dark:text-[#86efac]">
+                  <Check className="size-3.5" aria-hidden />
+                  {t('project.clientUi.paidInFull')}
+                </span>
+              ) : !paymentEnabled && !paymentSummary.settled ? (
+                <span className="text-[11px] text-brand-mid-grey">{paymentBlockedReason}</span>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
 
-      {!isContractor && openStageRequests.length > 0 && (
+      {!isContractor && openStageRequests.length > 0 && !paymentSummary?.fullyPaid && (
         <div role="status" data-client-payment-requests className="mb-4 space-y-2 rounded-xl border border-state-held/40 bg-state-held/10 p-3.5 text-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="space-y-0.5">
             <p className="font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.paymentRequestedTitle')}</p>
-            {canUploadReceiptNow && (
-              <button
-                type="button"
-                onClick={() => scrollToStageReceipt(stage.id)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-green-hover"
-              >
-                <Receipt className="size-3" aria-hidden />
-                {t('project.clientUi.uploadReceipt')}
-              </button>
-            )}
+            <p className="text-[11px] text-brand-mid-grey">{t('project.clientUi.paymentRequestedHint')}</p>
           </div>
           <ul className="space-y-1.5">
             {openStageRequests.map(req => {
@@ -426,7 +424,7 @@ function StageDetail({
                     initialAmount: subRequest?.amount != null ? String(subRequest.amount) : subPart?.remaining ? String(subPart.remaining) : '',
                     initialCurrency: subRequest?.currency ?? (paidByPart ? (parts?.currency ?? code) : code),
                     remainingDue: subPart ? Number(subPart.remaining) : remainingAfterPending,
-                    requestedLabel: requestedAmt ? t('project.clientUi.paymentRequestedAmount', { amount: requestedAmt }) : null,
+                    requestedLabel: requestedAmt && !paymentSummary?.fullyPaid && !subPart?.paid ? t('project.clientUi.paymentRequestedAmount', { amount: requestedAmt }) : null,
                     onUploaded: onPaymentChanged,
                   } : undefined}
                   onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
@@ -582,7 +580,6 @@ export function StageTracker({
   const formatMoney = (value: number | null | undefined) => value == null
     ? t('project.receiptFlow.amountUnknown')
     : `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(code) }).format(value)} ${code}`;
-  const [pendingReceiptScroll, setPendingReceiptScroll] = useState<string | null>(null);
 
   // Only an actual, unrevoked issued PDF offers a certificate action.
   const [issued, setIssued] = useState<{ projectId: string; rows: Map<string, IssuedCertificate> }>({ projectId, rows: new Map() });
@@ -705,17 +702,8 @@ export function StageTracker({
     </div>
   );
 
-  useEffect(() => {
-    if (!pendingReceiptScroll || selectedStage?.id !== pendingReceiptScroll) return;
-    const id = window.setTimeout(() => {
-      scrollToStageReceipt(pendingReceiptScroll);
-      setPendingReceiptScroll(null);
-    }, 120);
-    return () => window.clearTimeout(id);
-  }, [pendingReceiptScroll, selectedStage?.id]);
-
   if (clientPresentation) return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[16.5rem_minmax(0,1fr)] xl:items-start">
+    <div className="grid min-w-0 gap-4 pb-24 xl:grid-cols-[16.5rem_minmax(0,1fr)] xl:items-start">
       <aside className="min-w-0 overflow-hidden rounded-xl border border-brand-border-grey bg-white xl:sticky xl:top-5">
         <div className="border-b border-brand-border-grey px-4 py-4">
           <h2 className="text-sm font-bold text-brand-near-black">{t('project.clientUi.stagesTitle')}</h2>
@@ -725,10 +713,6 @@ export function StageTracker({
           {orderedStages.map(stage => {
             const stagePay = payments?.get(stage.id);
             const railSummary = !isContractor ? summarizeStagePayment(stage, stagePay, code, fxRate) : null;
-            const stageCanUpload = !isContractor && canApprove && hasPrimaryContractor && !projectArchived
-              && (!projectPaused || stage.status === 'complete')
-              && canSubmitStageReceipt(stage, orderedStages, workflowOrigin, hasOpenPaymentRequest(stage.id))
-              && !!railSummary && (!railSummary.settled || (railSummary.balance.remaining ?? 0) > 0);
             return (
               <div key={stage.id} className="min-w-52 shrink-0 xl:min-w-0">
                 <button type="button" aria-current={selectedStage?.id === stage.id ? 'step' : undefined}
@@ -766,24 +750,6 @@ export function StageTracker({
                     )}
                   </span>
                 </button>
-                {stageCanUpload && (
-                  <div className="mb-1.5 pl-14 pr-3">
-                    <button
-                      type="button"
-                      data-action="rail-upload-receipt"
-                      onClick={() => {
-                        navigation.current.version++;
-                        setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id });
-                        if (selectedStage?.id === stage.id) scrollToStageReceipt(stage.id);
-                        else setPendingReceiptScroll(stage.id);
-                      }}
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-green-hover"
-                    >
-                      <Receipt className="size-3" aria-hidden />
-                      {t('project.clientUi.uploadReceipt')}
-                    </button>
-                  </div>
-                )}
                 {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && <button type="button"
                   onClick={() => setCertificate({ projectId, name: `${stageLabel(stage)}.pdf`, url: issued.rows.get(stage.id)!.pdfUrl! })}
                   className="mb-2 inline-flex min-h-9 items-center gap-1 px-3 text-xs text-brand-green underline dark:text-[#b4d8bf]"><Download className="size-3" aria-hidden />{t('project.stages.certificate')}</button>}

@@ -185,16 +185,28 @@ export default function ContractorProjectDetail() {
   }, [load, projectId]);
   useEffect(() => {
     if (!projectId) return;
-    const refresh = () => { void load(); };
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void load();
+      }, 250);
+    };
     const channel = supabase.channel(`contractor-project-money-${projectId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${projectId}` }, refresh)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${projectId}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${projectId}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${projectId}` }, refresh)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${projectId}` }, scheduleRefresh)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${projectId}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${projectId}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${projectId}` }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'substage_payment_requests', filter: `project_id=eq.${projectId}` }, scheduleRefresh)
       .subscribe();
-    window.addEventListener('focus', refresh);
-    return () => { window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
+    window.addEventListener('focus', scheduleRefresh);
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener('focus', scheduleRefresh);
+      void supabase.removeChannel(channel);
+    };
   }, [projectId, load]);
 
   const activeSubstages = useMemo(
@@ -882,10 +894,14 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
       // Non-blocking: table/RPC may not be populated in older environments or test mocks.
     }
   }, [project.id]);
+  const loadedPayStateFor = useRef<string | null>(null);
   useEffect(() => {
-    setContractorPayState(null);
+    if (loadedPayStateFor.current !== project.id) {
+      loadedPayStateFor.current = project.id;
+      setContractorPayState(null);
+    }
     void reloadContractorPayState();
-  }, [reloadContractorPayState]);
+  }, [project.id, reloadContractorPayState, stagePayments]);
   const stageParams = new URLSearchParams(typeof window === 'undefined' ? '' : window.location?.search ?? '');
   const linkedStage = stageParams.get('stage_id') ?? stageParams.get('stage');
   const ordered = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
@@ -920,7 +936,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
         if (alive) setCarriedInByStage({ stageId: selectedIdForPlan, amount: Math.max(0, Number(ctx.carried_in ?? 0)) });
       })
       .catch(() => {
-        if (alive) setCarriedInByStage({ stageId: selectedIdForPlan, amount: 0 });
+        if (alive) setCarriedInByStage(prev => prev.stageId === selectedIdForPlan ? prev : { stageId: selectedIdForPlan, amount: 0 });
       });
     return () => { alive = false; };
   }, [selectedIdForPlan, selectedTrancheRef]);
@@ -1217,10 +1233,15 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                 const ready = partReady(item.id);
                 const openReq = openRequestFor(item.id);
                 const carriedCovered = isCoveredByCarryover(itemIndex, part);
-                const showRequestBtn = canRequestSubstagePayment && !complete && !part?.paid && !carriedCovered && !partWaiting;
-                const showUploadBtn = isOpen && !complete && !partWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
+                const stageFullyPaid = stagePaidUpfront || (balance?.remaining === 0 && (balance?.received ?? 0) > 0);
+                // When the client uploads a receipt on a non-split stage after a contractor
+                // payment request, flip the row immediately from "Request payment" to "Review receipt".
+                const rowWaiting = partWaiting ?? (!split && openReq ? waiting[0] : undefined);
+                const rowPaid = !!part?.paid || carriedCovered || stageFullyPaid;
+                const showRequestBtn = canRequestSubstagePayment && !complete && !rowPaid && !rowWaiting;
+                const showUploadBtn = isOpen && !complete && !rowWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
                 return (
-                  <li key={item.id} id={`substage-${item.id}`} className={cn('border-t border-brand-border-grey px-3.5 py-3 first:border-t-0 dark:border-[#2c2c2c]', partWaiting && 'bg-state-held/[0.05]')}>
+                  <li key={item.id} id={`substage-${item.id}`} className={cn('border-t border-brand-border-grey px-3.5 py-3 first:border-t-0 dark:border-[#2c2c2c]', rowWaiting && 'bg-state-held/[0.05]')}>
                     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 md:grid-cols-[22px_minmax(0,1fr)_auto_auto]">
                       <span aria-hidden className={cn('mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-semibold',
                         complete ? 'bg-brand-green text-white' : isOpen && (ready || carriedCovered) ? 'border-2 border-brand-green text-brand-green dark:border-state-complete dark:text-state-complete' : 'border border-brand-border-grey text-brand-mid-grey dark:border-[#3a3a3a]')}>
@@ -1231,7 +1252,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                           {split ? t('project.historyView.part', { n: item.substage_number, name: substageLabel(item) }) : substageLabel(item)}
                         </span>
                         <span className="block text-xs text-brand-mid-grey">
-                          {partWaiting ? <><span className="font-semibold text-state-held">{t('contractorView.receiptToConfirm')}</span> · {t('contractorView.uploadsOpenAfter')}</>
+                          {rowWaiting ? <><span className="font-semibold text-state-held">{t('contractorView.receiptToConfirm')}</span> · {t('contractorView.uploadsOpenAfter')}</>
                             : complete ? t('contractorView.approvedOn')
                             : part && !part.paid && !ready && !carriedCovered ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
                             : count > 0 ? t('contractorProject.evidenceCount', { count }) : t('contractorProject.noEvidence')}
@@ -1241,7 +1262,12 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                             {t('contractorView.coveredByCarryover')}
                           </span>
                         )}
-                        {openReq && openReq.amount != null && !carriedCovered && (
+                        {!part && !carriedCovered && stageFullyPaid && !complete && (
+                          <span className="mt-1 inline-block rounded-full bg-brand-green/10 px-2 py-0.5 text-[11px] font-semibold text-brand-green dark:text-[#86efac]" data-substage-stage-paid>
+                            {t('contractorView.partPaid')}
+                          </span>
+                        )}
+                        {openReq && openReq.amount != null && !rowPaid && !rowWaiting && (
                           <span className="mt-1 inline-block rounded-full bg-state-held/10 px-2 py-0.5 text-[11px] font-semibold text-state-held" data-substage-payment-requested>
                             {t('contractorView.paymentRequestedTag', {
                               amount: `${Number(openReq.amount).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(openReq.currency ?? money.code) })} ${openReq.currency ?? money.code}`,
@@ -1259,7 +1285,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                           <span className="block font-sans text-[11px] text-brand-mid-grey">
                             {t(part.paid || carriedCovered || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
                         </span>}
-                        {partWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, partWaiting.id)} data-action="review-part-receipt"
+                        {rowWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, rowWaiting.id)} data-action="review-part-receipt"
                           className="rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">{t('contractorView.reviewReceipt')}</button>}
                         {/* Sequential CTA order: primary expected next action always appears FIRST (19 Nov). */}
                         {(showRequestBtn || showUploadBtn) && (
