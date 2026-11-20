@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 1 — Contractor Money & Receipt Confirmation Drawer</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .money-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 18px; flex: 1; min-height: 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+  .tbl td { padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tr.sel { background: var(--held-bg); }
+
+  .drawer { background: #fff; border: 1.5px solid var(--green); border-radius: 16px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; }
+  .drawer-hdr { padding: 15px 18px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; background: var(--green-tint); }
+  .drawer-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
+  .receipt-box { border: 1px solid var(--rule); border-radius: 12px; background: var(--canvas); padding: 12px; display: flex; gap: 12px; align-items: center; }
+  .receipt-preview { width: 76px; height: 92px; border-radius: 8px; border: 1px solid var(--rule-strong); background: #fff; padding: 7px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow-xs); }
+  .rline { height: 4px; border-radius: 2px; background: #deded8; }
+  .rline.dark { background: #4a4d4a; width: 65%; }
+  .rline.g { background: var(--green); width: 45%; height: 6px; }
+
+  .choice { border: 1.5px solid var(--rule); border-radius: 12px; padding: 11px 13px; display: flex; align-items: flex-start; gap: 10px; background: #fff; }
+  .choice.selected { border-color: var(--green); background: var(--green-tint); }
+  .radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rule-strong); flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; }
+  .choice.selected .radio { border-color: var(--green); }
+  .choice.selected .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .drawer-foot { padding: 13px 18px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--canvas); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div>
+          <div class="brand-name">Groundwork</div>
+          <span class="brand-sub">Contractor Portal</span>
+        </div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+      <a class="nav-item active" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Projects<span class="badge green">3</span></a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Partner network</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Payouts</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="av green">JM</div>
+      <div>
+        <div style="font-size:13px;font-weight:700">Jean-Marc Mbarga</div>
+        <div style="font-size:11px;color:var(--muted)">BTP Douala SARL</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Projects <span>/</span> Bonapriso Villa <span>/</span> <b>Money</b></div>
+      <div class="topbar-right">
+        <span class="pill held"><span class="dot"></span>1 receipt needs confirmation</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="tabs">
+        <span class="tab">Work <span class="cnt">5/10</span></span>
+        <span class="tab on">Money <span class="cnt">1</span></span>
+        <span class="tab">Documents <span class="cnt">14</span></span>
+        <span class="tab">Messages <span class="cnt">2</span></span>
+        <span class="tab">People <span class="cnt">3</span></span>
+      </div>
+
+      <div class="money-grid">
+        <!-- Left column: Figures + Payment Ledger -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+          <!-- 3 Scannable Figures -->
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="kpi">
+              <div class="kpi-label"><span>Agreed total</span></div>
+              <div class="kpi-val">48.5M XAF</div>
+              <div class="kpi-sub">~$79,500 USD · 7 paid stages</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label"><span>Confirmed received</span><span class="pill complete" style="padding:1px 7px;font-size:10.5px">35%</span></div>
+              <div class="kpi-val" style="color:var(--green)">17.0M XAF</div>
+              <div class="kpi-sub">~$27,868 USD across 5 receipts</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label"><span>Remaining</span></div>
+              <div class="kpi-val">31.5M XAF</div>
+              <div class="kpi-sub">2.4M XAF awaiting review now</div>
+            </div>
+          </div>
+
+          <!-- Payment History Table -->
+          <section class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <h2 style="font-size:15px;font-weight:800">Payment history</h2>
+                <div style="font-size:12px;color:var(--mid)">Click any payment to inspect its receipt or confirm arrival.</div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <span class="chip on">All <b>6</b></span>
+                <span class="chip">Needs review <b>1</b></span>
+                <span class="chip">Confirmed <b>5</b></span>
+              </div>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Stage &amp; part</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Uploaded</th>
+                  <th style="text-align:right">Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="sel">
+                  <td>
+                    <div style="font-weight:700">Stage 5 · Part 3</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Block walls</div>
+                  </td>
+                  <td>
+                    <div class="mono" style="font-weight:700">2,400,000 XAF</div>
+                    <div style="font-size:11px;color:var(--muted)">~$3,934</div>
+                  </td>
+                  <td><span class="pill held"><span class="dot"></span>Needs review</span></td>
+                  <td style="font-size:12px;color:var(--mid)">Today, 11:40</td>
+                  <td style="text-align:right"><span class="btn primary xs">Reviewing</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight:600">Stage 5 · Part 2</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Staircase &amp; slab</div>
+                  </td>
+                  <td>
+                    <div class="mono" style="font-weight:600">6,350,000 XAF</div>
+                    <div style="font-size:11px;color:var(--muted)">~$10,410</div>
+                  </td>
+                  <td><span class="pill complete"><span class="dot"></span>Confirmed</span></td>
+                  <td style="font-size:12px;color:var(--mid)">12 Nov 2026</td>
+                  <td style="text-align:right"><span class="btn outline xs">View receipt</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight:600">Stage 5 · Part 1</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Pillars &amp; beams</div>
+                  </td>
+                  <td>
+                    <div class="mono" style="font-weight:600">5,800,000 XAF</div>
+                    <div style="font-size:11px;color:var(--muted)">~$9,508</div>
+                  </td>
+                  <td><span class="pill complete"><span class="dot"></span>Confirmed</span></td>
+                  <td style="font-size:12px;color:var(--mid)">04 Nov 2026</td>
+                  <td style="text-align:right"><span class="btn outline xs">View receipt</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight:600">Stage 4 · Full stage</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Foundation</div>
+                  </td>
+                  <td>
+                    <div class="mono" style="font-weight:600">3,880,000 XAF</div>
+                    <div style="font-size:11px;color:var(--muted)">~$6,360</div>
+                  </td>
+                  <td><span class="pill complete"><span class="dot"></span>Confirmed</span></td>
+                  <td style="font-size:12px;color:var(--mid)">19 Oct 2026</td>
+                  <td style="text-align:right"><span class="btn outline xs">View receipt</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-weight:600">Stage 3 · Full stage</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Site Preparation</div>
+                  </td>
+                  <td>
+                    <div class="mono" style="font-weight:600">970,000 XAF</div>
+                    <div style="font-size:11px;color:var(--muted)">~$1,590</div>
+                  </td>
+                  <td><span class="pill complete"><span class="dot"></span>Confirmed</span></td>
+                  <td style="font-size:12px;color:var(--mid)">02 Oct 2026</td>
+                  <td style="text-align:right"><span class="btn outline xs">View receipt</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <!-- Right Slide-Over: 1-Question / 3-Answer Receipt Confirm -->
+        <aside class="drawer">
+          <div class="drawer-hdr">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--green)">Receipt review</div>
+              <div style="font-size:16px;font-weight:800;margin-top:1px">Stage 5 · Part 3 — Block walls</div>
+            </div>
+            <span class="pill held"><span class="dot"></span>Pending</span>
+          </div>
+
+          <div class="drawer-body">
+            <!-- Receipt Preview Card -->
+            <div class="receipt-box">
+              <div class="receipt-preview">
+                <div class="rline g"></div>
+                <div class="rline dark"></div>
+                <div class="rline"></div>
+                <div style="margin:4px 0;padding:4px;border-radius:4px;background:var(--green-soft);font-family:var(--mono);font-size:8px;font-weight:700;color:var(--green)">2,400,000</div>
+                <div class="rline"></div>
+                <div class="rline dark"></div>
+                <div class="rline"></div>
+              </div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Homeowner claim</div>
+                <div class="mono" style="font-size:20px;font-weight:800;margin-top:2px">2,400,000 XAF</div>
+                <div style="font-size:12px;color:var(--mid);margin-top:2px">Uploaded by Chidi Okafor · 11:40</div>
+                <div style="margin-top:8px;display:flex;gap:8px">
+                  <span class="btn outline xs">Open full receipt</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1 Question, 3 Clean Answers -->
+            <div>
+              <div style="font-size:14px;font-weight:800;margin-bottom:8px">Did you receive this payment?</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div class="choice selected">
+                  <div class="radio"></div>
+                  <div>
+                    <div style="font-size:13.5px;font-weight:700;color:var(--green)">Yes, exact amount received</div>
+                    <div style="font-size:12px;color:var(--mid);margin-top:1px">Confirms 2,400,000 XAF and marks Part 3 funded immediately.</div>
+                  </div>
+                </div>
+
+                <div class="choice">
+                  <div class="radio"></div>
+                  <div>
+                    <div style="font-size:13.5px;font-weight:700">The amount received is different</div>
+                    <div style="font-size:12px;color:var(--mid);margin-top:1px">Enter what arrived, then choose whether to continue work or request the balance.</div>
+                  </div>
+                </div>
+
+                <div class="choice">
+                  <div class="radio"></div>
+                  <div>
+                    <div style="font-size:13.5px;font-weight:700">It hasn't arrived yet</div>
+                    <div style="font-size:12px;color:var(--mid);margin-top:1px">Flags this receipt with a short note so the Homeowner can check the transfer.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size:11.5px;color:var(--mid);background:var(--canvas);border:1px solid var(--rule);border-radius:10px;padding:9px 11px;line-height:1.45">
+              Both you and the Homeowner see this confirmation in the project record. Groundwork tracks the schedule and does not hold funds.
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <span class="btn ghost sm">Cancel</span>
+            <span class="btn primary">Confirm 2,400,000 XAF received</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 1 Money &amp; 1-Question Receipt Confirm (1440×900)</div>
+</body>
+</html>

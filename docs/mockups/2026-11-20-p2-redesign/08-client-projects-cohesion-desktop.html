@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 4 — Client Surface Cohesion (Homeowner Projects Hub)</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .pcard { background: #fff; border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-xs); }
+  .pcard.focus { border-color: var(--green); box-shadow: 0 4px 18px rgba(31, 77, 54, 0.08); }
+  .pcard-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .pstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; border-radius: 12px; background: var(--canvas); border: 1px solid var(--rule); }
+  .next-cue { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-radius: 11px; background: var(--green-tint); border: 1px solid #d1e4d9; }
+  .next-cue.held { background: var(--held-bg); border-color: var(--held-border); }
+  .cohesion-strip { background: #fff; border: 1px solid var(--rule); border-radius: 14px; padding: 16px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Homeowner Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><div class="brand-sq">G</div><div><div class="brand-name">Groundwork</div><span class="brand-sub">Homeowner Portal</span></div></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+      <a class="nav-item active" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects<span class="badge green">2</span></a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Documents</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Resources</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; Support</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="av soft-g">CO</div>
+      <div>
+        <div style="font-size:13px;font-weight:700">Chidi Okafor</div>
+        <div style="font-size:11px;color:var(--muted)">Profile 100% complete</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb"><b>Projects</b></div>
+      <div class="topbar-right">
+        <div class="search-box">Search your builds…</div>
+        <div class="btn primary sm">+ New project</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.5px">Your builds</h1>
+          <div style="font-size:13px;color:var(--mid);margin-top:2px">Calm, scannable project cards matching Dashboard &amp; Stage Detail — one clear status and one next step per build.</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span class="chip on">All <b>2</b></span>
+          <span class="chip">Active <b>2</b></span>
+          <span class="chip">Completed <b>0</b></span>
+        </div>
+      </div>
+
+      <!-- 2 Cohesive Project Cards -->
+      <div class="pgrid">
+        <article class="pcard focus">
+          <div class="pcard-top">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Douala, Cameroon · Residential Duplex</div>
+              <h2 style="font-size:19px;font-weight:800;letter-spacing:-0.3px;margin-top:2px">Bonapriso Villa — 4-Bed Duplex</h2>
+              <div style="font-size:12px;color:var(--mid);margin-top:2px">Contractor: <b>Jean-Marc Mbarga</b> (BTP Douala)</div>
+            </div>
+            <span class="pill complete"><span class="dot"></span>Stage 5 of 10</span>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600">Structure &amp; Walls · 3 of 5 updates uploaded</span>
+              <span class="mono" style="font-weight:700;color:var(--green)">46%</span>
+            </div>
+            <div class="seg"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="pstats">
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">Budget</div>
+              <div class="mono" style="font-size:14px;font-weight:700;margin-top:2px">48.5M XAF</div>
+              <div style="font-size:10.5px;color:var(--muted)">~$79,500</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">Confirmed paid</div>
+              <div class="mono" style="font-size:14px;font-weight:700;color:var(--green);margin-top:2px">17.0M XAF</div>
+              <div style="font-size:10.5px;color:var(--muted)">5 receipts verified</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">In review</div>
+              <div class="mono" style="font-size:14px;font-weight:700;color:var(--held);margin-top:2px">2.4M XAF</div>
+              <div style="font-size:10.5px;color:var(--muted)">Part 3 receipt</div>
+            </div>
+          </div>
+
+          <div class="next-cue">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase">Next up</div>
+              <div style="font-size:13px;font-weight:700">Review 3 new site photos on Structure &amp; Walls</div>
+            </div>
+            <span class="btn primary sm">Open build →</span>
+          </div>
+        </article>
+
+        <article class="pcard">
+          <div class="pcard-top">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Kribi, Cameroon · Holiday Home</div>
+              <h2 style="font-size:19px;font-weight:800;letter-spacing:-0.3px;margin-top:2px">Kribi Coastal Bungalow</h2>
+              <div style="font-size:12px;color:var(--mid);margin-top:2px">Contractor: <span style="color:var(--held);font-weight:600">Not invited yet</span></div>
+            </div>
+            <span class="pill held"><span class="dot"></span>Stage 2 of 10</span>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600">Design Completed · Ready for drawings</span>
+              <span class="mono" style="font-weight:700">12%</span>
+            </div>
+            <div class="seg"><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="pstats">
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">Estimated budget</div>
+              <div class="mono" style="font-size:14px;font-weight:700;margin-top:2px">26.0M XAF</div>
+              <div style="font-size:10.5px;color:var(--muted)">~$42,600</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">Confirmed paid</div>
+              <div class="mono" style="font-size:14px;font-weight:700;margin-top:2px">0 XAF</div>
+              <div style="font-size:10.5px;color:var(--muted)">Pre-construction</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600">Team</div>
+              <div style="font-size:14px;font-weight:700;margin-top:2px">1 member</div>
+              <div style="font-size:10.5px;color:var(--muted)">Invite via Team tab</div>
+            </div>
+          </div>
+
+          <div class="next-cue held">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--held);text-transform:uppercase">Recommended step</div>
+              <div style="font-size:13px;font-weight:700">Invite your contractor to price Stage 3 &amp; 4</div>
+            </div>
+            <span class="btn outline sm">Invite contractor</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Wave 4 Surface Cohesion Summary Strip -->
+      <section class="cohesion-strip">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--green)">Documents &amp; Profile</div>
+          <div style="font-size:13.5px;font-weight:700;margin-top:3px">Unified calm cards &amp; semantic tokens</div>
+          <div style="font-size:12px;color:var(--mid);margin-top:3px">Removes 900+ scattered dark hex overrides; Documents, Profile (3-step 100% meter), and Help share identical spacing and borders.</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--green)">New Project Wizard</div>
+          <div style="font-size:13.5px;font-weight:700;margin-top:3px">Cleaner step chrome &amp; mobile forms</div>
+          <div style="font-size:12px;color:var(--mid);margin-top:3px">Tighter step progress header, clear local-currency + USD budget preview, and consistent button hierarchy.</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--green)">Privacy-Safe Analytics</div>
+          <div style="font-size:13.5px;font-weight:700;margin-top:3px">PostHog EU with strict PII masking</div>
+          <div style="font-size:12px;color:var(--mid);margin-top:3px">Funnels + replay with amounts, receipts, phones, chat, and /auth + /admin masked by default via <span class="mono">ph-no-capture</span>.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 4 Client Surface Cohesion (1440×900)</div>
+</body>
+</html>

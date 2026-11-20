@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '@/lib/i18n/en';
 import { lookup } from '@/lib/i18n/translate';
-import { chatRole, filterChats, phoneLinks } from './whatsapp-crm';
+import { chatRole, extractTemplateBody, filterChats, phoneLinks, renderTemplatePreview, templateParamCount, whatsappWindowStatus } from './whatsapp-crm';
 
 /**
  * The WhatsApp CRM (18 Nov), every button pressed. The component is rendered with hooks
@@ -11,7 +11,7 @@ import { chatRole, filterChats, phoneLinks } from './whatsapp-crm';
 
 const h = vi.hoisted(() => ({
   store: new Map<string, any[]>(), path: 'root', idx: 0, effects: [] as { path: string; run: () => any }[],
-  link: vi.fn(), send: vi.fn(), open: vi.fn(), openPerson: vi.fn(), person: vi.fn(), projects: vi.fn(), templates: [] as any[], contact: [] as any[],
+  link: vi.fn(), send: vi.fn(), open: vi.fn(), openPerson: vi.fn(), person: vi.fn(), projects: vi.fn(), waApi: vi.fn(), templates: [] as any[], contact: [] as any[],
 }));
 vi.mock('react', async original => {
   const real = await original<typeof import('react')>();
@@ -36,6 +36,7 @@ vi.mock('@/lib/supabase/conversations', () => ({ linkConversation: h.link, sendC
 vi.mock('@/lib/supabase/admin-person', () => ({ fetchPersonRecord: h.person }));
 vi.mock('@/lib/supabase/jalla-projects', () => ({ listProjectsForJalla: h.projects }));
 vi.mock('@/lib/supabase/project-whatsapp', () => ({ openProjectWhatsApp: h.open, openPersonWhatsApp: h.openPerson }));
+vi.mock('@/lib/supabase/whatsapp-communications', () => ({ whatsappApi: h.waApi }));
 vi.mock('@/lib/supabase/client', () => {
   const query = (table: string): any => { const chain: any = { select: () => chain, eq: () => chain, order: () => chain, limit: () => chain,
     then: (ok: any) => Promise.resolve(ok({ data: table === 'communication_whatsapp_templates' ? h.templates : h.contact, error: null })) }; return chain; };
@@ -83,8 +84,8 @@ beforeEach(() => {
   h.link.mockReset().mockResolvedValue(undefined); h.send.mockReset().mockResolvedValue('m1');
   h.person.mockReset().mockResolvedValue({ account: { phone: '+237 699 12 34 56', email: 'claire@x.cm', signupCountry: 'CM', preferredLang: 'en' }, projects: [], onboarding: null, application: null });
   h.projects.mockReset().mockResolvedValue({ rows: [{ id: 'proj1', name: 'Mbala Residence', status: 'active', city: 'Douala', country: 'CM', currentStage: 5, ownerId: 'p-claire', ownerName: 'Claire Mbala', ownerEmail: null }], available: true });
-  h.open.mockReset(); h.openPerson.mockReset();
-  (globalThis as any).document = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  h.open.mockReset(); h.openPerson.mockReset(); h.waApi.mockReset().mockResolvedValue({ ok: true });
+  (globalThis as any).document = { addEventListener: vi.fn(), removeEventListener: vi.fn(), getElementById: () => null };
 });
 
 describe('the small decisions', () => {
@@ -106,6 +107,19 @@ describe('the small decisions', () => {
     expect(filterChats(rows as never, { ...base, filter: 'mine', query: '' }).map(r => r.id)).toEqual(['claire']);
     expect(filterChats(rows as never, { ...base, filter: 'newNumbers', query: '' }).map(r => r.id)).toEqual(['new']);
     expect(filterChats(rows as never, { ...base, filter: 'all', query: 'momo' }).map(r => r.id)).toEqual(['claire']);
+  });
+
+  it('computes 24-hour Meta service window state and template previews', () => {
+    const now = Date.parse('2026-11-20T12:00:00Z');
+    expect(whatsappWindowStatus('2026-11-20T06:00:00Z', now)).toEqual({ open: true, tone: 'open', hoursLeft: 18, minutesLeft: 0 });
+    expect(whatsappWindowStatus('2026-11-19T14:00:00Z', now)).toEqual({ open: true, tone: 'expiring', hoursLeft: 2, minutesLeft: 0 });
+    expect(whatsappWindowStatus('2026-11-19T10:00:00Z', now)).toEqual({ open: false, tone: 'closed', hoursLeft: 0, minutesLeft: 0 });
+    expect(whatsappWindowStatus(null, now)).toEqual({ open: false, tone: 'closed', hoursLeft: 0, minutesLeft: 0 });
+
+    const body = extractTemplateBody({ components: [{ type: 'BODY', text: 'Hello {{1}}, stage {{2}} is ready.' }] });
+    expect(body).toBe('Hello {{1}}, stage {{2}} is ready.');
+    expect(templateParamCount(body)).toBe(2);
+    expect(renderTemplatePreview(body, ['Claire', '5'])).toBe('Hello Claire, stage 5 is ready.');
   });
 });
 
@@ -260,5 +274,40 @@ describe('every button on the WhatsApp page', () => {
     expect(h.openPerson).toHaveBeenCalledWith('u2');
     expect(text(find(view, node => node.props?.role === 'alert'))).toBe(en.admin.workspace.header.whatsappFail.no_phone);
     expect(find(view, node => node.props?.['data-new-chat'] !== undefined)).toBeTruthy();
+  });
+
+  it('keeps Call and Log call icons visible in header, toggles automation, and sends an approved Meta template', async () => {
+    selected = 'claire';
+    h.contact = [{ id: '11111111-1111-4111-8111-111111111111', consent_at: '2026-11-02', opted_out_at: null, automation_paused: false, last_inbound_at: '2026-11-10T00:00:00Z' }];
+    h.templates = [{ name: 'stage_update_ready', language: 'en', status: 'APPROVED', definition: { components: [{ type: 'BODY', text: 'Hi {{1}}, new site photos are ready.' }] }, checked_at: '2026-11-20' }];
+    let view = await settle();
+
+    // Header keeps both Call and Log call buttons visible, plus outside-24h-window banner
+    expect(action(view, 'call').props.href).toBe('tel:+237699123456');
+    expect(action(view, 'header-log-call')).toBeTruthy();
+    expect(find(view, node => node.props?.['data-window-banner'] !== undefined)).toBeTruthy();
+
+    // Toggle automated WhatsApp messages
+    await action(view, 'toggle-automation').props.onClick(); await flush();
+    expect(h.waApi).toHaveBeenCalledWith('whatsapp-admin', {
+      operation: 'set_automation',
+      contactId: '11111111-1111-4111-8111-111111111111',
+      paused: true,
+    });
+
+    // Open template composer from outside-24h banner, verify live preview, and send
+    action(view, 'open-template-composer').props.onClick();
+    view = await settle();
+    expect(find(view, node => node.props?.['data-template-composer'] !== undefined)).toBeTruthy();
+    expect(text(find(view, node => node.props?.['data-template-preview'] !== undefined))).toBe('Hi Claire Mbala, new site photos are ready.');
+
+    await action(view, 'confirm-send-template').props.onClick(); await flush();
+    expect(h.waApi).toHaveBeenLastCalledWith('whatsapp-admin', expect.objectContaining({
+      operation: 'send_template',
+      templateName: 'stage_update_ready',
+      language: 'en',
+      bodyParams: ['Claire Mbala'],
+      conversationId: 'claire',
+    }));
   });
 });

@@ -152,6 +152,15 @@ describe('the contractor project header and tabs', () => {
     }
   });
 
+  it('shows pending receipt count badge on Money tab and mobile stages jumper', async () => {
+    const view = await open('receipt');
+    expect(text(find(view, node => node.props?.['data-money-badge'] !== undefined))).toBe('1');
+    const jumper = find(view, node => node.props?.['data-action'] === 'jump-stages');
+    expect(jumper).toBeTruthy();
+    jumper!.props.onClick();
+    expect(h.scrolled).toContain('work-stages-title');
+  });
+
   it('"Message homeowner" goes to Messages', async () => {
     const view = await press(await open(), 'Message Homeowner');
     expect(activeTab(view)).toBe('messages');
@@ -249,7 +258,7 @@ describe('"Did this payment arrive?"', () => {
   async function openDialog() { return press(await open(), 'Review receipt'); }
 
   it('"Yes, it arrived" allows work with the receipt as read, reloads, and closes', async () => {
-    const view = await press(await openDialog(), 'Yes, it arrived · allow work');
+    const view = await press(await openDialog(), 'Yes, confirm amount received');
     expect(h.decide).toHaveBeenCalledWith('r3', 'accept', undefined, undefined, { stageAmount: 3000000, decision: 'pending' });
     expect(h.load).toHaveBeenCalledTimes(2);
     expect(dialog(view)).toBeUndefined();
@@ -304,7 +313,7 @@ describe('"Did this payment arrive?"', () => {
 
   it('a refusal stays in the dialog, in words', async () => {
     h.decide.mockRejectedValueOnce({ message: 'receipt_decided' });
-    const view = await press(await openDialog(), 'Yes, it arrived · allow work');
+    const view = await press(await openDialog(), 'Yes, confirm amount received');
     expect(dialog(view)).toBeTruthy();
     expect(text(find(view, node => node.props?.role === 'alert'))).toBe(en.project.receiptFlow.refreshReceipt);
   });

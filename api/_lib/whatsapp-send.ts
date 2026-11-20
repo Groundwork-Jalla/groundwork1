@@ -1,5 +1,7 @@
 import { ghlConfig, sendWhatsAppMessage } from '../ghl/_client.js';
 import { accessToken } from '../ghl/_oauth.js';
+import { META_API_VERSION } from '../../shared/whatsapp.js';
+import { metaWhatsAppConfig } from './meta-whatsapp.js';
 
 /**
  * Send a WhatsApp message, by whatever carries WhatsApp today.
@@ -40,7 +42,7 @@ export type WhatsAppSendResult =
   | { ok: true; provider: 'meta' | 'ghl'; providerMessageId: string | null }
   | { ok: false; provider: 'meta' | 'ghl' | 'none'; error: string };
 
-interface MetaConfig { phoneNumberId: string; token: string; template: string | null; lang: string }
+interface MetaConfig { phoneNumberId: string; token: string; template: string | null; lang: string; apiVersion?: string }
 
 /**
  * Meta's credentials, from `app_config` first and the environment second.
@@ -69,7 +71,8 @@ async function metaConfig(svc: { from: (t: string) => any }): Promise<MetaConfig
 const digits = (e164: string) => e164.replace(/[^\d]/g, '');
 
 async function metaSend(cfg: MetaConfig, phone: string, body: string): Promise<WhatsAppSendResult> {
-  const url = `https://graph.facebook.com/v21.0/${cfg.phoneNumberId}/messages`;
+  const version = cfg.apiVersion && /^v\d+\.\d+$/.test(cfg.apiVersion) ? cfg.apiVersion : META_API_VERSION;
+  const url = `https://graph.facebook.com/${version}/${cfg.phoneNumberId}/messages`;
   const post = async (payload: Record<string, unknown>) => {
     const r = await fetch(url, {
       method: 'POST',
@@ -113,14 +116,31 @@ async function metaSend(cfg: MetaConfig, phone: string, body: string): Promise<W
  * number — and GoHighLevel otherwise, which needs the contact and is why this seam exists.
  */
 export async function sendWhatsApp(
-  svc: { from: (t: string) => any },
+  svc: { from: (t: string) => any; rpc?: (name: string, args?: any) => any },
   target: WhatsAppTarget,
   body: string,
 ): Promise<WhatsAppSendResult> {
-  // The direct lifecycle/Admin connection has its own verified consent, outbox and
-  // templates. Do not bypass it through this legacy project/GHL sender.
-  const direct = await svc.from('communication_whatsapp_settings').select('phone_number_id').eq('id',true).maybeSingle();
-  if (direct.data?.phone_number_id) return {ok:false,provider:'meta',error:'direct_meta_project_delivery_not_enabled: use Admin Communications WhatsApp'};
+  // Unified direct Meta Cloud API v27.0 path: when Admin Communications WhatsApp is
+  // configured and enabled, project and inbox sends use the same verified Graph v27.0
+  // connection rather than a split legacy endpoint.
+  const direct = await metaWhatsAppConfig(svc as any).catch(() => null);
+  if (direct?.enabled && direct.phone_number_id && direct.token && target.phone) {
+    if (direct.mode === 'test' && !direct.test_recipients.includes(target.phone)) {
+      return { ok: false, provider: 'meta', error: 'test_recipient_required' };
+    }
+    return metaSend(
+      {
+        phoneNumberId: direct.phone_number_id,
+        token: direct.token,
+        template: null,
+        lang: 'en',
+        apiVersion: direct.api_version || META_API_VERSION,
+      },
+      target.phone,
+      body,
+    );
+  }
+
   const meta = await metaConfig(svc);
   if (meta && target.phone) return metaSend(meta, target.phone, body);
 

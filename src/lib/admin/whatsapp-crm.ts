@@ -47,3 +47,67 @@ export function phoneLinks(phone: string | null | undefined): { tel: string; wha
   if (!/^\d{8,15}$/.test(bare)) return null;
   return { tel: `tel:+${bare}`, whatsapp: `https://wa.me/${bare}` };
 }
+
+export interface WindowStatus {
+  open: boolean;
+  tone: 'open' | 'expiring' | 'closed';
+  hoursLeft: number;
+  minutesLeft: number;
+}
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+const EXPIRING_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Meta's 24-hour customer-service window from the contact's last inbound message.
+ * Open (>3h left) = green, expiring (<=3h left) = amber, closed/none = template required.
+ */
+export function whatsappWindowStatus(
+  lastInboundAt: string | null | undefined,
+  nowMs = Date.now(),
+): WindowStatus {
+  if (!lastInboundAt) return { open: false, tone: 'closed', hoursLeft: 0, minutesLeft: 0 };
+  const ts = Date.parse(lastInboundAt);
+  if (!Number.isFinite(ts)) return { open: false, tone: 'closed', hoursLeft: 0, minutesLeft: 0 };
+  const remaining = WINDOW_MS - (nowMs - ts);
+  if (remaining <= 0) return { open: false, tone: 'closed', hoursLeft: 0, minutesLeft: 0 };
+  const totalMinutes = Math.max(1, Math.floor(remaining / 60_000));
+  const hoursLeft = Math.floor(totalMinutes / 60);
+  const minutesLeft = totalMinutes % 60;
+  return {
+    open: true,
+    tone: remaining <= EXPIRING_MS ? 'expiring' : 'open',
+    hoursLeft,
+    minutesLeft,
+  };
+}
+
+/** Extract the BODY text from a synced Meta template definition JSON. */
+export function extractTemplateBody(definition: unknown): string {
+  if (!definition || typeof definition !== 'object') return '';
+  const def = definition as { components?: Array<{ type?: string; text?: string }>; body?: string };
+  if (Array.isArray(def.components)) {
+    const bodyComp = def.components.find(c => String(c?.type ?? '').toUpperCase() === 'BODY');
+    if (typeof bodyComp?.text === 'string') return bodyComp.text;
+  }
+  return typeof def.body === 'string' ? def.body : '';
+}
+
+/** Highest `{{N}}` variable slot inside a Meta template body (clamped 0..10). */
+export function templateParamCount(bodyText: string): number {
+  let max = 0;
+  for (const match of bodyText.matchAll(/\{\{(\d+)\}\}/g)) {
+    const idx = Number(match[1]);
+    if (Number.isInteger(idx) && idx > max) max = idx;
+  }
+  return Math.min(max, 10);
+}
+
+/** Render a live WhatsApp bubble preview by substituting `{{1}}..{{n}}` slots. */
+export function renderTemplatePreview(bodyText: string, params: string[]): string {
+  return bodyText.replace(/\{\{(\d+)\}\}/g, (token, rawIdx) => {
+    const idx = Number(rawIdx) - 1;
+    const val = params[idx]?.trim();
+    return val ? val : token;
+  });
+}

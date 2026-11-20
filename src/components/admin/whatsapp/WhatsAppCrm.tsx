@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, ExternalLink, Loader2, MessageCircle, Phone, PhoneCall, Plus, Search, X } from 'lucide-react';
+import { ArrowLeft, Clock, ExternalLink, FileCheck2, Loader2, MessageCircle, Phone, PhoneCall, Plus, Search, Send, X } from 'lucide-react';
 import { linkConversation, sendConversationMessage, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
 import type { AdminUser } from '@/lib/supabase/admin-users';
 import type { InboxProject } from '@/lib/supabase/inbox-context';
 import { fetchPersonRecord, type PersonRecord } from '@/lib/supabase/admin-person';
 import { listProjectsForJalla, type JallaProject } from '@/lib/supabase/jalla-projects';
 import { openPersonWhatsApp, openProjectWhatsApp } from '@/lib/supabase/project-whatsapp';
+import { whatsappApi } from '@/lib/supabase/whatsapp-communications';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
@@ -16,7 +17,17 @@ import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { chatRole, filterChats, phoneLinks, type ChatFilter, type ChatRole } from '@/lib/admin/whatsapp-crm';
+import {
+  chatRole,
+  extractTemplateBody,
+  filterChats,
+  phoneLinks,
+  renderTemplatePreview,
+  templateParamCount,
+  whatsappWindowStatus,
+  type ChatFilter,
+  type ChatRole,
+} from '@/lib/admin/whatsapp-crm';
 
 // =========================================================
 // WhatsApp, as a CRM (18 Nov 2026, docs/mockups/2026-11-18-admin-whatsapp).
@@ -166,6 +177,14 @@ export function WhatsAppCrm({ rows, previews, projectsByPerson, people, staff, s
   );
 }
 
+interface ContactMeta {
+  id?: string;
+  consent_at: string | null;
+  opted_out_at: string | null;
+  automation_paused: boolean;
+  last_inbound_at?: string | null;
+}
+
 /** The thread, with the person's record beside it on a wide screen and under it on a narrow one. */
 function ChatColumn({ conversation, name, role, staff, staffName, projects, onBack, onChanged }: {
   conversation: Conversation; name: string; role: ChatRole;
@@ -174,61 +193,164 @@ function ChatColumn({ conversation, name, role, staff, staffName, projects, onBa
 }) {
   const t = useT();
   const [record, setRecord] = useState<PersonRecord | null>(null);
+  const [contact, setContact] = useState<ContactMeta | null>(null);
+  const [callOpen, setCallOpen] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+
   useEffect(() => {
-    let live = true; setRecord(null);
-    if (conversation.personId) fetchPersonRecord({ userId: conversation.personId }).then(r => { if (live) setRecord(r); }).catch(() => {});
+    let live = true; setRecord(null); setContact(null);
+    if (conversation.personId) {
+      fetchPersonRecord({ userId: conversation.personId }).then(r => { if (live) setRecord(r); }).catch(() => {});
+      void supabase.from('communication_whatsapp_contacts')
+        .select('id,consent_at,opted_out_at,automation_paused,last_inbound_at')
+        .eq('user_id', conversation.personId)
+        .order('last_message_at', { ascending: false })
+        .limit(1)
+        .then(({ data }) => { if (live && data?.[0]) setContact(data[0] as ContactMeta); }, () => {});
+    }
     return () => { live = false; };
   }, [conversation.personId]);
+
   const phone = record?.account?.phone ?? null;
   const reach = phoneLinks(phone);
+  const win = whatsappWindowStatus(contact?.last_inbound_at);
   const card = 'rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]';
+
+  const openCallLog = () => {
+    setCallOpen(true);
+    if (typeof document !== 'undefined') {
+      document.getElementById(`wa-call-log-${conversation.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
   return <>
     <section className={cn(card, 'flex min-w-0 flex-col overflow-hidden')} aria-label={name} data-chat-open={conversation.id}>
-      <div className="flex flex-wrap items-center gap-3 border-b border-brand-border-grey px-4 py-3 dark:border-[#2c2c2c]">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-brand-border-grey px-4 py-3 dark:border-[#2c2c2c]">
         <button type="button" onClick={onBack} aria-label={t('common.back')} className="-ml-1 rounded-lg p-1 text-brand-green lg:hidden" data-action="back"><ArrowLeft className="size-5" /></button>
-        <span className="flex size-9 items-center justify-center rounded-full bg-brand-light-grey text-xs font-bold">{initials(name)}</span>
-        <div className="min-w-[9rem] flex-1">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-light-grey text-xs font-bold">{initials(name)}</span>
+        <div className="min-w-[8rem] flex-1">
           <p className="flex items-center gap-1.5 text-[15px] font-bold text-brand-near-black dark:text-white"><span className="truncate">{name}</span><RoleTag role={role} /></p>
-          {phone && <p className="text-xs text-brand-mid-grey">{phone}</p>}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-brand-mid-grey">
+            {phone && <span className="font-mono text-[11.5px]">{phone}</span>}
+            {contact && (
+              <span
+                data-window-status={win.tone}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-px text-[11px] font-semibold',
+                  win.tone === 'open' ? 'bg-state-complete/10 text-state-complete'
+                    : win.tone === 'expiring' ? 'bg-state-held/15 text-state-held'
+                    : 'bg-brand-light-grey text-brand-mid-grey dark:bg-[#2a2a2a]',
+                )}
+              >
+                <Clock className="size-3" aria-hidden />
+                {win.open
+                  ? t('admin.whatsappCrm.windowOpen', { h: win.hoursLeft, m: win.minutesLeft })
+                  : t('admin.whatsappCrm.windowClosed')}
+              </span>
+            )}
+          </div>
         </div>
-        {reach && <div className="flex w-full gap-2 sm:w-auto">
-          <a href={reach.whatsapp} target="_blank" rel="noopener noreferrer" data-action="open-whatsapp"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-2 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-            <MessageCircle className="size-3.5" style={{ color: WA }} aria-hidden />{t('admin.whatsappCrm.openWhatsApp')}</a>
-          <a href={reach.tel} data-action="call"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-2 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-            <Phone className="size-3.5" aria-hidden />{t('admin.whatsappCrm.call')}</a>
-        </div>}
+        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+          {reach && (
+            <a href={reach.whatsapp} target="_blank" rel="noopener noreferrer" data-action="open-whatsapp"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-2.5 py-2 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              <MessageCircle className="size-3.5" style={{ color: WA }} aria-hidden />{t('admin.whatsappCrm.openWhatsApp')}
+            </a>
+          )}
+          {reach ? (
+            <a href={reach.tel} data-action="call"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-2.5 py-2 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              <Phone className="size-3.5" aria-hidden />{t('admin.whatsappCrm.call')}
+            </a>
+          ) : (
+            <button type="button" disabled title={t('admin.whatsappCrm.noPhoneForCall')} data-action="call-unavailable"
+              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-brand-border-grey px-2.5 py-2 text-xs font-semibold text-brand-muted-grey opacity-60 dark:border-[#2c2c2c]">
+              <Phone className="size-3.5" aria-hidden />{t('admin.whatsappCrm.call')}
+            </button>
+          )}
+          <button type="button" onClick={openCallLog} data-action="header-log-call"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-2.5 py-2 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+            <PhoneCall className="size-3.5" aria-hidden />{t('admin.whatsappCrm.logCall')}
+          </button>
+          <button type="button" onClick={() => setTemplateOpen(true)} data-action="header-template"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-green/40 bg-brand-green/[0.06] px-2.5 py-2 text-xs font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
+            <FileCheck2 className="size-3.5" aria-hidden />{t('admin.whatsappCrm.sendTemplate')}
+          </button>
+        </div>
       </div>
+
+      {contact && !win.open && (
+        <div data-window-banner className="flex flex-wrap items-center justify-between gap-2 border-b border-state-held/30 bg-state-held/[0.07] px-4 py-2.5 text-xs">
+          <p className="min-w-0 flex-1 text-brand-near-black dark:text-white">{t('admin.whatsappCrm.windowClosedBanner')}</p>
+          <button type="button" onClick={() => setTemplateOpen(true)} data-action="open-template-composer"
+            className="shrink-0 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover">
+            {t('admin.whatsappCrm.sendTemplate')}
+          </button>
+        </div>
+      )}
+
       <ConversationThread conversation={conversation} staff={staff} staffName={staffName} onChanged={() => { void onChanged(); }} realtimeProjectId={conversation.projectId} />
     </section>
-    <PersonPanel conversation={conversation} name={name} role={role} record={record} projects={projects} staffName={staffName} onChanged={onChanged} />
+    <PersonPanel
+      conversation={conversation}
+      name={name}
+      role={role}
+      record={record}
+      consent={contact}
+      onConsentChanged={setContact}
+      projects={projects}
+      staffName={staffName}
+      callOpen={callOpen}
+      onCallOpenChange={setCallOpen}
+      onChanged={onChanged}
+    />
+    {templateOpen && (
+      <SendTemplateDialog
+        conversation={conversation}
+        name={name}
+        role={role}
+        phone={phone}
+        contactId={contact?.id ?? null}
+        preferredLang={record?.account?.preferredLang ?? null}
+        onClose={() => setTemplateOpen(false)}
+        onSent={async () => { setTemplateOpen(false); await onChanged(); }}
+      />
+    )}
   </>;
 }
 
 /** Who this is: what Groundwork knows about the person, and the call log. */
-function PersonPanel({ conversation, name, role, record, projects, staffName, onChanged }: {
-  conversation: Conversation; name: string; role: ChatRole; record: PersonRecord | null; projects: InboxProject[];
-  staffName: (id: string | null) => string; onChanged: () => void | Promise<void>;
+function PersonPanel({ conversation, name, role, record, consent, onConsentChanged, projects, staffName, callOpen, onCallOpenChange, onChanged }: {
+  conversation: Conversation; name: string; role: ChatRole; record: PersonRecord | null;
+  consent: ContactMeta | null; onConsentChanged: (next: ContactMeta | null) => void;
+  projects: InboxProject[]; staffName: (id: string | null) => string;
+  callOpen: boolean; onCallOpenChange: (open: boolean) => void;
+  onChanged: () => void | Promise<void>;
 }) {
   const t = useT();
-  const [consent, setConsent] = useState<{ consent_at: string | null; opted_out_at: string | null; automation_paused: boolean } | null>(null);
   const [profile, setProfile] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
+  const [togglingAuto, setTogglingAuto] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true; setConsent(null);
-    if (conversation.personId) void supabase.from('communication_whatsapp_contacts').select('consent_at,opted_out_at,automation_paused')
-      .eq('user_id', conversation.personId).order('last_message_at', { ascending: false }).limit(1)
-      .then(({ data }) => { if (live && data?.[0]) setConsent(data[0] as never); }, () => {});
-    return () => { live = false; };
-  }, [conversation.personId]);
   const owned = record?.projects?.length ? record.projects : projects;
   const link = async (projectId: string) => {
     setLinking(projectId); setError(null);
     try { await linkConversation(conversation.id, projectId); await onChanged(); }
     catch (err) { const msg = errorMessage(err, ''); setError(msg.includes('already_linked') ? t('admin.inbox.alreadyLinked') : msg || t('common.somethingWrong')); }
     finally { setLinking(null); }
+  };
+  const toggleAutomation = async () => {
+    if (!consent?.id || togglingAuto) return;
+    const nextPaused = !consent.automation_paused;
+    setTogglingAuto(true); setError(null);
+    try {
+      await whatsappApi('whatsapp-admin', { operation: 'set_automation', contactId: consent.id, paused: nextPaused });
+      onConsentChanged({ ...consent, automation_paused: nextPaused });
+    } catch (err) {
+      setError(errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setTogglingAuto(false);
+    }
   };
   const lang = record?.account?.preferredLang;
   const section = 'border-t border-brand-border-grey px-4 py-3.5 first:border-t-0 dark:border-[#2c2c2c]';
@@ -244,13 +366,35 @@ function PersonPanel({ conversation, name, role, record, projects, staffName, on
       </div>
       <div className={section}>
         <p className={heading}>{t('admin.whatsappCrm.contact')}</p>
-        <dl className="space-y-1 text-[12.5px]">
+        <dl className="space-y-1.5 text-[12.5px]">
           <Row label={t('admin.whatsappCrm.phone')} value={record?.account?.phone ?? '—'} />
           {record?.account?.email && <Row label={t('admin.whatsappCrm.email')} value={record.account.email} />}
           {consent && <Row label={t('admin.whatsappCrm.consent')} value={consent.opted_out_at ? t('admin.whatsappCrm.optedOut', { date: formatRelative(consent.opted_out_at) })
             : consent.consent_at ? t('admin.whatsappCrm.consentGiven', { date: formatRelative(consent.consent_at) }) : t('admin.whatsappCrm.consentNone')}
             tone={consent.opted_out_at ? 'alert' : consent.consent_at ? 'ok' : undefined} />}
-          {consent && <Row label={t('admin.whatsappCrm.automatic')} value={t(consent.automation_paused ? 'admin.whatsappCrm.paused' : 'admin.whatsappCrm.on')} />}
+          {consent && (
+            <Row
+              label={t('admin.whatsappCrm.automatic')}
+              value={t(consent.automation_paused ? 'admin.whatsappCrm.paused' : 'admin.whatsappCrm.on')}
+              trailing={consent.id && !consent.opted_out_at ? (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!consent.automation_paused}
+                  aria-label={t('admin.whatsappCrm.automationToggle')}
+                  data-action="toggle-automation"
+                  disabled={togglingAuto}
+                  onClick={() => void toggleAutomation()}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
+                    !consent.automation_paused ? 'bg-brand-green' : 'bg-brand-border-grey dark:bg-[#3a3a3a]',
+                  )}
+                >
+                  <span className={cn('inline-block size-3.5 rounded-full bg-white shadow transition-transform', !consent.automation_paused ? 'translate-x-4.5' : 'translate-x-1')} />
+                </button>
+              ) : undefined}
+            />
+          )}
           <Row label={t('admin.whatsappCrm.owner')} value={conversation.assignedTo ? staffName(conversation.assignedTo) : t('admin.workspace.conversations.unassigned')} />
         </dl>
         {conversation.personId && <button type="button" onClick={() => setProfile(true)} data-action="full-profile" className="mt-2.5 text-xs font-semibold text-brand-green underline underline-offset-2 dark:text-[#b4d8bf]">{t('admin.whatsappCrm.fullProfile')}</button>}
@@ -275,24 +419,29 @@ function PersonPanel({ conversation, name, role, record, projects, staffName, on
         </ul>}
         {error && <p role="alert" className="mt-2 text-[11px] text-state-alert">{error}</p>}
       </div>
-      <CallLog conversation={conversation} onChanged={onChanged} />
+      <CallLog conversation={conversation} open={callOpen} onOpenChange={onCallOpenChange} onChanged={onChanged} />
       {profile && conversation.personId && <PersonPreview reference={{ userId: conversation.personId }} rolesHint={null} onClose={() => setProfile(false)} />}
     </aside>
   );
 }
 
-function Row({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'alert' }) {
-  return <div className="flex justify-between gap-3"><dt className="text-brand-mid-grey">{label}</dt>
-    <dd className={cn('min-w-0 truncate text-right font-medium', tone === 'ok' ? 'text-state-complete' : tone === 'alert' ? 'text-state-alert' : 'text-brand-near-black dark:text-white')}>{value}</dd></div>;
+function Row({ label, value, tone, trailing }: { label: string; value: string; tone?: 'ok' | 'alert'; trailing?: React.ReactNode }) {
+  return <div className="flex items-center justify-between gap-3"><dt className="text-brand-mid-grey">{label}</dt>
+    <dd className={cn('flex min-w-0 items-center justify-end gap-2 truncate text-right font-medium', tone === 'ok' ? 'text-state-complete' : tone === 'alert' ? 'text-state-alert' : 'text-brand-near-black dark:text-white')}>
+      <span className="truncate">{value}</span>
+      {trailing}
+    </dd></div>;
 }
 
 /**
  * A call, written into the thread as a staff note: calling happens on the phone, the
  * record of it belongs with the conversation it was part of.
  */
-function CallLog({ conversation, onChanged }: { conversation: Conversation; onChanged: () => void | Promise<void> }) {
+function CallLog({ conversation, open, onOpenChange, onChanged }: {
+  conversation: Conversation; open: boolean; onOpenChange: (open: boolean) => void;
+  onChanged: () => void | Promise<void>;
+}) {
   const t = useT();
-  const [open, setOpen] = useState(false);
   const [minutes, setMinutes] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -305,15 +454,15 @@ function CallLog({ conversation, onChanged }: { conversation: Conversation; onCh
       const length = Number(minutes);
       const head = Number.isFinite(length) && length > 0 ? t('admin.whatsappCrm.callNoteWithLength', { minutes: Math.round(length) }) : t('admin.whatsappCrm.callNote');
       await sendConversationMessage(conversation.id, `${head}\n${note.trim()}`, 'internal');
-      setOpen(false); setMinutes(''); setNote(''); await onChanged();
+      onOpenChange(false); setMinutes(''); setNote(''); await onChanged();
     } catch (err) { setError(errorMessage(err, t('common.somethingWrong'))); }
     finally { working.current = false; setBusy(false); }
   }
   return (
-    <div className="border-t border-brand-border-grey px-4 py-3.5 dark:border-[#2c2c2c]">
+    <div id={`wa-call-log-${conversation.id}`} className="border-t border-brand-border-grey px-4 py-3.5 dark:border-[#2c2c2c]">
       <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-brand-muted-grey">{t('admin.whatsappCrm.calls')}</p>
-      {!open ? <button type="button" onClick={() => setOpen(true)} data-action="log-call"
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-2 text-xs font-semibold dark:border-[#2c2c2c]">
+      {!open ? <button type="button" onClick={() => onOpenChange(true)} data-action="log-call"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-2 text-xs font-semibold hover:border-brand-near-black dark:border-[#2c2c2c]">
           <PhoneCall className="size-3.5" aria-hidden />{t('admin.whatsappCrm.logCall')}</button>
         : <form className="space-y-2" onSubmit={event => { event.preventDefault(); void save(); }} data-call-form>
           <label className="block text-xs">{t('admin.whatsappCrm.callMinutes')}
@@ -323,11 +472,202 @@ function CallLog({ conversation, onChanged }: { conversation: Conversation; onCh
           <div className="flex gap-2">
             <button type="submit" disabled={busy || !note.trim()} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">
               {busy && <Loader2 className="size-3.5 animate-spin" />}{t('admin.whatsappCrm.saveCall')}</button>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-brand-border-grey px-3 py-2 text-xs dark:border-[#2c2c2c]">{t('common.cancel')}</button>
+            <button type="button" onClick={() => onOpenChange(false)} className="rounded-xl border border-brand-border-grey px-3 py-2 text-xs dark:border-[#2c2c2c]">{t('common.cancel')}</button>
           </div>
           <p className="text-[11px] text-brand-mid-grey">{t('admin.whatsappCrm.callHint')}</p>
           {error && <p role="alert" className="text-[11px] text-state-alert">{error}</p>}
         </form>}
+    </div>
+  );
+}
+
+interface SyncedTemplateRow {
+  name: string;
+  language: string;
+  status: string;
+  definition?: unknown;
+  checked_at: string | null;
+}
+
+/** Send an approved Meta template (direct Graph API v27.0) with live preview. */
+function SendTemplateDialog({ conversation, name, role, phone, contactId, preferredLang, onClose, onSent }: {
+  conversation: Conversation; name: string; role: ChatRole; phone: string | null;
+  contactId: string | null; preferredLang: string | null;
+  onClose: () => void; onSent: () => void | Promise<void>;
+}) {
+  const t = useT();
+  const [templates, setTemplates] = useState<SyncedTemplateRow[] | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string>('');
+  const [params, setParams] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void supabase.from('communication_whatsapp_templates')
+      .select('name,language,status,definition,checked_at')
+      .order('name')
+      .then(({ data, error: err }) => {
+        if (!live) return;
+        const approved = (err ? [] : (data ?? []) as SyncedTemplateRow[]).filter(r => String(r.status).toUpperCase() === 'APPROVED');
+        setTemplates(approved);
+        const preferred = approved.find(r => preferredLang && r.language.toLowerCase().startsWith(preferredLang.toLowerCase())) ?? approved[0];
+        if (preferred) {
+          setSelectedKey(`${preferred.name}:${preferred.language}`);
+          const count = templateParamCount(extractTemplateBody(preferred.definition));
+          setParams(Array.from({ length: count }, (_, i) => (i === 0 ? name : '')));
+        }
+      }, () => { if (live) setTemplates([]); });
+    return () => { live = false; };
+  }, [name, preferredLang]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !busy) onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [busy, onClose]);
+
+  const active = templates?.find(r => `${r.name}:${r.language}` === selectedKey) ?? null;
+  const bodyText = active ? extractTemplateBody(active.definition) : '';
+  const paramCount = templateParamCount(bodyText);
+  const preview = bodyText ? renderTemplatePreview(bodyText, params) : active ? `[${active.name}]` : '';
+
+  const chooseTemplate = (row: SyncedTemplateRow) => {
+    setSelectedKey(`${row.name}:${row.language}`);
+    const count = templateParamCount(extractTemplateBody(row.definition));
+    setParams(Array.from({ length: count }, (_, i) => (i === 0 ? name : '')));
+    setError(null);
+  };
+
+  async function send() {
+    if (!active || busy) return;
+    setBusy(true); setError(null);
+    try {
+      await whatsappApi('whatsapp-admin', {
+        operation: 'send_template',
+        templateName: active.name,
+        language: active.language,
+        bodyParams: params.slice(0, paramCount),
+        contactId: contactId ?? undefined,
+        phone: phone ?? undefined,
+        conversationId: conversation.id,
+        previewText: preview,
+      });
+      await onSent();
+    } catch (err) {
+      setError(t('admin.whatsappCrm.templateFailed', { reason: errorMessage(err, t('common.somethingWrong')) }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="send-wa-template-title"
+      onClick={event => { if (event.target === event.currentTarget && !busy) onClose(); }} data-template-composer>
+      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl dark:bg-[#1e1e1e]">
+        <div className="flex items-center justify-between border-b border-brand-border-grey px-5 py-4 dark:border-[#2c2c2c]">
+          <div>
+            <h2 id="send-wa-template-title" className="text-base font-extrabold text-brand-near-black dark:text-white">{t('admin.whatsappCrm.templateTitle')}</h2>
+            <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.whatsappCrm.templateSub')}</p>
+          </div>
+          <button type="button" onClick={onClose} disabled={busy} aria-label={t('common.close')} className="rounded-lg p-1.5 text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2a2a2a]"><X className="size-5" /></button>
+        </div>
+
+        <div className="grid flex-1 overflow-y-auto md:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-4 border-b border-brand-border-grey p-5 md:border-b-0 md:border-r dark:border-[#2c2c2c]">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted-grey">{t('admin.whatsappCrm.templateRecipient')}</p>
+              <div className="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-brand-border-grey px-3 py-2.5 text-sm dark:border-[#2c2c2c]">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-light-grey text-[11px] font-bold">{initials(name)}</span>
+                  <span className="truncate font-semibold">{name}</span>
+                  {phone && <span className="font-mono text-xs text-brand-mid-grey">{phone}</span>}
+                </span>
+                <RoleTag role={role} />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted-grey">{t('admin.whatsappCrm.templatePick')}</p>
+              {templates === null ? (
+                <p className="mt-2 flex items-center gap-2 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('common.loading')}</p>
+              ) : templates.length === 0 ? (
+                <p className="mt-2 rounded-xl border border-brand-border-grey bg-brand-off-white p-3 text-xs text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
+                  {t('admin.whatsappCrm.templateNoApproved')}
+                </p>
+              ) : (
+                <ul className="mt-2 max-h-52 space-y-1.5 overflow-y-auto">
+                  {templates.map(row => {
+                    const key = `${row.name}:${row.language}`;
+                    const on = key === selectedKey;
+                    return (
+                      <li key={key}>
+                        <button type="button" onClick={() => chooseTemplate(row)} data-template-option={key}
+                          className={cn('flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors',
+                            on ? 'border-brand-green bg-brand-green/[0.06]' : 'border-brand-border-grey hover:border-brand-near-black dark:border-[#2c2c2c]')}>
+                          <span className="min-w-0">
+                            <span className="block truncate font-mono text-xs font-bold text-brand-near-black dark:text-white">{row.name}</span>
+                            <span className="block truncate text-[11px] text-brand-mid-grey">{row.language.toUpperCase()}</span>
+                          </span>
+                          <span className="shrink-0 rounded-full bg-state-complete/10 px-2 py-0.5 text-[10.5px] font-semibold text-state-complete">{row.status}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {paramCount > 0 && (
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {Array.from({ length: paramCount }, (_, i) => (
+                  <label key={i} className="block text-xs">
+                    <span className="font-semibold text-brand-mid-grey">{t('admin.whatsappCrm.templateParam', { n: i + 1 })}</span>
+                    <input
+                      value={params[i] ?? ''}
+                      onChange={event => {
+                        const next = [...params];
+                        next[i] = event.target.value;
+                        setParams(next);
+                      }}
+                      className="mt-1 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 text-sm outline-none focus:border-brand-green dark:border-[#2c2c2c]"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+            {error && <p role="alert" className="rounded-lg border border-state-alert/30 p-3 text-xs text-state-alert">{error}</p>}
+          </div>
+
+          <div className="flex flex-col gap-3 bg-brand-off-white p-5 dark:bg-[#141414]">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted-grey">{t('admin.whatsappCrm.templatePreview')}</p>
+            <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-brand-border-grey bg-[#e5ddd5] dark:border-[#2c2c2c] dark:bg-[#1b2420]">
+              <div className="flex items-center gap-2.5 bg-[#125c47] px-3.5 py-2.5 text-white">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-white text-xs font-extrabold text-[#125c47]">G</span>
+                <div>
+                  <p className="text-xs font-bold leading-tight">Groundwork by Jalla ✓</p>
+                  <p className="text-[10px] opacity-80">{t('admin.whatsappCrm.templateOfficial')}</p>
+                </div>
+              </div>
+              <div className="m-3.5 rounded-xl rounded-tl-sm bg-white p-3 text-xs leading-relaxed text-brand-near-black shadow-xs whitespace-pre-wrap dark:bg-[#232b27] dark:text-white" data-template-preview>
+                {preview || '—'}
+              </div>
+              <p className="mx-3.5 mb-3 mt-auto rounded-lg bg-white/80 px-2.5 py-2 text-[11px] text-brand-mid-grey dark:bg-black/30">
+                {t('admin.whatsappCrm.templatePreviewHint')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-brand-border-grey bg-brand-off-white px-5 py-3.5 dark:border-[#2c2c2c] dark:bg-[#181818]">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-xl border border-brand-border-grey px-4 py-2 text-xs font-semibold dark:border-[#2c2c2c]">{t('common.cancel')}</button>
+          <button type="button" onClick={() => void send()} disabled={busy || !active || (!contactId && !phone)} data-action="confirm-send-template"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-40">
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" aria-hidden />}
+            {t('admin.whatsappCrm.templateSendCta')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

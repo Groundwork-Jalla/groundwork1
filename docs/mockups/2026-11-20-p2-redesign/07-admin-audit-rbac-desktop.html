@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 3 — Unified Audit Log &amp; Staff RBAC</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .rbac-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rbac-card { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 11px 13px; display: flex; flex-direction: column; gap: 5px; }
+  .audit-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; flex: 1; min-height: 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .tbl td:first-child { white-space: nowrap; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tr.sel { background: var(--green-tint); box-shadow: inset 3px 0 0 var(--green); }
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--rule); font-size: 12px; }
+  .kv:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><div class="brand-sq">G</div><div><div class="brand-name">Groundwork</div><span class="brand-sub">Operations</span></div></div>
+      <span class="role-chip green">ADMIN</span>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#">Overview</a>
+      <a class="nav-item" href="#">Action Center</a>
+      <div class="nav-group"><div class="nav-group-hdr">Work <span class="cnt">4 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">Finance <span class="cnt">4 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">People <span class="cnt">5 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">Communication <span class="cnt">6 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">Acquisition <span class="cnt">5 ▸</span></div></div>
+      <div class="nav-group open">
+        <div class="nav-group-hdr">System &amp; Access <span class="cnt">4 ▾</span></div>
+        <div class="nav-group-items">
+          <a class="nav-item active" href="#">Unified Audit Log</a>
+          <a class="nav-item" href="#">Staff Roles &amp; Team</a>
+          <a class="nav-item" href="#">Integrations</a>
+          <a class="nav-item" href="#">Settings</a>
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="av green">FN</div><div><div style="font-size:13px;font-weight:700">Favour Nwachukwu</div><div style="font-size:11px;color:var(--muted)">Super Admin</div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">System &amp; Access <span>/</span> <b>Unified Audit Log</b></div>
+      <div class="topbar-right">
+        <div class="search-box">Filter by actor, project ID, or event…</div>
+        <div class="btn primary sm">Manage Staff Roles</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Staff RBAC Matrix Summary Strip -->
+      <div class="rbac-bar">
+        <div class="rbac-card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="role-chip green">ADMIN</span><span class="mono" style="font-size:11px;color:var(--muted)">2 staff</span></div>
+          <div style="font-size:12.5px;font-weight:700">Full platform control</div>
+          <div style="font-size:11px;color:var(--mid)">Deletions, RBAC, finance overrides, integrations</div>
+        </div>
+        <div class="rbac-card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="role-chip blue">OPS</span><span class="mono" style="font-size:11px;color:var(--muted)">3 staff</span></div>
+          <div style="font-size:12.5px;font-weight:700">Projects &amp; support</div>
+          <div style="font-size:11px;color:var(--mid)">Stages, reviews, site updates, inbox, contractors</div>
+        </div>
+        <div class="rbac-card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="role-chip amber">FINANCE</span><span class="mono" style="font-size:11px;color:var(--muted)">1 staff</span></div>
+          <div style="font-size:12.5px;font-weight:700">Ledger &amp; disbursements</div>
+          <div style="font-size:11px;color:var(--mid)">Inflows, payouts, reconciliation; read-only ops</div>
+        </div>
+        <div class="rbac-card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="role-chip">GROWTH</span><span class="mono" style="font-size:11px;color:var(--muted)">2 staff</span></div>
+          <div style="font-size:12.5px;font-weight:700">Acquisition &amp; CRM</div>
+          <div style="font-size:11px;color:var(--mid)">Applications, waitlist, partners, sequences</div>
+        </div>
+      </div>
+
+      <!-- Unified Source Filters -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="display:flex;gap:6px">
+          <span class="chip on">All events <b>142</b></span>
+          <span class="chip">Projects <b>84</b></span>
+          <span class="chip">Finance <b>31</b></span>
+          <span class="chip">Security <b>19</b></span>
+          <span class="chip">Deletions <b>8</b></span>
+        </div>
+        <span style="font-size:12px;color:var(--mid)">Merging <span class="mono">project_audit_log</span> + <span class="mono">admin_deleted_projects</span> + <span class="mono">security_notify_log</span></span>
+      </div>
+
+      <!-- Chronological Feed + Event Inspector -->
+      <div class="audit-grid">
+        <section class="card" style="overflow:hidden">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Category</th>
+                <th>Event</th>
+                <th>Actor</th>
+                <th>Target</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="sel">
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">20 Nov 11:48</td>
+                <td><span class="pill held">Finance</span></td>
+                <td><b>Payout reference attached</b></td>
+                <td>Claire N. <span class="role-chip amber" style="margin-left:4px">FINANCE</span></td>
+                <td>Bonapriso Villa · Stg 5</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">20 Nov 10:12</td>
+                <td><span class="pill complete">Project</span></td>
+                <td><b>Contractor assigned</b></td>
+                <td>Marie-Claire <span class="role-chip blue" style="margin-left:4px">OPS</span></td>
+                <td>Kribi Beach House</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">19 Nov 19:04</td>
+                <td><span class="pill info">Security</span></td>
+                <td><b>2FA email fallback verified</b></td>
+                <td>Favour N. <span class="role-chip green" style="margin-left:4px">ADMIN</span></td>
+                <td>Admin session</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">19 Nov 16:22</td>
+                <td><span class="pill alert">Deletion</span></td>
+                <td><b>Duplicate test project deleted</b></td>
+                <td>Favour N. <span class="role-chip green" style="margin-left:4px">ADMIN</span></td>
+                <td>Test Villa #2 (archived)</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">19 Nov 14:10</td>
+                <td><span class="pill complete">Project</span></td>
+                <td><b>Stage 4 approved</b></td>
+                <td>Chidi Okafor <span class="role-chip" style="margin-left:4px">HOMEOWNER</span></td>
+                <td>Bonapriso Villa</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">19 Nov 11:35</td>
+                <td><span class="pill info">Security</span></td>
+                <td><b>Staff role granted: OPS</b></td>
+                <td>Favour N. <span class="role-chip green" style="margin-left:4px">ADMIN</span></td>
+                <td>marie@tryjalla.com</td>
+              </tr>
+              <tr>
+                <td class="mono" style="font-size:11.5px;color:var(--mid)">18 Nov 21:02</td>
+                <td><span class="pill held">Finance</span></td>
+                <td><b>Receipt confirmed (2.4M XAF)</b></td>
+                <td>Jean-Marc M. <span class="role-chip" style="margin-left:4px">CONTRACTOR</span></td>
+                <td>Bonapriso Villa · Pt 2</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Event Inspector -->
+        <aside class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+          <div>
+            <span class="pill held"><span class="dot"></span>Finance event</span>
+            <h3 style="font-size:16px;font-weight:800;margin-top:8px">Payout reference attached</h3>
+            <div style="font-size:12px;color:var(--mid);margin-top:2px">Source table: <span class="mono">project_audit_log</span></div>
+          </div>
+
+          <div>
+            <div class="kv"><span class="muted">Actor</span><b>Claire Ndongo (FINANCE)</b></div>
+            <div class="kv"><span class="muted">Timestamp (UTC)</span><span class="mono">2026-11-20 03:48:19Z</span></div>
+            <div class="kv"><span class="muted">Project</span><b style="color:var(--green)">Bonapriso Villa</b></div>
+            <div class="kv"><span class="muted">Payment ID</span><span class="mono">pay_88f10a3c</span></div>
+            <div class="kv"><span class="muted">Amount</span><b class="mono">6,350,000 XAF</b></div>
+          </div>
+
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Recorded Diff</div>
+            <div class="mono" style="font-size:11px;background:var(--canvas);border:1px solid var(--rule);border-radius:10px;padding:10px;line-height:1.55;color:var(--ink-2)">
+              - state: "release_authorised"<br/>
+              + state: "initiated"<br/>
+              + provider_ref: "SWY-20261120-914"<br/>
+              + enforced_by: "rls_role_finance"
+            </div>
+          </div>
+
+          <div style="margin-top:auto">
+            <span class="btn outline sm" style="width:100%">Open project financials →</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 3 Unified Audit Log &amp; Staff RBAC (1440×900)</div>
+</body>
+</html>

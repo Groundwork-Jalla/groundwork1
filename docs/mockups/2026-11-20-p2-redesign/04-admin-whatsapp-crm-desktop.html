@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 2 — Admin WhatsApp CRM</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .crm-wrap { display: grid; grid-template-columns: 315px minmax(0, 1fr) 310px; flex: 1; min-height: 0; overflow: hidden; }
+  .pane-l { background: #fff; border-right: 1px solid var(--rule); display: flex; flex-direction: column; overflow: hidden; }
+  .pane-c { background: #f2f1ed; display: flex; flex-direction: column; overflow: hidden; }
+  .pane-r { background: #fff; border-left: 1px solid var(--rule); display: flex; flex-direction: column; overflow: hidden; }
+
+  .q-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 10px; }
+  .q-list { flex: 1; overflow: hidden; }
+  .q-item { display: flex; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--rule); position: relative; }
+  .q-item.on { background: var(--green-tint); box-shadow: inset 3px 0 0 var(--wa-dark); }
+  .q-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .q-prev { font-size: 12px; color: var(--mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .win-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .win-dot.open { background: var(--wa); }
+  .win-dot.exp { background: var(--held); }
+  .win-dot.closed { background: var(--rule-strong); }
+
+  .chat-hdr { background: #fff; border-bottom: 1px solid var(--rule); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+  .chat-body { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+  .day-sep { align-self: center; font-size: 11px; font-weight: 600; color: var(--mid); background: rgba(255,255,255,0.85); border: 1px solid var(--rule); padding: 2px 10px; border-radius: 99px; }
+  .bub { max-width: 78%; padding: 10px 13px; border-radius: 13px; font-size: 13px; line-height: 1.45; box-shadow: var(--shadow-xs); }
+  .bub.in { align-self: flex-start; background: #fff; border: 1px solid var(--rule); border-bottom-left-radius: 4px; }
+  .bub.out { align-self: flex-end; background: var(--wa-soft); border: 1px solid #c7ebd5; border-bottom-right-radius: 4px; }
+  .bub.note { align-self: stretch; max-width: 100%; background: var(--held-bg); border: 1px solid var(--held-border); border-left: 3px solid var(--held); border-radius: 10px; }
+  .bub.call { align-self: center; max-width: 85%; background: #fff; border: 1px solid var(--rule); border-radius: 10px; display: flex; align-items: center; gap: 10px; padding: 8px 13px; }
+  .btime { font-size: 10.5px; color: var(--muted); margin-top: 4px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+
+  .composer { background: #fff; border-top: 1px solid var(--rule); padding: 10px 16px 13px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+  .comp-bar { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; }
+  .comp-input { border: 1px solid var(--rule-strong); border-radius: 11px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--canvas); }
+
+  .ctx-sec { padding: 14px 16px; border-bottom: 1px solid var(--rule); }
+  .ctx-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; }
+  .ctx-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; padding: 4px 0; }
+  .toggle { width: 34px; height: 19px; border-radius: 99px; background: var(--green); position: relative; flex-shrink: 0; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Admin Dropdown Sidebar (Cleaned: 4 empty placeholders retired) -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div>
+          <div class="brand-name">Groundwork</div>
+          <span class="brand-sub">Operations</span>
+        </div>
+      </div>
+      <span class="role-chip green">ADMIN</span>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#">Overview</a>
+      <a class="nav-item" href="#">Action Center<span class="badge alert">7</span></a>
+
+      <div class="nav-group">
+        <div class="nav-group-hdr">Work <span class="cnt">4 ▸</span></div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-hdr">Finance <span class="cnt">4 ▸</span></div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-hdr">People <span class="cnt">5 ▸</span></div>
+      </div>
+
+      <div class="nav-group open">
+        <div class="nav-group-hdr">Communication <span class="cnt">6 ▾</span></div>
+        <div class="nav-group-items">
+          <a class="nav-item" href="#">All Inbox<span class="badge">9</span></a>
+          <a class="nav-item active" href="#"><span style="width:7px;height:7px;border-radius:50%;background:var(--wa)"></span>WhatsApp CRM<span class="badge wa">4</span></a>
+          <a class="nav-item" href="#">Groundwork Chat</a>
+          <a class="nav-item" href="#">Email Threads</a>
+          <a class="nav-item" href="#">Sequences</a>
+          <a class="nav-item" href="#">Notifications</a>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-hdr">Acquisition <span class="cnt">5 ▸</span></div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-hdr">System &amp; Access <span class="cnt">4 ▸</span></div>
+      </div>
+      <a class="nav-item" href="#">Support<span class="badge">2</span></a>
+      <a class="nav-item" href="#">Analytics</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="av green">FN</div>
+      <div>
+        <div style="font-size:13px;font-weight:700">Favour Nwachukwu</div>
+        <div style="font-size:11px;color:var(--muted)">Super Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Communication <span>/</span> <b>WhatsApp CRM</b> <span class="pill complete" style="margin-left:6px;font-size:11px"><span class="dot"></span>Meta Cloud API v27.0 · Connected</span></div>
+      <div class="topbar-right">
+        <div class="btn outline sm">Log call</div>
+        <div class="btn wa sm">+ New WhatsApp chat</div>
+      </div>
+    </header>
+
+    <!-- 3-Pane CRM -->
+    <div class="crm-wrap">
+      <!-- Pane 1: Queue -->
+      <section class="pane-l">
+        <div class="q-head">
+          <div class="search-box" style="min-width:0;width:100%">Search name, +237 / +44, or project…</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="chip on">All <b>18</b></span>
+            <span class="chip">Unread <b>4</b></span>
+            <span class="chip">Needs reply <b>2</b></span>
+            <span class="chip">New <b>3</b></span>
+          </div>
+        </div>
+        <div class="q-list">
+          <div class="q-item on">
+            <div class="av soft-g">CO</div>
+            <div style="min-width:0;flex:1">
+              <div class="q-meta">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;font-size:13px">Chidi Okafor</span><span class="role-chip green">Homeowner</span></div>
+                <span style="font-size:11px;color:var(--wa-dark);font-weight:700">11:42</span>
+              </div>
+              <div class="q-prev">I just uploaded the Part 3 transfer slip, please…</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+                <span>Bonapriso Villa</span>
+                <span style="display:flex;align-items:center;gap:5px"><span class="win-dot open"></span>18h window</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="q-item">
+            <div class="av soft-a">JM</div>
+            <div style="min-width:0;flex:1">
+              <div class="q-meta">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;font-size:13px">Jean-Marc Mbarga</span><span class="role-chip amber">Contractor</span></div>
+                <span style="font-size:11px;color:var(--muted)">10:15</span>
+              </div>
+              <div class="q-prev">Concrete truck arrives tomorrow 7am for slab…</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+                <span>Bonapriso Villa</span>
+                <span class="badge wa" style="font-size:10px;padding:0 6px;border-radius:99px;background:var(--wa);color:#05331a;font-weight:700">2</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="q-item">
+            <div class="av soft-g">AE</div>
+            <div style="min-width:0;flex:1">
+              <div class="q-meta">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;font-size:13px">Amina Eyong</span><span class="role-chip green">Homeowner</span></div>
+                <span style="font-size:11px;color:var(--muted)">Yesterday</span>
+              </div>
+              <div class="q-prev">Can we add my brother as an observer?</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+                <span>Bastos Residence</span>
+                <span style="display:flex;align-items:center;gap:5px;color:var(--held);font-weight:600"><span class="win-dot exp"></span>2h left</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="q-item">
+            <div class="av soft-b">PT</div>
+            <div style="min-width:0;flex:1">
+              <div class="q-meta">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;font-size:13px">Paul Tchoumi</span><span class="role-chip amber">Contractor</span></div>
+                <span style="font-size:11px;color:var(--muted)">18 Nov</span>
+              </div>
+              <div class="q-prev">Template sent: partner_onboarding_call</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+                <span>Partner Lead</span>
+                <span style="display:flex;align-items:center;gap:5px"><span class="win-dot closed"></span>Template only</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="q-item">
+            <div class="av">NM</div>
+            <div style="min-width:0;flex:1">
+              <div class="q-meta">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-weight:700;font-size:13px">+237 6 94 11 82 04</span><span class="role-chip">New</span></div>
+                <span style="font-size:11px;color:var(--muted)">18 Nov</span>
+              </div>
+              <div class="q-prev">Bonjour, je veux construire à Yaoundé</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--muted)">
+                <span>Unlinked contact</span>
+                <span class="badge wa" style="font-size:10px;padding:0 6px;border-radius:99px;background:var(--wa);color:#05331a;font-weight:700">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pane 2: Live Thread -->
+      <section class="pane-c">
+        <div class="chat-hdr">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av soft-g">CO</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:14.5px;font-weight:800">Chidi Okafor</span>
+                <span class="mono" style="font-size:11.5px;color:var(--mid)">+44 7700 900412</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--mid)">Linked to <b style="color:var(--green)">Bonapriso Villa</b> · Stage 5</div>
+            </div>
+          </div>
+          <span class="pill complete"><span class="dot"></span>18h 24m left in 24h window</span>
+        </div>
+
+        <div class="chat-body">
+          <div class="day-sep">Today · 20 Nov 2026</div>
+
+          <div class="bub call">
+            <span class="pill info" style="font-size:10.5px;padding:2px 8px">Call logged</span>
+            <span style="font-size:12px;color:var(--ink)"><b>Favour</b> spoke with Chidi (4m 12s) — walked through Stage 5 Part 3 payment plan.</span>
+            <span style="font-size:11px;color:var(--muted);margin-left:auto">09:30</span>
+          </div>
+
+          <div class="bub in">
+            Hi Groundwork team — thanks for the call earlier. I just sent the 2,400,000 XAF transfer for Block Walls and uploaded the receipt inside the app. Could you let Jean-Marc know?
+            <div class="btime">11:42</div>
+          </div>
+
+          <div class="bub note">
+            <div style="font-size:11px;font-weight:700;color:var(--held);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Internal staff note · Not sent to Chidi</div>
+            Checked Bonapriso Villa in Admin Workspace — receipt PDF is clear (2.4M XAF ref #MTN-9921). Pinged Jean-Marc on WA to confirm once bank clears.
+            <div class="btime" style="color:var(--held)">Favour · 11:45</div>
+          </div>
+
+          <div class="bub out">
+            Got it Chidi — we can see your receipt for <b>Stage 5 · Part 3 (2,400,000 XAF)</b> on Bonapriso Villa. Jean-Marc has been notified to confirm receipt, and you will get an alert the moment he approves it.
+            <div class="btime">11:47 · <span style="color:#1b74e4;font-weight:700">✓✓ Read</span></div>
+          </div>
+        </div>
+
+        <!-- Smart Composer -->
+        <div class="composer">
+          <div class="comp-bar">
+            <div style="display:flex;gap:6px">
+              <span class="chip on" style="padding:3px 10px;font-size:11.5px">WhatsApp reply</span>
+              <span class="chip" style="padding:3px 10px;font-size:11.5px">Internal note</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;color:var(--mid)">
+              <span style="font-weight:600;color:var(--green)">⚡ Templates</span>
+              <span>·</span>
+              <span>Quick replies</span>
+            </div>
+          </div>
+          <div class="comp-input">
+            <span style="font-size:13px;color:var(--muted)">Write a WhatsApp message to Chidi Okafor…</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="btn outline xs">Attach</span>
+              <span class="btn wa sm">Send via WhatsApp</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pane 3: Person Context Drawer -->
+      <aside class="pane-r">
+        <div class="ctx-sec">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av soft-g" style="width:40px;height:40px;font-size:14px">CO</div>
+            <div>
+              <div style="font-size:15px;font-weight:800">Chidi Okafor</div>
+              <div style="font-size:12px;color:var(--mid)">London, UK · Diaspora Homeowner</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <span class="pill complete" style="font-size:11px"><span class="dot"></span>WhatsApp opted in</span>
+            <span class="pill neutral" style="font-size:11px">EN</span>
+          </div>
+        </div>
+
+        <div class="ctx-sec">
+          <div class="ctx-title">Delivery &amp; Automation</div>
+          <div class="ctx-row"><span class="muted">Automated sequences</span><div class="toggle"></div></div>
+          <div class="ctx-row"><span class="muted">Assigned owner</span><b>Favour N.</b></div>
+          <div class="ctx-row"><span class="muted">Next follow-up</span><b style="color:var(--green)">Tomorrow, 10:00</b></div>
+        </div>
+
+        <div class="ctx-sec">
+          <div class="ctx-title">Linked Project</div>
+          <div style="border:1px solid var(--rule);border-radius:11px;padding:11px;background:var(--canvas)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <b style="font-size:13px">Bonapriso Villa</b>
+              <span class="pill held" style="font-size:10px;padding:1px 7px">Stage 5</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--mid);margin-top:3px">Contractor: Jean-Marc Mbarga</div>
+            <div class="seg" style="margin:8px 0"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:8px">
+              <span class="muted">Paid to date</span><b class="mono">17.0M / 48.5M XAF</b>
+            </div>
+            <div class="btn outline xs" style="width:100%">Open Admin Workspace →</div>
+          </div>
+        </div>
+
+        <div class="ctx-sec" style="border-bottom:0;flex:1">
+          <div class="ctx-title">CRM Notes</div>
+          <div style="font-size:12px;color:var(--ink-2);background:var(--canvas);border:1px solid var(--rule);border-radius:9px;padding:9px;line-height:1.45">
+            Prefers WhatsApp updates before 6pm UK time. Wants Stage 6 Roofing estimate reviewed next week.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 2 Admin WhatsApp CRM (1440×900)</div>
+</body>
+</html>

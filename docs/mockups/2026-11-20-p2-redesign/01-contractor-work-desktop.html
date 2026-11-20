@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 1 — Contractor Project (Work Tab)</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .proj-hdr { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .proj-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .proj-meta { font-size: 12.5px; color: var(--mid); margin-top: 3px; display: flex; align-items: center; gap: 10px; }
+  .work-grid { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 16px; flex: 1; min-height: 0; }
+  .rail { display: flex; flex-direction: column; overflow: hidden; }
+  .rail-hdr { padding: 11px 14px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: var(--mid); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stage-list { padding: 6px 8px; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+  .srow { display: flex; align-items: center; gap: 9px; padding: 5.5px 10px; border-radius: 9px; }
+  .srow.active { background: var(--green-tint); box-shadow: inset 3px 0 0 var(--green); }
+  .sdot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; flex-shrink: 0; font-family: var(--mono); }
+  .sdot.done { background: var(--green); color: #fff; }
+  .sdot.now { border: 2px solid var(--green); color: var(--green); background: #fff; }
+  .sdot.todo { border: 1.5px solid var(--rule-strong); color: var(--muted); background: #fff; }
+  .srow-body { min-width: 0; flex: 1; }
+  .srow-name { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow.todo .srow-name { color: var(--mid); font-weight: 500; }
+  .srow-sub { font-size: 11px; color: var(--muted); }
+  .srow.active .srow-sub { color: var(--green); font-weight: 600; }
+
+  .detail { display: flex; flex-direction: column; overflow: hidden; }
+  .detail-hdr { padding: 16px 20px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .detail-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
+  .sub-list { display: flex; flex-direction: column; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+  .sub-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--rule); background: #fff; }
+  .sub-row:last-child { border-bottom: 0; }
+  .sub-row.focus { background: var(--green-tint); }
+  .thumbs { display: flex; gap: 6px; }
+  .th { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--rule); overflow: hidden; background: #eae6dd; flex-shrink: 0; }
+  .parts-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .part-card { border: 1px solid var(--rule); border-radius: 11px; padding: 11px 13px; background: var(--canvas); display: flex; flex-direction: column; gap: 4px; }
+  .part-card.warn { border-color: var(--held-border); background: var(--held-bg); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Contractor Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div>
+          <div class="brand-name">Groundwork</div>
+          <span class="brand-sub">Contractor Portal</span>
+        </div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+      <a class="nav-item active" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Projects<span class="badge green">3</span></a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Partner network</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Payouts</a>
+      <a class="nav-item" href="#"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="av green">JM</div>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Jean-Marc Mbarga</div>
+        <div style="font-size:11px;color:var(--muted)">BTP Douala SARL</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Projects <span>/</span> <b>Bonapriso Villa — 4-Bed Duplex</b></div>
+      <div class="topbar-right">
+        <span class="pill complete"><span class="dot"></span>On track · Stage 5 of 10</span>
+        <span style="font-size:12.5px;color:var(--mid);font-weight:600">EN</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Project Header -->
+      <div class="proj-hdr">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">Douala, Cameroon · Homeowner: Chidi Okafor</div>
+          <h1 class="proj-title">Bonapriso Villa — 4-Bed Duplex</h1>
+          <div class="proj-meta">
+            <span>Agreed budget: <b style="color:var(--ink)" class="num">48,500,000 XAF</b> <span class="faint">(~$79,500 USD)</span></span>
+            <span>·</span>
+            <span>4 of 10 stages approved</span>
+          </div>
+        </div>
+        <div style="width:260px">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--mid);margin-bottom:5px;font-weight:600">
+            <span>Build progress</span><span class="mono" style="color:var(--ink)">46%</span>
+          </div>
+          <div class="seg">
+            <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single Next Step Banner -->
+      <div class="next-banner">
+        <div>
+          <div class="kicker">Your next step</div>
+          <div class="title">Confirm payment receipt for Stage 5 · Part 3</div>
+          <div class="desc">Chidi Okafor uploaded a transfer receipt of 2,400,000 XAF (~$3,934) 2 hours ago. Confirm receipt to unlock Part 3 work.</div>
+        </div>
+        <div class="btn white">Review &amp; confirm receipt →</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <span class="tab on">Work <span class="cnt">5/10</span></span>
+        <span class="tab">Money <span class="cnt" style="background:var(--held-bg);color:var(--held);padding:1px 6px;border-radius:99px;opacity:1">1</span></span>
+        <span class="tab">Documents <span class="cnt">14</span></span>
+        <span class="tab">Messages <span class="cnt">2</span></span>
+        <span class="tab">People <span class="cnt">3</span></span>
+      </div>
+
+      <!-- 2-Column Split -->
+      <div class="work-grid">
+        <!-- Stage Rail -->
+        <section class="card rail">
+          <div class="rail-hdr"><span>10 Construction Stages</span><span class="mono">4 DONE</span></div>
+          <div class="stage-list">
+            <div class="srow"><div class="sdot done">✓</div><div class="srow-body"><div class="srow-name">1. Land Secured</div><div class="srow-sub">Approved · Completed prior</div></div></div>
+            <div class="srow"><div class="sdot done">✓</div><div class="srow-body"><div class="srow-name">2. Design Completed</div><div class="srow-sub">Approved · 5/5 items</div></div></div>
+            <div class="srow"><div class="sdot done">✓</div><div class="srow-body"><div class="srow-name">3. Site Preparation</div><div class="srow-sub">Approved · 5/5 items</div></div></div>
+            <div class="srow"><div class="sdot done">✓</div><div class="srow-body"><div class="srow-name">4. Foundation</div><div class="srow-sub">Approved · 7/7 items</div></div></div>
+            <div class="srow active"><div class="sdot now">5</div><div class="srow-body"><div class="srow-name">5. Structure &amp; Walls</div><div class="srow-sub">In progress · 3/5 uploaded</div></div><span class="pill held" style="font-size:10.5px;padding:2px 7px">Receipt</span></div>
+            <div class="srow todo"><div class="sdot todo">6</div><div class="srow-body"><div class="srow-name">6. Roofing</div><div class="srow-sub">Locked · 4 items</div></div></div>
+            <div class="srow todo"><div class="sdot todo">7</div><div class="srow-body"><div class="srow-name">7. Electrical &amp; Plumbing</div><div class="srow-sub">Locked · 10 items</div></div></div>
+            <div class="srow todo"><div class="sdot todo">8</div><div class="srow-body"><div class="srow-name">8. Finishing</div><div class="srow-sub">Locked · 11 items</div></div></div>
+            <div class="srow todo"><div class="sdot todo">9</div><div class="srow-body"><div class="srow-name">9. Exterior Work</div><div class="srow-sub">Locked · 5 items</div></div></div>
+            <div class="srow todo"><div class="sdot todo">10</div><div class="srow-body"><div class="srow-name">10. Final Handover</div><div class="srow-sub">Locked · 3 items</div></div></div>
+          </div>
+        </section>
+
+        <!-- Active Stage Detail -->
+        <section class="card detail">
+          <div class="detail-hdr">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <h2 style="font-size:17px;font-weight:800;letter-spacing:-0.3px">Stage 5 · Structure &amp; Walls</h2>
+                <span class="pill complete"><span class="dot"></span>Active stage</span>
+              </div>
+              <div style="font-size:12px;color:var(--mid);margin-top:2px">Upload site photos for each substage. Once all 5 items have updates, the stage moves to Homeowner review automatically.</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div class="mono" style="font-size:15px;font-weight:700">14,550,000 XAF</div>
+              <div style="font-size:11px;color:var(--muted)">30% of project · ~$23,850</div>
+            </div>
+          </div>
+
+          <div class="detail-body">
+            <!-- Parts Pricing Summary Strip -->
+            <div class="parts-strip">
+              <div class="part-card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11.5px;font-weight:700">Part 1 · Pillars &amp; Beams</span>
+                  <span class="pill complete" style="font-size:10.5px;padding:1px 7px">Paid</span>
+                </div>
+                <div class="mono" style="font-size:14px;font-weight:700">5,800,000 XAF</div>
+                <div style="font-size:11px;color:var(--muted)">Confirmed 04 Nov</div>
+              </div>
+              <div class="part-card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11.5px;font-weight:700">Part 2 · Staircase &amp; Slab</span>
+                  <span class="pill complete" style="font-size:10.5px;padding:1px 7px">Paid</span>
+                </div>
+                <div class="mono" style="font-size:14px;font-weight:700">6,350,000 XAF</div>
+                <div style="font-size:11px;color:var(--muted)">Confirmed 12 Nov</div>
+              </div>
+              <div class="part-card warn">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11.5px;font-weight:700;color:var(--held)">Part 3 · Block Walls</span>
+                  <span class="pill held" style="font-size:10.5px;padding:1px 7px">Confirm receipt</span>
+                </div>
+                <div class="mono" style="font-size:14px;font-weight:700">2,400,000 XAF</div>
+                <div style="font-size:11px;color:var(--held);font-weight:600">Receipt uploaded · Review →</div>
+              </div>
+            </div>
+
+            <!-- 5 Substages (Post-Tree-1 fix: plastering & tiles moved to Stage 8) -->
+            <div class="sub-list">
+              <div class="sub-row">
+                <div class="sdot done" style="width:20px;height:20px;font-size:10px">✓</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600">1. Pillars</div>
+                  <div style="font-size:11.5px;color:var(--muted)">4 photos uploaded · 06 Nov</div>
+                </div>
+                <div class="thumbs">
+                  <div class="th"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#d8d4c8"/><rect x="8" y="6" width="8" height="34" fill="#8b8378"/><rect x="24" y="6" width="8" height="34" fill="#7c756b"/><rect x="0" y="32" width="40" height="8" fill="#5b6e5c"/></svg></div>
+                  <div class="th"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#cfd8df"/><rect x="6" y="10" width="28" height="24" fill="#9a9183"/><line x1="14" y1="10" x2="14" y2="34" stroke="#6c6459" stroke-width="2"/></svg></div>
+                </div>
+                <div class="btn outline xs">+ Add photo</div>
+              </div>
+
+              <div class="sub-row">
+                <div class="sdot done" style="width:20px;height:20px;font-size:10px">✓</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600">2. Beams and lintels</div>
+                  <div style="font-size:11.5px;color:var(--muted)">3 photos uploaded · 10 Nov</div>
+                </div>
+                <div class="thumbs">
+                  <div class="th"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#d9e2ea"/><rect x="0" y="12" width="40" height="9" fill="#8c8478"/><rect x="6" y="21" width="6" height="19" fill="#766f64"/><rect x="28" y="21" width="6" height="19" fill="#766f64"/></svg></div>
+                </div>
+                <div class="btn outline xs">+ Add photo</div>
+              </div>
+
+              <div class="sub-row">
+                <div class="sdot done" style="width:20px;height:20px;font-size:10px">✓</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600">3. Staircase</div>
+                  <div style="font-size:11.5px;color:var(--muted)">2 photos uploaded · 14 Nov</div>
+                </div>
+                <div class="thumbs">
+                  <div class="th"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#e6e2da"/><path d="M4 36 H14 V28 H22 V20 H30 V12 H38 V36 Z" fill="#8e887d"/></svg></div>
+                </div>
+                <div class="btn outline xs">+ Add photo</div>
+              </div>
+
+              <div class="sub-row focus">
+                <div class="sdot now" style="width:20px;height:20px;font-size:10px">4</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:700;color:var(--green)">4. Floor slab</div>
+                  <div style="font-size:11.5px;color:var(--mid)">Ready for site photos · Part 2 funded</div>
+                </div>
+                <div></div>
+                <div class="btn primary sm">Upload update</div>
+              </div>
+
+              <div class="sub-row">
+                <div class="sdot todo" style="width:20px;height:20px;font-size:10px">5</div>
+                <div>
+                  <div style="font-size:13.5px;font-weight:600;color:var(--mid)">5. Block walls</div>
+                  <div style="font-size:11.5px;color:var(--held);font-weight:600">Awaiting Part 3 receipt confirmation</div>
+                </div>
+                <div></div>
+                <div class="btn outline xs">Review receipt</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 1 Contractor Work (1440×900)</div>
+</body>
+</html>

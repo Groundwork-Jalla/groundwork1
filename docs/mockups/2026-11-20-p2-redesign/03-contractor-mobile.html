@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 1 — Contractor Project Mobile</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .mtabs { display: flex; gap: 6px; overflow: hidden; }
+  .mtab { padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--mid); background: var(--white); border: 1px solid var(--rule); white-space: nowrap; }
+  .mtab.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .msub { border: 1px solid var(--rule); border-radius: 12px; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 9px; }
+  .msub.active { border-color: var(--green); background: var(--green-tint); }
+  .cam-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="mobile-shell">
+  <div class="mobile-status">
+    <span>14:08</span>
+    <span style="font-size:11px;color:var(--mid)">LTE · 84%</span>
+  </div>
+
+  <div class="mobile-hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:600;color:var(--mid)">← Projects</span>
+      <span class="pill complete" style="font-size:10.5px;padding:2px 8px"><span class="dot"></span>Stage 5 / 10</span>
+    </div>
+    <div style="font-size:18px;font-weight:800;letter-spacing:-0.4px">Bonapriso Villa</div>
+    <div style="font-size:11.5px;color:var(--mid);margin-top:1px">Homeowner: Chidi Okafor · Douala</div>
+    <div class="seg" style="margin-top:9px">
+      <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </div>
+
+  <div class="mobile-body">
+    <!-- Single Next Step Card -->
+    <div class="next-banner" style="flex-direction:column;align-items:stretch;gap:10px;padding:13px 14px">
+      <div>
+        <div class="kicker">Your next step</div>
+        <div class="title" style="font-size:15px">Confirm Part 3 receipt · 2.4M XAF</div>
+        <div class="desc" style="font-size:11.5px">Uploaded by Chidi Okafor 2h ago.</div>
+      </div>
+      <div class="btn white sm" style="width:100%">Review &amp; confirm receipt →</div>
+    </div>
+
+    <!-- Compact Tabs -->
+    <div class="mtabs">
+      <span class="mtab on">Work</span>
+      <span class="mtab">Money · 1</span>
+      <span class="mtab">Documents</span>
+      <span class="mtab">Messages</span>
+    </div>
+
+    <!-- Stage Selector Pill -->
+    <div class="card" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10.5px;font-weight:700;color:var(--green);text-transform:uppercase">Active Stage · 3 of 5 done</div>
+        <div style="font-size:14.5px;font-weight:800">5. Structure &amp; Walls</div>
+      </div>
+      <span class="btn outline xs">All stages ▾</span>
+    </div>
+
+    <!-- Substage 4 Active Card (Thumb-Friendly) -->
+    <div class="msub active">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:20px;height:20px;border-radius:50%;border:2px solid var(--green);color:var(--green);font-family:var(--mono);font-size:10.5px;font-weight:700;display:grid;place-items:center">4</span>
+          <span style="font-size:14px;font-weight:800;color:var(--green)">Floor slab</span>
+        </div>
+        <span class="pill complete" style="font-size:10px;padding:2px 7px">Funded</span>
+      </div>
+      <div style="font-size:12px;color:var(--mid)">Take site photos directly from your phone or choose from gallery.</div>
+      <div class="cam-row">
+        <div class="btn primary sm">Take photo</div>
+        <div class="btn outline sm">Choose file</div>
+      </div>
+    </div>
+
+    <!-- Completed Substage -->
+    <div class="msub">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center">✓</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">3. Staircase</div>
+            <div style="font-size:11px;color:var(--muted)">2 photos · 14 Nov</div>
+          </div>
+        </div>
+        <span class="btn outline xs">View</span>
+      </div>
+    </div>
+
+    <!-- Pending Receipt Substage -->
+    <div class="msub" style="border-color:var(--held-border);background:var(--held-bg)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:20px;height:20px;border-radius:50%;border:1.5px solid var(--held);color:var(--held);font-family:var(--mono);font-size:10.5px;font-weight:700;display:grid;place-items:center">5</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">5. Block walls</div>
+            <div style="font-size:11px;color:var(--held);font-weight:600">Confirm Part 3 receipt to start</div>
+          </div>
+        </div>
+        <span class="btn outline xs">Review</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="mobile-bnav">
+    <div class="bitem"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Home</div>
+    <div class="bitem on"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects</div>
+    <div class="bitem"><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Payouts</div>
+    <div class="bitem"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help</div>
+  </nav>
+</div>
+</body>
+</html>

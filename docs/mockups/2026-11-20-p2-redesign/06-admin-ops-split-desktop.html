@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 3 — Admin Ops Split-Pane Pattern (Support &amp; Site Updates)</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 16px; flex: 1; min-height: 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+  .tbl td { padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tr.sel { background: var(--green-tint); box-shadow: inset 3px 0 0 var(--green); }
+  .side-detail { display: flex; flex-direction: column; overflow: hidden; }
+  .sd-hdr { padding: 15px 18px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .sd-body { padding: 15px 18px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .sd-foot { padding: 12px 18px; border-top: 1px solid var(--rule); background: var(--canvas); display: flex; justify-content: space-between; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><div class="brand-sq">G</div><div><div class="brand-name">Groundwork</div><span class="brand-sub">Operations Console</span></div></div>
+      <span class="role-chip blue">OPS</span>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#">Overview</a>
+      <a class="nav-item" href="#">Action Center<span class="badge alert">7</span></a>
+      <div class="nav-group open">
+        <div class="nav-group-hdr">Work <span class="cnt">4 ▾</span></div>
+        <div class="nav-group-items">
+          <a class="nav-item" href="#">Projects</a>
+          <a class="nav-item" href="#">Reviews &amp; Approvals<span class="badge">3</span></a>
+          <a class="nav-item" href="#">Site Updates</a>
+          <a class="nav-item" href="#">Contractor Records</a>
+        </div>
+      </div>
+      <div class="nav-group"><div class="nav-group-hdr">People <span class="cnt">4 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">Communication <span class="cnt">5 ▸</span></div></div>
+      <a class="nav-item active" href="#">Support<span class="badge alert">4</span></a>
+      <div style="margin-top:auto;padding:10px;border-radius:10px;background:var(--canvas);border:1px solid var(--rule);font-size:11px;color:var(--mid);line-height:1.4">
+        <b>Role-scoped navigation:</b> Finance, Deletions &amp; System Settings are hidden for <span style="color:var(--info);font-weight:700">OPS</span> role. 4 unused placeholders retired.
+      </div>
+    </nav>
+    <div class="sidebar-footer"><div class="av soft-b">MB</div><div><div style="font-size:13px;font-weight:700">Marie-Claire B.</div><div style="font-size:11px;color:var(--muted)">Operations Lead</div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Operations <span>/</span> <b>Support Desk</b></div>
+      <div class="topbar-right">
+        <div class="search-box">Search ticket, person, or project…</div>
+        <div class="btn outline sm">Export CSV</div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+        <div>
+          <h1 style="font-size:23px;font-weight:800;letter-spacing:-0.4px">Support &amp; Account Requests</h1>
+          <div style="font-size:12.5px;color:var(--mid);margin-top:2px">Standard Batch A/B split-pane layout: triage queue on the left, full context and resolution beside it without page hops.</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span class="chip on">Open <b>4</b></span>
+          <span class="chip">Account deletion <b>1</b></span>
+          <span class="chip">Payment help <b>2</b></span>
+          <span class="chip">Resolved <b>31</b></span>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi"><div class="kpi-label"><span>Open tickets</span></div><div class="kpi-val">4</div><div class="kpi-sub">2 waiting &lt; 4 hours</div></div>
+        <div class="kpi"><div class="kpi-label"><span>Median first response</span></div><div class="kpi-val" style="color:var(--green)">1h 40m</div><div class="kpi-sub">Target SLA: 24h</div></div>
+        <div class="kpi"><div class="kpi-label"><span>Data / deletion requests</span></div><div class="kpi-val" style="color:var(--alert)">1</div><div class="kpi-sub">Requires Admin approval</div></div>
+        <div class="kpi"><div class="kpi-label"><span>Resolved (30d)</span></div><div class="kpi-val">31</div><div class="kpi-sub">94% resolved on first reply</div></div>
+      </div>
+
+      <div class="split">
+        <!-- Left Queue Table -->
+        <section class="card" style="overflow:hidden;display:flex;flex-direction:column">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Person &amp; subject</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="sel">
+                <td>
+                  <div style="font-weight:700">Receipts showing different exchange rate</div>
+                  <div style="font-size:11.5px;color:var(--mid)">Amina Eyong · Bastos Residence (Homeowner)</div>
+                </td>
+                <td><span class="pill held">Payment</span></td>
+                <td><span class="pill alert"><span class="dot"></span>Needs reply</span></td>
+                <td style="font-size:12px;color:var(--mid)">2h ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600">Invite link expired for site engineer</div>
+                  <div style="font-size:11.5px;color:var(--mid)">Jean-Marc Mbarga · Bonapriso Villa (Contractor)</div>
+                </td>
+                <td><span class="pill neutral">Access</span></td>
+                <td><span class="pill held"><span class="dot"></span>In progress</span></td>
+                <td style="font-size:12px;color:var(--mid)">5h ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600">Account deletion request</div>
+                  <div style="font-size:11.5px;color:var(--mid)">eric.ndoumbe@gmail.com · No active projects</div>
+                </td>
+                <td><span class="pill alert">Deletion</span></td>
+                <td><span class="pill held"><span class="dot"></span>Escalated</span></td>
+                <td style="font-size:12px;color:var(--mid)">Yesterday</td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600">How do I upload a Bill of Quantities PDF?</div>
+                  <div style="font-size:11.5px;color:var(--mid)">Samuel Kouam · Kribi Beach House (Homeowner)</div>
+                </td>
+                <td><span class="pill info">Onboarding</span></td>
+                <td><span class="pill alert"><span class="dot"></span>Needs reply</span></td>
+                <td style="font-size:12px;color:var(--mid)">Yesterday</td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600">Update phone number for WhatsApp alerts</div>
+                  <div style="font-size:11.5px;color:var(--mid)">Grace Ndi · Limbe Bungalow (Homeowner)</div>
+                </td>
+                <td><span class="pill neutral">Account</span></td>
+                <td><span class="pill complete"><span class="dot"></span>Resolved</span></td>
+                <td style="font-size:12px;color:var(--mid)">18 Nov</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Right Context & Action Pane -->
+        <aside class="card side-detail">
+          <div class="sd-hdr">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="mono" style="font-size:11px;color:var(--muted)">#SUP-418</span>
+                <span class="pill alert" style="font-size:10.5px"><span class="dot"></span>Needs reply</span>
+              </div>
+              <div style="font-size:15.5px;font-weight:800;margin-top:4px">Receipts showing different exchange rate</div>
+            </div>
+          </div>
+
+          <div class="sd-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--canvas);border:1px solid var(--rule)">
+              <div style="display:flex;align-items:center;gap:9px">
+                <div class="av sm soft-g">AE</div>
+                <div>
+                  <div style="font-size:13px;font-weight:700">Amina Eyong</div>
+                  <div style="font-size:11px;color:var(--mid)">Bastos Residence · Stage 4</div>
+                </div>
+              </div>
+              <span class="btn outline xs">Open project →</span>
+            </div>
+
+            <div style="font-size:12.5px;line-height:1.5;color:var(--ink-2);background:#fff;border:1px solid var(--rule);border-radius:10px;padding:12px">
+              "Hi Groundwork team, my bank transferred in EUR to XAF and the USD number shown on Stage 4 looks slightly different from what Google shows today. Is my contractor receiving the exact XAF amount?"
+            </div>
+
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">Quick reply (sent via Email + Project Inbox)</div>
+              <div style="border:1px solid var(--rule-strong);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--ink-2);min-height:92px;background:var(--canvas);line-height:1.45">
+                Hi Amina — yes, your contractor receives the exact XAF amount you transferred. The USD figure shown beside it is an indicative guide rate for quick reference only...
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="chip" style="font-size:11px">Open WhatsApp thread</span>
+              <span class="chip" style="font-size:11px">Assign to Finance</span>
+            </div>
+          </div>
+
+          <div class="sd-foot">
+            <span class="btn outline sm">Mark resolved</span>
+            <span class="btn primary sm">Send reply →</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 3 Admin Split-Pane Pattern &amp; RBAC Nav (1440×900)</div>
+</body>
+</html>

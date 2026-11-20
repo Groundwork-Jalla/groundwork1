@@ -100,46 +100,46 @@ export function ReceiptDecisionDialog({ receipt, payment, stage, projectName, st
   }
 
   const name = receipt.path.split('/').pop() ?? 'receipt';
-  const button = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-50';
+  const button = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-50';
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="receipt-decision-title"
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 backdrop-blur-[1px] sm:justify-end sm:p-4" role="dialog" aria-modal="true" aria-labelledby="receipt-decision-title"
       onClick={event => { if (event.target === event.currentTarget && !busy.current) onClose(); }} data-receipt-decision={receipt.id}>
-      <div className="flex h-full w-full flex-col overflow-y-auto bg-white dark:bg-[#1e1e1e] sm:grid sm:h-auto sm:max-h-[92vh] sm:max-w-[860px] sm:grid-cols-[320px_minmax(0,1fr)] sm:overflow-hidden sm:rounded-2xl sm:shadow-2xl">
-        <div className="flex items-center justify-between border-b border-brand-border-grey px-4 py-3 sm:hidden dark:border-[#2c2c2c]">
+      <div className="flex h-full w-full flex-col overflow-y-auto bg-white dark:bg-[#1e1e1e] sm:grid sm:h-full sm:max-h-full sm:max-w-[820px] sm:grid-cols-[300px_minmax(0,1fr)] sm:overflow-hidden sm:rounded-2xl sm:border sm:border-brand-green/35 sm:shadow-2xl">
+        <div className="flex items-center justify-between border-b border-brand-border-grey bg-brand-green/[0.04] px-4 py-3 sm:hidden dark:border-[#2c2c2c]">
           <button type="button" onClick={onClose} disabled={working} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-green dark:text-state-complete"><ArrowLeft className="size-4" aria-hidden />{t('common.cancel')}</button>
         </div>
 
-        <div className="order-2 flex flex-col gap-2 bg-brand-off-white p-4 sm:order-1 sm:p-5 dark:bg-[#141414]">
+        <div className="order-2 flex flex-col gap-2.5 border-t border-brand-border-grey bg-brand-off-white p-4 sm:order-1 sm:border-r sm:border-t-0 sm:p-5 dark:border-[#2c2c2c] dark:bg-[#141414]">
           <ReceiptThumb size="lg" path={receipt.path} label={t('contractorView.viewLarge')} onOpen={() => { void openLarge(); }} />
           <p className="text-xs text-brand-mid-grey">{t('contractorView.uploadedOn', { date: formatDate(receipt.submittedAt) })}</p>
         </div>
 
         <div className="relative order-1 flex flex-col p-4 sm:order-2 sm:overflow-y-auto sm:p-6">
           <button type="button" onClick={onClose} disabled={working} aria-label={t('common.close')} className="absolute right-4 top-4 hidden rounded-lg p-1.5 text-brand-mid-grey hover:bg-brand-off-white sm:block dark:hover:bg-[#2c2c2c]"><X className="size-5" aria-hidden /></button>
-          <p className="pr-8 text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey">{[projectName, stageName, partLabel].filter(Boolean).join(' · ')}</p>
+          <p className="pr-8 text-[11px] font-bold uppercase tracking-wider text-brand-green dark:text-state-complete">{[projectName, stageName, partLabel].filter(Boolean).join(' · ')}</p>
           <h2 id="receipt-decision-title" className="mt-1.5 text-xl font-extrabold tracking-tight text-brand-near-black sm:text-2xl dark:text-white">{t('contractorView.question')}</h2>
 
-          <dl className="mt-4 divide-y divide-brand-border-grey rounded-xl border border-brand-border-grey text-sm dark:divide-[#2c2c2c] dark:border-[#2c2c2c]">
+          <dl className="mt-4 divide-y divide-brand-border-grey rounded-xl border border-brand-border-grey bg-brand-off-white/60 text-sm dark:divide-[#2c2c2c] dark:border-[#2c2c2c] dark:bg-[#141414]/60">
             <div className="flex items-baseline justify-between gap-3 px-4 py-3"><dt className="text-brand-mid-grey">{t('contractorView.onReceipt')}</dt>
-              <dd className="text-right font-mono font-semibold tabular-nums">{money(receipt.amount, receipt.currency)}
+              <dd className="text-right font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">{money(receipt.amount, receipt.currency)}
                 {receipt.projectAmount != null && receipt.projectCurrency && receipt.projectCurrency !== receipt.currency && <span className="block text-[11px] font-normal text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: money(receipt.projectAmount, receipt.projectCurrency) })}</span>}</dd></div>
             <div className="flex items-baseline justify-between gap-3 px-4 py-3"><dt className="text-brand-mid-grey">{part ? t('contractorView.partPrice', { n: part.number ?? '' }) : t('contractorView.stagePrice')}</dt>
-              <dd className="font-mono font-semibold tabular-nums">{money(part ? Number(part.price) : scheduled, part ? parts?.currency ?? currency : currency)}</dd></div>
+              <dd className="font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">{money(part ? Number(part.price) : scheduled, part ? parts?.currency ?? currency : currency)}</dd></div>
             <div className="flex items-baseline justify-between gap-3 px-4 py-3"><dt className="text-brand-mid-grey">{t('contractorView.stillDueAfter')}</dt>
-              <dd className="font-mono font-semibold tabular-nums">{money(remainingAfter, currency)}</dd></div>
+              <dd className="font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">{money(remainingAfter, currency)}</dd></div>
           </dl>
           {excessAfter != null && excessAfter > 0 && <div role="status" data-excess-indicator className="mt-3 rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3 text-[13px] leading-relaxed">
             <p className="flex items-center gap-2 font-semibold text-brand-near-black dark:text-white"><AlertCircle className="size-4 shrink-0 text-state-held" aria-hidden />{t('contractorView.overBy', { excessAmount: money(excessAfter, currency) })}</p>
             <p className="mt-1 text-brand-mid-grey">{t('contractorView.excessPaymentBody', { receiptAmount: money(receipt.projectAmount ?? receipt.amount, receipt.projectAmount != null ? receipt.projectCurrency : receipt.currency), expectedAmount: money(scheduled, currency), excessAmount: money(excessAfter, currency) })}</p>
           </div>}
-          <p className="mt-3 flex items-center gap-2 text-[13px] text-brand-near-black dark:text-white"><AlertCircle className="size-4 shrink-0 text-state-held" aria-hidden />{t('contractorView.checkAccount')}</p>
+          <p className="mt-3 flex items-center gap-2 rounded-xl border border-brand-border-grey bg-brand-off-white/70 px-3.5 py-2.5 text-[12.5px] text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"><AlertCircle className="size-4 shrink-0 text-state-held" aria-hidden />{t('contractorView.checkAccount')}</p>
           {receipt.decisionNote && <p className="mt-2 whitespace-pre-wrap text-xs text-brand-mid-grey">{receipt.decisionNote}</p>}
 
           {step === 'ask' && <div className="mt-6 flex flex-col gap-2.5 sm:mt-auto sm:pt-6" data-step="ask">
-            <button type="button" disabled={working} onClick={() => { void decide('accept'); }} className={cn(button, 'bg-brand-green text-white hover:bg-brand-green-hover')}>
+            <button type="button" disabled={working} onClick={() => { void decide('accept'); }} className={cn(button, 'bg-brand-green text-white shadow-sm hover:bg-brand-green-hover')}>
               {working && <Loader2 className="size-4 animate-spin" aria-hidden />}{t('contractorView.arrived')}</button>
-            <button type="button" disabled={working} onClick={startDifferent} className={cn(button, 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-transparent dark:text-white')}>{t('contractorView.different')}</button>
-            <button type="button" disabled={working} onClick={() => { setStep('missing'); setError(null); }} className={cn(button, 'border border-brand-border-grey bg-white text-state-alert dark:border-[#2c2c2c] dark:bg-transparent')}>{t('contractorView.notArrived')}</button>
+            <button type="button" disabled={working} onClick={startDifferent} className={cn(button, 'border border-brand-border-grey bg-white text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-transparent dark:text-white dark:hover:border-white/40')}>{t('contractorView.different')}</button>
+            <button type="button" disabled={working} onClick={() => { setStep('missing'); setError(null); }} className={cn(button, 'border border-brand-border-grey bg-white text-state-alert hover:border-state-alert/50 hover:bg-state-alert/[0.04] dark:border-[#2c2c2c] dark:bg-transparent')}>{t('contractorView.notArrived')}</button>
           </div>}
 
           {step === 'different' && <form className="mt-5 flex flex-col gap-3" data-step="different" onSubmit={event => { event.preventDefault(); void decide(choice); }}>

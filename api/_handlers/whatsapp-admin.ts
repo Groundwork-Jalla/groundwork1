@@ -1,6 +1,6 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { getSupabaseAdmin,requireUser } from '../_lib/stripe.js';
-import { metaWhatsAppConfig,whatsappSite } from '../_lib/meta-whatsapp.js';
+import { metaWhatsAppConfig,postMetaMessage,whatsappSite } from '../_lib/meta-whatsapp.js';
 import { checkWhatsAppConnection,runWhatsApp,whatsappTemplatePack } from '../_lib/whatsapp-communications.js';
 import { serviceWindowOpen,whatsappPhone } from '../../shared/whatsapp.js';
 
@@ -71,6 +71,69 @@ export async function handler(req:any,res:any) {
       const saved=await svc.rpc('resume_whatsapp_contact',{p_contact:body.contactId,p_actor:user.id});
       if(saved.error) throw new Error('resume_failed');
       res.status(200).json({ok:true});return;
+    }
+    if(body.operation==='set_automation') {
+      if(!UUID.test(body.contactId)||typeof body.paused!=='boolean') throw new Error('invalid_contact');
+      if(!body.paused) {
+        const saved=await svc.rpc('resume_whatsapp_contact',{p_contact:body.contactId,p_actor:user.id});
+        if(saved.error) throw new Error('resume_failed');
+      } else {
+        const saved=await svc.from('communication_whatsapp_contacts').update({automation_paused:true}).eq('id',body.contactId).eq('phone_number_id',cfg.phone_number_id);
+        if(saved.error) throw new Error('automation_update_failed');
+      }
+      res.status(200).json({ok:true,paused:body.paused});return;
+    }
+    if(body.operation==='send_template') {
+      if(!cfg.enabled) throw new Error('connection_disabled');
+      const templateName=typeof body.templateName==='string'?body.templateName.trim():'';
+      const language=typeof body.language==='string'?body.language.trim():'';
+      if(!/^[a-z0-9_]{1,128}$/.test(templateName)||!/^[a-z]{2}(?:_[A-Z]{2})?$/.test(language)) throw new Error('invalid_template');
+      const tplRow=await svc.from('communication_whatsapp_templates').select('name,language,status,definition').eq('name',templateName).eq('language',language).maybeSingle();
+      if(tplRow.error||!tplRow.data) throw new Error('template_not_found');
+      if(String(tplRow.data.status??'').toUpperCase()!=='APPROVED') throw new Error('template_not_approved');
+      const rawParams=Array.isArray(body.bodyParams)?body.bodyParams.slice(0,10).map((v:unknown)=>String(v??'').trim().slice(0,500)):[];
+      let contact:any=null;
+      if(typeof body.contactId==='string' && UUID.test(body.contactId)) {
+        const cRes=await svc.from('communication_whatsapp_contacts').select('*').eq('id',body.contactId).eq('phone_number_id',cfg.phone_number_id).maybeSingle();
+        if(cRes.error) throw new Error('contact_unavailable');
+        contact=cRes.data;
+      }
+      const targetPhone=contact?.phone || (typeof body.phone==='string'?whatsappPhone(body.phone):null);
+      if(!targetPhone && !contact?.bsuid) throw new Error('phone_with_country_code_required');
+      if(contact?.opted_out_at) throw new Error('recipient_opted_out');
+      if(cfg.mode==='test' && (!targetPhone || !cfg.test_recipients.includes(targetPhone))) throw new Error('test_recipient_required');
+      const components=rawParams.length>0?[{type:'body',parameters:rawParams.map((text:string)=>({type:'text',text:text||'—'}))}]:undefined;
+      const templatePayload={
+        ...(targetPhone?{to:targetPhone}:{recipient:contact.bsuid}),
+        type:'template',
+        template:{name:templateName,language:{code:language},...(components?{components}:{})},
+      };
+      const previewText=typeof body.previewText==='string'&&body.previewText.trim()?body.previewText.trim().slice(0,4000):`[WhatsApp template: ${templateName} (${language})]`;
+      const clientRef=typeof body.clientRef==='string'&&UUID.test(body.clientRef)?body.clientRef:randomUUID();
+      let status='sent';let error:string|null=null;let messageId:string|null=null;
+      if(contact?.id) {
+        const queued=await svc.rpc('queue_whatsapp_message',{p_contact:contact.id,p_kind:'staff',p_body:previewText,p_payload:templatePayload,p_client_ref:clientRef,p_actor:user.id});
+        if(queued.error||!queued.data) throw new Error('message_queue_failed');
+        messageId=queued.data;
+        await runWhatsApp(svc,1,20_000,queued.data);
+        const current=await svc.from('communication_whatsapp_messages').select('status,error').eq('id',queued.data).single();
+        status=current.data?.status??'queued';error=current.data?.error??null;
+      } else {
+        const sent=await postMetaMessage(cfg,clientRef,templatePayload);
+        status=sent.status;error=sent.error??null;messageId=sent.providerId??null;
+      }
+      if(status!=='failed' && typeof body.conversationId==='string' && UUID.test(body.conversationId)) {
+        await svc.from('project_messages').insert({
+          conversation_id:body.conversationId,
+          sender_id:user.id,
+          sender_name:user.user_metadata?.full_name||user.email||'Groundwork',
+          direction:'outbound',
+          channel:'whatsapp',
+          status:'sent',
+          content:previewText,
+        }).then(()=>{},()=>{});
+      }
+      res.status(200).json({ok:status!=='failed',messageId,status,error});return;
     }
     if(body.operation==='review_send') {
       if(!UUID.test(body.messageId)||typeof body.sent!=='boolean'||body.confirmReview!==true||typeof body.note!=='string'||body.note.trim().length<10||body.note.length>1000) throw new Error('review_details_required');

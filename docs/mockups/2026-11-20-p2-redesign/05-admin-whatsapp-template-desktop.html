@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wave 2 — WhatsApp Template Composer (Outside 24h Window)</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  .backdrop { position: relative; flex: 1; background: #e8e8e3; display: grid; place-items: center; padding: 28px; }
+  .modal { width: 920px; background: #fff; border-radius: 18px; border: 1px solid var(--rule-strong); box-shadow: var(--shadow-lg); overflow: hidden; display: flex; flex-direction: column; }
+  .m-hdr { padding: 18px 22px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; }
+  .m-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; }
+  .m-left { padding: 20px 22px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 14px; }
+  .m-right { padding: 20px 22px; background: #f2f1ed; display: flex; flex-direction: column; gap: 12px; }
+  .field-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 5px; }
+  .inp { border: 1px solid var(--rule-strong); border-radius: 9px; padding: 9px 11px; font-size: 13px; background: #fff; color: var(--ink); display: flex; align-items: center; justify-content: space-between; }
+  .tpl-card { border: 1.5px solid var(--rule); border-radius: 11px; padding: 10px 12px; background: #fff; display: flex; align-items: center; justify-content: space-between; }
+  .tpl-card.on { border-color: var(--wa-dark); background: var(--wa-soft); }
+  .wa-phone { background: #e5ddd5; border-radius: 14px; border: 1px solid var(--rule-strong); overflow: hidden; flex: 1; display: flex; flex-direction: column; }
+  .wa-top { background: #125c47; color: #fff; padding: 11px 14px; display: flex; align-items: center; gap: 9px; }
+  .wa-msg { margin: 14px; background: #fff; border-radius: 10px; border-top-left-radius: 2px; padding: 12px 13px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow-xs); }
+  .m-foot { padding: 14px 22px; border-top: 1px solid var(--rule); background: var(--canvas); display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><div class="brand-sq">G</div><div><div class="brand-name">Groundwork</div><span class="brand-sub">Operations</span></div></div>
+      <span class="role-chip green">ADMIN</span>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="#">Overview</a>
+      <a class="nav-item" href="#">Action Center<span class="badge alert">7</span></a>
+      <div class="nav-group"><div class="nav-group-hdr">Work <span class="cnt">4 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">Finance <span class="cnt">4 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">People <span class="cnt">5 ▸</span></div></div>
+      <div class="nav-group open">
+        <div class="nav-group-hdr">Communication <span class="cnt">6 ▾</span></div>
+        <div class="nav-group-items">
+          <a class="nav-item" href="#">All Inbox</a>
+          <a class="nav-item active" href="#"><span style="width:7px;height:7px;border-radius:50%;background:var(--wa)"></span>WhatsApp CRM<span class="badge wa">4</span></a>
+          <a class="nav-item" href="#">Sequences</a>
+        </div>
+      </div>
+      <div class="nav-group"><div class="nav-group-hdr">Acquisition <span class="cnt">5 ▸</span></div></div>
+      <div class="nav-group"><div class="nav-group-hdr">System &amp; Access <span class="cnt">4 ▸</span></div></div>
+    </nav>
+    <div class="sidebar-footer"><div class="av green">FN</div><div><div style="font-size:13px;font-weight:700">Favour Nwachukwu</div><div style="font-size:11px;color:var(--muted)">Super Admin</div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Communication <span>/</span> WhatsApp CRM <span>/</span> <b>Send Approved Template</b></div>
+      <span class="pill held"><span class="dot"></span>Outside 24h window — Meta template required</span>
+    </header>
+
+    <div class="backdrop">
+      <div class="modal">
+        <div class="m-hdr">
+          <div>
+            <div style="font-size:17px;font-weight:800;letter-spacing:-0.3px">Start or re-open WhatsApp conversation</div>
+            <div style="font-size:12.5px;color:var(--mid);margin-top:2px">Freeform replies are closed for Paul Tchoumi (last reply 42h ago). Select a Meta-approved template below.</div>
+          </div>
+          <span class="pill complete"><span class="dot"></span>Meta v27.0 · Verified</span>
+        </div>
+
+        <div class="m-grid">
+          <div class="m-left">
+            <div>
+              <div class="field-lbl">Recipient</div>
+              <div class="inp">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="av sm soft-a">PT</div>
+                  <b>Paul Tchoumi</b>
+                  <span class="mono muted" style="font-size:12px">+237 6 77 40 19 22</span>
+                </div>
+                <span class="role-chip amber">Contractor</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="field-lbl">Approved Meta Templates (Synced)</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div class="tpl-card on">
+                  <div>
+                    <div style="font-size:13px;font-weight:700;color:var(--green)">receipt_confirmation_needed</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Utility · EN / FR · Reminds contractor to review uploaded receipt</div>
+                  </div>
+                  <span class="pill complete" style="font-size:10.5px">Approved</span>
+                </div>
+                <div class="tpl-card">
+                  <div>
+                    <div style="font-size:13px;font-weight:700">stage_update_ready</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Utility · EN / FR · Alerts Homeowner that new site photos are ready</div>
+                  </div>
+                  <span class="pill complete" style="font-size:10.5px">Approved</span>
+                </div>
+                <div class="tpl-card">
+                  <div>
+                    <div style="font-size:13px;font-weight:700">partner_activation_followup</div>
+                    <div style="font-size:11.5px;color:var(--mid)">Utility · EN / FR · Follow-up to schedule contractor onboarding call</div>
+                  </div>
+                  <span class="pill complete" style="font-size:10.5px">Approved</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div class="field-lbl">{{1}} Recipient name</div>
+                <div class="inp">Paul Tchoumi</div>
+              </div>
+              <div>
+                <div class="field-lbl">{{2}} Project &amp; stage</div>
+                <div class="inp">Odza Duplex · Stage 4</div>
+              </div>
+              <div>
+                <div class="field-lbl">{{3}} Amount uploaded</div>
+                <div class="inp mono">1,850,000 XAF</div>
+              </div>
+              <div>
+                <div class="field-lbl">Language</div>
+                <div class="inp">French (fr) ▾</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-right">
+            <div class="field-lbl" style="margin-bottom:0">Live WhatsApp Preview</div>
+            <div class="wa-phone">
+              <div class="wa-top">
+                <div class="brand-sq" style="width:26px;height:26px;font-size:12px;background:#fff;color:var(--green)">G</div>
+                <div>
+                  <div style="font-size:13px;font-weight:700">Groundwork by Jalla ✓</div>
+                  <div style="font-size:10.5px;opacity:.8">Official Business Account</div>
+                </div>
+              </div>
+              <div class="wa-msg">
+                <div style="font-weight:700;margin-bottom:6px">Nouveau reçu à confirmer</div>
+                Bonjour <b>Paul Tchoumi</b>,<br/><br/>
+                Un reçu de paiement de <b>1,850,000 XAF</b> a été déposé pour <b>Odza Duplex · Stage 4</b>.<br/><br/>
+                Ouvrez votre espace Groundwork pour vérifier et confirmer la réception du paiement afin que les travaux puissent continuer.
+                <div style="margin-top:10px;padding-top:9px;border-top:1px solid var(--rule);text-align:center;color:#027eb5;font-weight:700;font-size:12.5px">↗ Ouvrir le projet</div>
+                <div style="text-align:right;font-size:10px;color:var(--muted);margin-top:4px">14:12</div>
+              </div>
+              <div style="margin:auto 14px 12px;font-size:11px;color:var(--mid);background:rgba(255,255,255,0.8);border-radius:8px;padding:7px 10px">
+                Sending this template logs directly into the project conversation and opens a fresh 24h window once Paul replies.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="m-foot">
+          <div style="font-size:12px;color:var(--mid)">Delivery path: <b>Direct Meta Cloud API v27.0</b> · Logged to unified inbox</div>
+          <div style="display:flex;gap:8px">
+            <span class="btn outline">Cancel</span>
+            <span class="btn wa">Send WhatsApp template</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="watermark">P2 Design Concept · Wave 2 Meta Template Composer (1440×900)</div>
+</body>
+</html>

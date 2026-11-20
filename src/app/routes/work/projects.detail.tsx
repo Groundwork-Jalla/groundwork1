@@ -244,6 +244,7 @@ export default function ContractorProjectDetail() {
   const current = currentProjectStage(stages);
   const place = [project.city, project.country].filter(Boolean).join(', ');
   const canDecide = (stage: (typeof stages)[number]) => receiptDecisionAllowed(project, stages, stage, teamAccess?.primaryContractor === true);
+  const waitingReceiptsCount = receiptsToConfirm(stages, stagePayments, canDecide).length;
   const reviewStage = reviewing ? stages.find(stage => stage.id === reviewing.stageId) : undefined;
   const reviewPayment = reviewStage ? stagePayments.get(reviewStage.id) : undefined;
   const reviewReceipt = reviewPayment?.receipts?.find(receipt => receipt.id === reviewing?.receiptId);
@@ -285,6 +286,12 @@ export default function ContractorProjectDetail() {
                       ? 'bg-brand-green text-white'
                       : 'text-brand-mid-grey hover:bg-brand-off-white hover:text-brand-near-black dark:hover:bg-[#1e1e1e] dark:hover:text-white')}>
             {t(x.key)}
+            {x.id === 'money' && waitingReceiptsCount > 0 && (
+              <span data-money-badge className={cn('ml-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 font-mono text-[10.5px] font-bold leading-none',
+                tab === 'money' ? 'bg-white/20 text-white' : 'bg-state-held/15 text-state-held')}>
+                {waitingReceiptsCount}
+              </span>
+            )}
             {x.id === 'documents' && documents.length > 0 && <span className="ml-1 font-mono text-[11px] opacity-70">{documents.length}</span>}
             {/* Not a count and not a second list: just "there is something on Work". */}
             {x.id === 'work' && rework.length > 0 && (
@@ -497,15 +504,15 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
             <span className="mb-1.5 block text-xs font-medium text-brand-mid-grey">
               {t('contractorSubmit.files', { mb: MAX_FILE_MB })}
             </span>
-            <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
-                <Camera className="size-3.5" aria-hidden />
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">
+                <Camera className="size-4" aria-hidden />
                 {t('contractorSubmit.takePhoto')}
                 <input type="file" accept="image/*" capture="environment" className="sr-only"
                        onChange={e => addFiles(e)} />
               </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-                <Upload className="size-3.5" aria-hidden />
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-border-grey bg-white px-3.5 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">
+                <Upload className="size-4" aria-hidden />
                 {t('contractorSubmit.chooseFile')}
                 <input type="file" multiple accept={FILE_ACCEPT_ATTR} className="sr-only"
                        onChange={e => addFiles(e)} />
@@ -535,7 +542,7 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
               exactly the thing the checklist is supposed to make impossible. */}
           <button type="button" disabled={busy || files.length === 0}
                   onClick={submit}
-                  className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:opacity-40 sm:w-fit">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
             {busy ? t('contractorSubmit.sending') : t('contractorSubmit.cta')}
           </button>
@@ -1113,7 +1120,10 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                         </span>
                         <span className={cn('block text-xs', held ? 'font-semibold text-state-held' : 'text-brand-mid-grey')}>{statusLine(row)}</span>
                       </span>
-                      <span className="shrink-0 pt-0.5 font-mono text-[11.5px] tabular-nums text-brand-mid-grey">{rowDue?.local ?? '—'}</span>
+                      <span className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
+                        <span className="font-mono text-[11.5px] tabular-nums text-brand-mid-grey">{rowDue?.local ?? '—'}</span>
+                        {held && <span className="rounded-full bg-state-held/15 px-2 py-0.5 text-[10px] font-bold text-state-held">{t('contractorView.receiptToConfirm')}</span>}
+                      </span>
                     </button>
                   </li>
                 );
@@ -1127,8 +1137,18 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
 
         <section id="work-stage-detail" aria-labelledby="work-stage-detail-title" className={cn(card, 'order-1 min-w-0 p-4 sm:p-5 lg:order-2')}>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t('project.stages.stageN', { n: stage.stage_number })}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t('project.stages.stageN', { n: stage.stage_number })}</p>
+                <button
+                  type="button"
+                  data-action="jump-stages"
+                  onClick={() => { if (typeof document !== 'undefined') document.getElementById('work-stages-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-brand-border-grey bg-brand-off-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-near-black hover:border-brand-near-black lg:hidden dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+                >
+                  {t('contractorWork.stages')} ▾
+                </button>
+              </div>
               <h2 id="work-stage-detail-title" className="mt-0.5 text-xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{stageLabel(stage)}</h2>
               <span className={cn('mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                 pill.tone === 'held' ? 'bg-state-held/10 text-state-held' : pill.tone === 'complete' ? 'bg-state-complete/10 text-state-complete' : 'bg-brand-light-grey text-brand-mid-grey')}>
