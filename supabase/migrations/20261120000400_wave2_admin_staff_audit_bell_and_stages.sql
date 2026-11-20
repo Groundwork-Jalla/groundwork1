@@ -293,9 +293,9 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_notify_staff_on_inbound_message ON public.messages;
+DROP TRIGGER IF EXISTS trg_notify_staff_on_inbound_message ON public.project_messages;
 CREATE TRIGGER trg_notify_staff_on_inbound_message
-  AFTER INSERT ON public.messages
+  AFTER INSERT ON public.project_messages
   FOR EACH ROW EXECUTE FUNCTION public.notify_staff_on_inbound_message();
 
 -- =========================================================
@@ -335,8 +335,8 @@ BEGIN
     WHERE s.stage_number = 4
       AND b.substage_number < p.substage_number
       AND b.status = 'pending' AND p.status = 'pending'
-      AND coalesce(array_length(b.evidence_urls, 1), 0) = 0
-      AND coalesce(array_length(p.evidence_urls, 1), 0) = 0
+      AND coalesce(jsonb_array_length(b.evidence_urls), 0) = 0
+      AND coalesce(jsonb_array_length(p.evidence_urls), 0) = 0
   LOOP
     -- Renumber all substages in this Stage 4 in canonical order
     v_idx := 0;
@@ -376,7 +376,7 @@ BEGIN
     WHERE s.stage_number = 5
       AND sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
       AND sub.status = 'pending'
-      AND coalesce(array_length(sub.evidence_urls, 1), 0) = 0
+      AND coalesce(jsonb_array_length(sub.evidence_urls), 0) = 0
       AND NOT EXISTS (SELECT 1 FROM public.stage_payment_receipts r WHERE r.substage_id = sub.id)
       AND NOT EXISTS (SELECT 1 FROM public.substage_payment_requests req WHERE req.substage_id = sub.id)
   LOOP
@@ -400,7 +400,7 @@ BEGIN
     WHERE sub.stage_id = v_s5
       AND sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
       AND sub.status = 'pending'
-      AND coalesce(array_length(sub.evidence_urls, 1), 0) = 0
+      AND coalesce(jsonb_array_length(sub.evidence_urls), 0) = 0
       AND NOT EXISTS (SELECT 1 FROM public.stage_payment_receipts r WHERE r.substage_id = sub.id)
       AND NOT EXISTS (SELECT 1 FROM public.substage_payment_requests req WHERE req.substage_id = sub.id)
       AND NOT EXISTS (
