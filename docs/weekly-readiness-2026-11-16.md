@@ -1,5 +1,7 @@
 # Weekly readiness — November 16–20, 2026
 
+> **Progress Update (20 Nov 2026):** Since this 15 Nov snapshot, the following code has shipped locally/on `main` (`20261116000000`–`20261120000100`): contractor-before-payment gate, two-installment retirement + substage breakdowns/payments, automatic overpayment carryover + admin overpayment alerts, contractor-recorded offline payments & Homeowner disputes, Partner Activation 100% flow, city & currency wizard steps, Admin Finance per-project split, grouped Recent Activity, Direct Resend Day-0 Welcome & Project Activation emails (GHL-independent) + `/admin/sequences` fixes, and the full EN/FR Project Screen Wording Review cleanup. **Still pending:** applying Nov 15–20 migrations in Production, GHL workflow retirement & PIT rotation, Meta WhatsApp template approval & billing review, and running live acceptance (`weekly-acceptance-2026-11-16.csv` W01–W20).
+
 Prepared on **15 November 2026**, using the supplied weekly memo, the implementation
 records and scoped read-only provider/schema checks. This records readiness and
 work to perform; it does not claim real-user activation or live acceptance.

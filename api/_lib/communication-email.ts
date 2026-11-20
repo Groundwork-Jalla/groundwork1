@@ -33,7 +33,7 @@ export async function applicationSender(svc: Service): Promise<string> {
 }
 export function composeCommunicationEmail(input: {
   to: string; subject: string; body: string; lang?: string; threadId: string; preferenceToken: string;
-  senderName: string; senderEmail: string; replyDomain: string;
+  senderName: string; senderEmail: string; replyDomain?: string | null;
   cta?: { label: string; path: string } | null; projectOptOut?: boolean; inReplyTo?: string | null;
   /**
    * Names to set in bold in the HTML body: the project the message is about. Asked for on
@@ -44,8 +44,9 @@ export function composeCommunicationEmail(input: {
   emphasis?: (string | null | undefined)[];
 }): CommunicationPayload {
   if(!UUID.test(input.threadId) || !UUID.test(input.preferenceToken)) throw new Error('Invalid communication identity');
+  const replyDomain = input.replyDomain?.trim() || null;
   if(!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(input.to)||!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(input.senderEmail)
-    || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]+$/i.test(input.replyDomain)) throw new Error('Invalid communication address');
+    || (replyDomain !== null && !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z0-9-]+$/i.test(replyDomain))) throw new Error('Invalid communication address');
   const base=communicationBase();const fr=input.lang==='fr';
   const preferences=`${base}/communication/preferences/${input.preferenceToken}`;
   const unsubscribe=`${base}/api/events?action=communication-unsubscribe&token=${input.preferenceToken}`;
@@ -63,7 +64,7 @@ export function composeCommunicationEmail(input: {
   if(input.inReplyTo && /^<[^<>\r\n]{1,450}>$/.test(input.inReplyTo)) { headers['In-Reply-To']=input.inReplyTo;headers.References=input.inReplyTo; }
   return {
     from:`${oneLine(input.senderName).replace(/[<>]/g,'')} <${input.senderEmail}>`,to:input.to,
-    subject:oneLine(input.subject),reply_to:`reply+${input.threadId}@${input.replyDomain}`,
+    subject:oneLine(input.subject),reply_to:replyDomain ? `reply+${input.threadId}@${replyDomain}` : input.senderEmail,
     text:`${input.body}${cta?`\n\n${cta.label}: ${cta.url}`:''}\n\n${footer}`,
     html:emailShell(fr?'fr':'en',`${bodyHtml}${cta?`<div style="margin:8px 0 0;">${primaryButton(escape(cta.url),cta.label)}</div>`:''}${input.projectOptOut?`<p style="${quiet}"><a href="${escape(preferences)}#project" style="color:#666;">${escape(projectLabel)}</a></p>`:''}<p style="${quiet}"><a href="${escape(preferences)}" style="color:#999;">${escape(preferenceLabel)}</a></p>`),headers,
   };

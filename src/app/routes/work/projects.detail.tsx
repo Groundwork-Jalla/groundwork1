@@ -463,7 +463,6 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
             })
           : t('contractorSubmit.title')}
       </h2>
-      <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorSubmit.subtitle')}</p>
 
       {/* The item list itself is rendered by WorkTab, above this form: repeating it
           here would be two copies of the same checklist on one screen. */}
@@ -713,7 +712,6 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
     { label: t('contractorPeople.canChat'),    you: true,  client: true },
     { label: t('contractorPeople.canDoc'),     you: true,  client: true },
     { label: t('contractorPeople.canEvidence'),you: true,  client: false },
-    { label: t('contractorPeople.canRelease'), you: false, client: false },
     { label: t('contractorPeople.canInvite'),  you: access?.canInvite === true, client: true },
   ];
 

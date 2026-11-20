@@ -1,5 +1,7 @@
 # Communication provider setup
 
+> **Update (20 Nov 2026):** `reply_domain` is now **optional** for enabling delivery and sending outbound reminders (it falls back to `sender_email` as `Reply-To`; `replies.tryjalla.com` is still used when configured for inbound reply routing). Additionally, Day-0 Welcome (`CS01`/`CL01`) and Project Activation (`CS09`/`CL05`) emails now deliver directly via Resend (`api/_lib/direct-lifecycle-email.ts`) without waiting on `/admin/sequences` `delivery_enabled`.
+
 Provider setup and retirement of overlapping GHL activation reminders are part of
 the **November 16–20 release checklist**. See
 [the current weekly readiness record](weekly-readiness-2026-11-16.md).

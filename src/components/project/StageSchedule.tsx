@@ -57,7 +57,7 @@ export function StageSchedule({ project, stages, basis, payments }: {
                   : receipt && <MoneyValue usd={receipt.pending.usd} amount={receipt.pending.amount} className="mt-1 text-sm" />}
               </div>}
               {requestedTopUp && <p className="mt-2">{t('project.receiptFlow.topUpNext')}</p>}
-              {!confirmed && !pending && t(scheduled === 0 ? 'project.review.freeStage' : 'project.review.receiptExpected')}
+              {!confirmed && !pending && (scheduled === 0 ? t('project.review.freeStage') : current ? t('project.review.receiptExpected') : null)}
             </div>}
           </div>
         </li>;

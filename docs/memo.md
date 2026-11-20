@@ -1,5 +1,7 @@
 # Session Memo — Bilingual Rollout, Docs & Vendor Correction
 
+> **Historical Session Memo (31 July 2026 · commit `647e228`):** Kept for provenance only — do not treat open items below as current action items. As of **20 Nov 2026**, the GHL iframe was replaced by the native bilingual `ContractorApplicationForm` (no French GHL form needed), the payout vendor is spelled **SwyChr** (`api/swychr/`), Stripe checkout is disabled (HTTP 410) in favour of free access + receipt-verified direct payments, and the app has grown to 91 routes and ~7,800 lines per i18n dictionary.
+
 **Date:** 31 July 2026
 **Branch:** `main` · **Baseline at session start:** `0ca1ebd` · **HEAD now:** `647e228`
 **State:** working tree clean, in sync with `origin/main`

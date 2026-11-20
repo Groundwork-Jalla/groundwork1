@@ -207,7 +207,11 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
           </select></label>
         : <p data-receipt-installment={installment.value}>{t('project.paymentPlan.receiptForInstallment', { n: installment.value })}{' '}
           <button type="button" className={link} onClick={() => setChoosing(stageId)}>{t('project.paymentPlan.changeInstallment')}</button></p>)}
-      <p className={context.progression_authorized && Number(context.remaining) > 0 ? 'font-semibold text-brand-green dark:text-[#b4d8bf]' : 'text-brand-mid-grey'}>{t(context.progression_authorized && Number(context.remaining) > 0 ? 'project.paymentPlan.balanceAuthorized' : 'project.paymentPlan.nextStageRule')}</p>
+      {(isContractor || (context.progression_authorized && Number(context.remaining) > 0)) && (
+        <p className={context.progression_authorized && Number(context.remaining) > 0 ? 'font-semibold text-brand-green dark:text-[#b4d8bf]' : 'text-brand-mid-grey'}>
+          {t(context.progression_authorized && Number(context.remaining) > 0 ? 'project.paymentPlan.balanceAuthorized' : 'project.paymentPlan.nextStageRule')}
+        </p>
+      )}
     </>}
     <ConfirmModal open={!!confirm} variant={clientPresentation && !isContractor ? 'client' : 'default'} title={t('project.paymentPlan.confirmTitle')} description={description} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={working} error={error} onConfirm={commit} onCancel={() => { if (!working) setConfirmation(null); }}/>
     {error && <p role="alert" className="text-state-alert">{error}</p>}

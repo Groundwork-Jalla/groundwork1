@@ -1,5 +1,11 @@
 # Groundwork communication and payment use cases
 
+> **Updates through 20 Nov 2026 (note: `communication-use-cases-2026-11-16.pdf` is from 16 Nov and needs regeneration):**
+> - **Day-0 Welcome & Project Activation emails** now send directly via Resend (`api/_lib/direct-lifecycle-email.ts`, `20261120000100`) even while `/admin/sequences` delayed reminders are paused (`delivery_enabled = false`); Step 2+ (24h) still follows the scheduler.
+> - **Two custom installments (PAY-2/5/6, §10) were retired** on 18 Nov (`20261118000200`) in favor of **substage price breakdowns & part-by-part payments** (`20261118000000`, `20261118000100`).
+> - **Carried-over excess payments (PAY-16/17)** now allocate automatically across subsequent substages (`20261120000000`) and trigger admin overpayment alerts; manual progression-with-balance / "Allow work" buttons were removed.
+> - **Contractor-recorded payments & Homeowner disputes** (`20261119000000`–`000100`) and **client-with-payments role lock** (`20261117000100`, ROLE-1/4) are now implemented.
+
 Prepared for review after the 15 November Product Session and updated for Philip’s 16 November contractor-connection correction. Date: 16 November 2026, Malaysia time. This describes the expected product behavior and a controlled test plan. It does not claim that every real email or WhatsApp message has been delivered.
 
 ## 1. What this framework does

@@ -1,6 +1,8 @@
 # Correction: false payment-confirmation emails
 
-**Status: DRAFT. Nothing has been sent. This is copy for review.**
+> **Historical Incident Record (26 Aug 2026 · Reviewed 20 Nov 2026):** The rogue GHL workflow (*Founding Member/Community Access Payment series*) was set to **Draft** on 26 Aug 2026, stopping all enrolments. Zero platform Stripe charges occurred (and Stripe subscription checkout has since been disabled platform-wide). **Action check for ops:** confirm whether the apology copy below was sent or formally closed out, then mark final closure date here.
+
+**Original Status (26 Aug 2026):** DRAFT — copy prepared for review.
 
 ## What happened
 

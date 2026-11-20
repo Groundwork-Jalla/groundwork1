@@ -173,16 +173,18 @@ export async function enrollForEvent(
       }
 
       const deliveredInvitation = !toInviter && fields.invitation_email_sent === true && ['CI01', 'IV01'].includes(first[0].code ?? '');
-      const alreadyDeliveredNext = deliveredInvitation ? nextDue(reminderSteps ?? [], first[0].position, now, s.followup_after_days, now) : null;
-      const nextPosition = deliveredInvitation ? (alreadyDeliveredNext && 'position' in alreadyDeliveredNext ? alreadyDeliveredNext.position : first[0].position + 1) : first[0].position;
+      const deliveredDirect = !toInviter && fields.initial_email_sent === true && ['CS01', 'CL01', 'CS09', 'CL05'].includes(first[0].code ?? '');
+      const deliveredInitial = deliveredInvitation || deliveredDirect;
+      const alreadyDeliveredNext = deliveredInitial ? nextDue(reminderSteps ?? [], first[0].position, now, s.followup_after_days, now) : null;
+      const nextPosition = deliveredInitial ? (alreadyDeliveredNext && 'position' in alreadyDeliveredNext ? alreadyDeliveredNext.position : first[0].position + 1) : first[0].position;
       const { error, data } = await svc.from('lifecycle_enrollments').upsert({
         sequence_key: s.key, email: target.email, full_name: target.fullName ?? null,
         phone: toInviter ? null : person.phone ?? null,
-        lang: pickLang(target.lang ?? person.lang), user_role: role || null, status: deliveredInvitation && !alreadyDeliveredNext ? 'completed' : 'active', next_position: nextPosition,
-        next_send_at: deliveredInvitation
+        lang: pickLang(target.lang ?? person.lang), user_role: role || null, status: deliveredInitial && !alreadyDeliveredNext ? 'completed' : 'active', next_position: nextPosition,
+        next_send_at: deliveredInitial
           ? (alreadyDeliveredNext && 'at' in alreadyDeliveredNext ? alreadyDeliveredNext.at : alreadyDeliveredNext && 'followupAt' in alreadyDeliveredNext ? alreadyDeliveredNext.followupAt : null)?.toISOString() ?? null
           : new Date(now.getTime() + first[0].delay_hours * HOUR).toISOString(),
-        ...(deliveredInvitation ? { last_sent_at: now.toISOString(), last_step_code: first[0].code, emails_sent: 1 } : {}),
+        ...(deliveredInitial ? { last_sent_at: now.toISOString(), last_step_code: first[0].code, emails_sent: 1 } : {}),
         enrolled_at: now.toISOString(),
         ref: (toInviter ? `${projectId}:${email}` : projectId) + (invitationPath && ['client_invited', 'contractor_invited'].includes(event) ? `:${invitationPath.split('/').pop()}` : ''),
         subject_email: toInviter ? email : null,
@@ -190,11 +192,11 @@ export async function enrollForEvent(
       }, { onConflict: 'sequence_key,email,ref', ignoreDuplicates: true }).select('id');
       if (!error && (data ?? []).length) {
         out.enrolled++;
-        if (deliveredInvitation) {
+        if (deliveredInitial) {
           const enrollmentId = data[0].id;
           const history = await svc.from('lifecycle_sends').insert({ enrollment_id: enrollmentId, sequence_key: s.key,
             position: first[0].position, email, channel: 'email', status: 'sent', step_code: first[0].code,
-            subject: strField(fields, 'invitation_email_subject') || copyFor(first[0], person.lang, person, context).subject });
+            subject: strField(fields, 'initial_email_subject') || strField(fields, 'invitation_email_subject') || copyFor(first[0], person.lang, person, context).subject });
           if (history.error) throw history.error;
 
         }
@@ -309,8 +311,8 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50, budgetMs = 
       const { subject, body, cta } = copyFor(step, enrollment.lang, person, context);
       const path = ctaPath(step.cta_key, context);
       const senderEmail=step.delay_hours===0?settings.sender_email:settings.followup_sender_email;
-      if (!senderEmail || !settings.reply_domain) {
-        await finish('failed', 'Sender and reply address are not configured'); tally.failed++; continue;
+      if (!senderEmail) {
+        await finish('failed', 'Sender address is not configured'); tally.failed++; continue;
       }
       const identity = await rpc(svc, 'ensure_lifecycle_communication', { p_enrollment: enrollment.id });
       const payload = composeCommunicationEmail({ to: enrollment.email, subject, body, lang: enrollment.lang,

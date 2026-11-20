@@ -1,17 +1,31 @@
 # Screen mockups
 
-The A/B design variants reviewed with Philip on 3 Aug 2026 and confirmed screen by
-screen with Favour on 9 Aug. Reference only — nothing here is imported by the app.
+*Updated: 20 Nov 2026*
 
-| File | Screens |
+Reference mockups — nothing in this folder is imported by the app.
+
+## Active November 2026 mockup sets
+
+| Directory | Focus |
 |---|---|
-| `client-dashboard-mockups.jsx` | Dashboard, My Projects, Project Overview, Stages, Budget |
-| `payment-screen-mockups.jsx` | Upgrade Plan, Milestone Pay, Payment History, Payout Status, Escrow Wallet |
-| `app-screens-part1.jsx` | Timeline, Documents, Messages, Notifications, Resources |
-| `app-screens-part2.jsx` | Settings, Contractors, Pre-Tracking, Contractor Profile, Help Centre |
+| `2026-11-15-ui-concepts/` | High-level visual & layout concepts (Option 1 design, screen coverage, implementation notes) |
+| `2026-11-18-admin-screens/` | Admin portal screen redesigns (Overview, Workspace tabs, Finance, People, Inbox) |
+| `2026-11-18-admin-whatsapp/` | Admin WhatsApp messaging & CRM views |
+| `2026-11-18-contractor-project/` | Contractor `/work/projects/:id` stage, payment verification & substage views |
+| `2026-11-18-payment-history/` | Homeowner & contractor direct-payment receipt history views |
 
-**Which variant won, and with what modifiers, is in [`../SCREEN-DESIGNS.md`](../SCREEN-DESIGNS.md)** —
-read that first. These files are the visual source; that file is the decision record.
+## Original August 2026 A/B mockups (baseline reference)
+
+Reviewed with Philip on 3 Aug 2026 and confirmed screen by screen with Favour on 9 Aug:
+
+| File | Screens | Status (Nov 2026) |
+|---|---|---|
+| `client-dashboard-mockups.jsx` | Dashboard, My Projects, Project Overview, Stages, Budget | Implemented (project cap removed; direct receipt payments) |
+| `payment-screen-mockups.jsx` | Upgrade Plan, Milestone Pay, Payment History, Payout Status, Escrow Wallet | **Superseded** — free access, Stripe checkout disabled (410), Escrow Wallet removed; see `2026-11-18-payment-history/` |
+| `app-screens-part1.jsx` | Timeline, Documents, Messages, Notifications, Resources | Implemented (Documents unified across Homeowner/Contractor) |
+| `app-screens-part2.jsx` | Settings, Contractors, Pre-Tracking, Contractor Profile, Help Centre | Implemented (Contractor Directory staff-locked Nov 9; Subscription tab removed) |
+
+**Which variant won, and current superseding rules, are in [`../SCREEN-DESIGNS.md`](../SCREEN-DESIGNS.md)** — read that first.
 
 Two things in the mockups are deliberately NOT carried into the app, and the
 decision record explains why:

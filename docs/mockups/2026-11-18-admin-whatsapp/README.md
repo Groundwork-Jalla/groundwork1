@@ -1,6 +1,8 @@
 # Admin WhatsApp, redesigned as a CRM (18 Nov 2026)
 
-Design concept only, nothing built. Illustrative data. Light theme, real tokens; WhatsApp keeps
+> **Implementation Status (20 Nov 2026):** The **dropdown sidebar and `?channel=` exact active highlight fix** described below **have shipped** (`src/components/shell/nav-groups.ts`, `AppSidebar.tsx`). The **WhatsApp CRM UI itself** (per-person side pane, unread/needs-reply filters, template composer, 24h window indicator, calling UI) is **not yet built** (and browser WhatsApp calling requires Meta's WhatsApp Business Calling API).
+
+Original design concept (18 Nov 2026, illustrative data). Light theme, real tokens; WhatsApp keeps
 its brand green (#25D366).
 
 | Screen | Desktop (1440 × 900 @2x) | Phone (390 × 844 @3x) |

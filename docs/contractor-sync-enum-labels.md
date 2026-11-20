@@ -1,5 +1,8 @@
 # Task: map contractor form enums to display labels before syncing to GoHighLevel
 
+> **Status Update (20 Nov 2026): MOSTLY SHIPPED.** Display-label mapping (`role` / `other`, `years_experience`, `concurrent_projects`, `operates_as`, `team_size`, `project_types`, plus `tidyRegions()`) shipped in `api/ghl/_contractor-payload.ts` and the DB `role_other` CHECK shipped in `081_role_other_required.sql`.
+> **Remaining:** (1) `regions` in `ContractorApplicationForm.tsx` is still a free-text `<Textarea>` (normalized on sync by `tidyRegions()`, not yet a multi-select); (2) confirm whether the 650-contact GHL backfill script was executed in Production.
+
 ## Problem
 
 Contractor applications submitted on the website are synced into GoHighLevel (GHL)

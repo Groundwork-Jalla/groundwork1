@@ -1,5 +1,23 @@
 # Screen design decisions
 
+*Originally confirmed 9 Aug 2026 · Updated 20 Nov 2026*
+
+## Superseding Decisions (September – November 2026)
+
+Several August 2026 decisions below have since been superseded by the free-access, direct-payment product model and dedicated role portals:
+
+- **Free access & retired payment screens (Nov 2026):** The 3-project cap (`167_no_project_creation_cap.sql`), `/upgrade`, `/pricing`, `/payments`, `UpgradeScreen`, `EscrowWallet`, and Stripe subscription checkouts (HTTP 410) have been **removed/disabled**. Project payments now use direct Homeowner-to-contractor payments with receipt upload, automated OCR reading, contractor verification, substage pricing, and automatic overpayment carryover (`StagePaymentGate`, `StagePaymentPlanPanel`, `StageBreakdownPanel`, `ContractorPaymentVerificationBar`, `ProjectPaymentHistory`).
+- **Contractor Directory locked to staff (`20261109000000`):** Removed from the client sidebar; contractor matching is handled by Groundwork staff until the vetted roster opens.
+- **Additional role shells added:** Beyond `AppShell` (`_layout.tsx`, `admin/_admin-layout.tsx`) and `SiteNav` (`_public-layout.tsx`, `tools/_tools-layout.tsx`), dedicated shells now cover **Contractors** (`work/_layout.tsx` / `WorkShell`) and **Verifiers** (`verifiers/_layout.tsx`).
+- **Cross-project messaging:** `/messages` exists for client cross-project threads (hidden from sidebar Nov 9 in favour of in-project Messages), and `/admin/inbox` provides the staff unified inbox.
+- **Documents unified:** `ClientDocuments` now shares the contractor document structure (The build, Site updates, Certificates) plus Payment History.
+- **Terminology & brand rules (Nov 2026):** Capitalize `Homeowner` in English (`propriétaire` lowercase in French); never imply Groundwork holds or releases funds; use `Groundwork` consistently in project UI and Messages (reserve `Jalla` for formal brand/plan names). *Note: `src/app/routes/help.tsx` still has a legacy FAQ mentioning Stripe and a Pricing/Payments tab that needs cleanup.*
+- **Newer mockups:** See `docs/mockups/2026-11-15-ui-concepts/` and `docs/mockups/2026-11-18-*/`.
+
+---
+
+## Original August 2026 A/B Decisions (Baseline Reference)
+
 Which mockup variant each screen implements, confirmed by Favour on 9 Aug 2026.
 Source mockups: `payment-screens.html`, `client-dashboard-screens.html`,
 `app-screens-part1.html`, `app-screens-part2.html` (A/B variants of each screen).

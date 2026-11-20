@@ -512,9 +512,6 @@ export default function ProjectDetail() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black dark:text-white">
-                {t('project.review.clientApproval')}
-              </div>
               {stages.length > 0 && (
                 <span className="text-[10px] text-brand-mid-grey tabular-nums">
                   {t('project.header.percentComplete', { pct: completedPct })}
@@ -558,7 +555,6 @@ export default function ProjectDetail() {
                 <div className="px-6 sm:px-8 py-5 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.managedEstimate')}</p>
-                    <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.gate.managedNote')}</p>
                   </div>
                   <ManagedEstimate usd={project.budget_usd} />
                 </div>
@@ -693,14 +689,12 @@ export default function ProjectDetail() {
                 canUpload={isOwner || isContractor}
               />
               {/* Financial records under Documents (17 Nov session): the receipts live
-                  on their stages, and this is where a homeowner looks for paperwork. */}
-              <section aria-labelledby="financial-records-title" className="mt-8 space-y-2">
-                <h2 id="financial-records-title" className="text-base font-semibold text-brand-near-black dark:text-white">{t('project.clientUi.financialRecords')}</h2>
-                <p className="text-xs leading-relaxed text-brand-mid-grey">{t('project.clientUi.financialRecordsHelp')}</p>
+                  on their stages, and this is where a Homeowner looks for paperwork. */}
+              <div className="mt-8">
                 <ProjectPaymentHistory stagePayments={payments} projectCurrency={projectMoneyBasis(project).code} audience="client" titleId="documents-payment-history-title"
                   stages={stages} substages={substages} onOpenStage={openStage} canReplace={teamAccess?.primaryClient === true}
                   stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} />
-              </section>
+              </div>
 
             </div>
           )}

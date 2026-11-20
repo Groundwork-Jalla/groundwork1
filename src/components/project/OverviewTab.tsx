@@ -353,17 +353,6 @@ export default function OverviewTab({
           {/* Weather */}
           <WeatherWidget countryCode={project.country} city={project.city} />
 
-          {/* Days active + location */}
-          <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3 flex items-center gap-3">
-            <Clock className="size-4 text-brand-mid-grey shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-brand-near-black dark:text-white tabular-nums">{t('project.overview.daysActiveCount', { count: daysActive })}</p>
-              <p className="text-[10px] text-brand-mid-grey">
-                {t('project.overview.since', { date: new Date(project.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })}
-              </p>
-            </div>
-          </div>
-
           {/* Predicted timeline */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-2">{t('project.overview.predictedTimeline')}</p>

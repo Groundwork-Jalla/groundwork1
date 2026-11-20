@@ -1,12 +1,10 @@
 # Go High Level — setup, step by step
 
-> **Activation migration — 13 November 2026:** Groundwork now owns signup,
-> onboarding, project and invitation reminders. Use
-> [Groundwork communications](groundwork-communications.md) for those journeys.
-> The legacy lifecycle webhook described below can also carry application
-> decisions and subscription changes. Inspect those branches before retiring an
-> existing **Groundwork Lifecycle Events** workflow; preserve application and
-> billing paths. Its old activation reminders should not be enabled again.
+> **Activation & WhatsApp migration — Updated 20 Nov 2026:**
+> - **Day-0 Welcome & Project Activation emails** now send **directly via Resend** (`api/_lib/direct-lifecycle-email.ts`, `20261120000100`) with zero GHL dependency.
+> - **Delayed activation reminders (Day 1 / 3 / 7)** are owned by Groundwork (`/admin/sequences`; see [Groundwork communications](groundwork-communications.md)).
+> - **WhatsApp** is now integrated directly via Meta WhatsApp Cloud API ([`docs/meta-whatsapp-setup.md`](meta-whatsapp-setup.md)), superseding Step 7 below for new lifecycle outreach (note: Admin Inbox `conversation-deliver.ts` still routes replies via GHL until consolidated).
+> - **Open ops checks:** (1) Inspect and retire activation reminder branches inside GHL's **Groundwork Lifecycle Events** workflow while preserving `application_decision` and `subscription_changed`; (2) rotate/verify the GHL PIT in `/admin/crm` (last probe returned HTTP 401).
 
 The code is finished. Nothing here is engineering: every step is either a value pasted
 into Supabase or a thing built inside the GHL console.

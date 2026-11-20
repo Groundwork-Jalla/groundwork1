@@ -220,8 +220,7 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
       {list}
       {overview.stages.length > 0 && <section aria-labelledby={`${titleId}-by-stage`} className={`${card} h-fit min-w-0`}>
-        <h3 id={`${titleId}-by-stage`} className="px-4 pt-4 text-sm font-semibold text-brand-near-black dark:text-white">{t('project.historyView.byStage')}</h3>
-        {client ? <p className="px-4 pb-3 pt-1 text-xs leading-relaxed text-brand-mid-grey">{t('project.historyView.byStageHelp')}</p> : <div className="pb-2" />}
+        <h3 id={`${titleId}-by-stage`} className="px-4 pb-2 pt-4 text-sm font-semibold text-brand-near-black dark:text-white">{t('project.historyView.byStage')}</h3>
         <ul>
           {overview.stages.map(stage => {
             const tone = STANDING_TONE[stage.standing];

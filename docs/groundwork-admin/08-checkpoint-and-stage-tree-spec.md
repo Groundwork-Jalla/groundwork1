@@ -1,9 +1,7 @@
 # Checkpoint model and canonical stage tree
 *2 Oct 2026 · specification only · no code, no migration, no seed edits, no budget changes*
 
-> **Status: for approval.** Nothing here is implemented. 104 (production reconciliation)
-> proceeds independently; 105+ (checkpoint architecture) waits on this document being
-> approved and on the §7 production inventory being run.
+> **Status (Reviewed 20 Nov 2026): STILL UNIMPLEMENTED.** `src/lib/supabase/stage-seeds.ts` still seeds the old construction order (`backfill` before footings/beams, plaster/tiles inside Structure). Note two changes since 2 Oct: (1) migration numbers `105`/`106` are now taken (`105_verifier_invites.sql`, `106_contractor_self_registration.sql`) — use timestamped migrations; (2) checkpoint verification gating is paused while free mode (`20261109001000_remove_verification_gates.sql`) sets `verification_required = false`, though fixing Tree 1 (`stage-seeds.ts` order) remains an open data-integrity decision.
 >
 > **Authority rule.** Sep 13 "Verifier Logic and Standards" is treated as authoritative
 > only where it states a decision explicitly. Where it is silent, ambiguous or

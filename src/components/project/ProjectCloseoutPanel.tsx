@@ -74,7 +74,7 @@ export function ProjectCloseoutPanel({ projectId, refreshKey, onViewStage, onClo
     <section aria-labelledby="closeout-title" data-closeout={owed ? 'owed' : waiting ? 'waiting' : 'ready'}
       className="space-y-3 rounded-2xl border border-brand-border-grey bg-white p-5 text-sm dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <h3 id="closeout-title" className="text-base font-bold text-brand-near-black">{t('project.closeout.title')}</h3>
-      <p className="text-brand-mid-grey">{t(owed ? 'project.closeout.owedIntro' : waiting ? 'project.closeout.waitingIntro' : 'project.closeout.readyIntro')}</p>
+      <p className="text-brand-mid-grey">{t(owed ? 'project.closeout.owedIntro' : waiting ? 'project.closeout.waitingIntro' : 'project.closeout.readyIntro', { count: data.pending_receipts })}</p>
 
       {owed && (
         <>
@@ -92,8 +92,6 @@ export function ProjectCloseoutPanel({ projectId, refreshKey, onViewStage, onClo
           </ul>
         </>
       )}
-      {waiting && <p role="status">{t('project.closeout.pending', { count: data.pending_receipts })}</p>}
-
       {data.can_close
         ? <button type="button" disabled={working} onClick={() => { setError(null); setConfirming(true); }}
             className="min-h-11 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover disabled:opacity-50">{t('project.closeout.close')}</button>

@@ -1,6 +1,10 @@
 # Automatic agent requests — what to configure
 
-A request filed at `/admin/requests` now produces itself:
+*Originally written 31 Aug 2026 · Updated 20 Nov 2026*
+
+> **Current Status (20 Nov 2026):** `ANTHROPIC_API_KEY` is still unconfigured, so automated GitHub Actions production remains **dormant** (the 15-minute cron exits 0 safely). Email notifications on new requests run directly from Postgres (`059_notify_direct.sql`). Note that `scripts/agent-produce.mjs` and `.github/workflows/agent-request.yml` have not been updated since late Aug 2026 and will need a quick verification pass against the current Nov 2026 wizard (Steps 6 & 10 removed; city & currency steps added) before enabling automatic runs.
+
+A request filed at `/admin/requests` is designed to produce itself:
 
 ```
 /admin/requests  →  agent_requests INSERT
@@ -36,13 +40,9 @@ Every filed request emails whoever is set as `notify_email` with the whole brief
 command to produce it. **The database sends this itself**, calling Resend directly from
 the `agent_requests` insert trigger. It does not touch Vercel, GitHub or Anthropic.
 
-That was not the original design. It routed through `/api/agent-dispatch` on Vercel with
-a shared secret, which failed for two reasons worth recording:
+That was not the original design. It originally routed through `/api/agent-dispatch` on Vercel with a shared secret (when the project was still on Vercel Hobby, before upgrading to **Vercel Pro**), and the apex domain **308-redirects to `www`**, which `pg_net` does not follow.
 
-- **Vercel would not take more environment variables** on the free plan, so the shared
-  secret had nowhere to live.
-- The apex domain **308-redirects to `www`**, and `pg_net` does not follow redirects —
-  so the original URL would have swallowed every notification silently.
+> **Avoid duplicate emails:** `059_notify_direct.sql` already emails `notify_email` directly from Postgres on `agent_requests` insert. If you later enable `agent_dispatch_url` for GitHub Actions, verify `api/agent-dispatch.ts` does not send a second Resend email for the same row.
 
 Cutting the hop removed both problems and a redeploy step. Settings live in `app_config`
 (058), which has RLS on and no policies, so only `SECURITY DEFINER` functions can read
@@ -127,18 +127,9 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
 **`www`, not the apex** — `tryjalla.com` 308s to `www.tryjalla.com` and `pg_net` does not
 follow redirects.
 
-## 4. The recording account — do this, or the automation dies
+## 4. The recording account (cleanup note)
 
-`GW_REC_EMAIL` **must not be on the free plan.** Any run that films project creation
-consumes a project slot permanently: archived projects count toward the cap and owner
-deletion was removed in migration 053. A free account is finished after three runs.
-
-```sql
-UPDATE public.projects SET tier = 'jalla_management' WHERE user_id = '<recording-uid>';
-```
-
-The planner is told to prefer `wizard_preview`, which creates nothing, unless the brief
-genuinely needs project creation on screen. That is a preference, not a guarantee.
+Migration `167_no_project_creation_cap.sql` (28 Oct 2026) removed the 3-project free-plan cap, so `GW_REC_EMAIL` is no longer blocked after three runs. However, owner project deletion remains disabled (`053`), so prefer `wizard_preview` (which creates no DB rows) unless a brief genuinely needs live project creation on screen.
 
 ---
 

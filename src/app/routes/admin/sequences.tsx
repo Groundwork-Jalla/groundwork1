@@ -42,6 +42,11 @@ interface Enrollment {
   next_send_at: string | null; last_sent_at: string | null; last_step_code: string | null; emails_sent: number;
   context: { project_name?: string } | null;
 }
+interface SuppressedEnrollment {
+  id: string; sequence_key: string; email: string; full_name: string | null;
+  status: string; exit_reason: string | null; enrolled_at: string;
+  context: { project_name?: string } | null;
+}
 
 type Tab = 'attention' | 'tracking' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings' | 'whatsapp';
 
@@ -75,6 +80,8 @@ export default function AdminSequences() {
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [sends, setSends] = useState<SendRow[]>([]);
   const [waiting, setWaiting] = useState<Enrollment[]>([]);
+  const [pendingFirst, setPendingFirst] = useState<Enrollment[]>([]);
+  const [suppressed, setSuppressed] = useState<SuppressedEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -86,16 +93,17 @@ export default function AdminSequences() {
 
   const load = useCallback(async () => {
     const revision=stepRevision.current;
-    const [s, st, en, fu, lg, settings, runs] = await Promise.all([
+    const [s, st, en, sup, fu, lg, settings, runs] = await Promise.all([
       supabase.from('lifecycle_sequences').select('*').order('name'),
       supabase.from('lifecycle_sequence_steps').select('*').order('position'),
       supabase.from('lifecycle_enrollments').select('id, sequence_key, email, full_name, phone, next_send_at, last_sent_at, last_step_code, emails_sent, context').eq('status', 'active').limit(1000),
+      supabase.from('lifecycle_enrollments').select('id, sequence_key, email, full_name, status, exit_reason, enrolled_at, context').eq('status', 'suppressed').order('enrolled_at', { ascending: false }).limit(100),
       supabase.from('followup_queue').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('lifecycle_sends').select('*').order('sent_at', { ascending: false }).limit(300),
       supabase.from('communication_settings').select('delivery_enabled,next_contact_hours').eq('id',true).single(),
       supabase.from('communication_runs').select('started_at,status').order('started_at',{ascending:false}).limit(1),
     ]);
-    const failed = [s, st, en, fu, lg, settings, runs].find(r => r.error);
+    const failed = [s, st, en, sup, fu, lg, settings, runs].find(r => r.error);
     if (failed?.error) { setError(failed.error.message); return; }
     setSeqs((s.data ?? []) as Sequence[]);
     if(revision===stepRevision.current)setSteps(((st.data??[]) as Step[]).map(step=>({...step,...stepDrafts.current.get(step.id)})));
@@ -104,6 +112,8 @@ export default function AdminSequences() {
     for (const r of active) c[r.sequence_key] = (c[r.sequence_key] ?? 0) + 1;
     setCounts(c);
     setWaiting(active.filter(r => r.emails_sent > 0).sort((a, b) => String(a.last_sent_at).localeCompare(String(b.last_sent_at))));
+    setPendingFirst(active.filter(r => r.emails_sent === 0).sort((a, b) => String(a.next_send_at ?? '').localeCompare(String(b.next_send_at ?? ''))));
+    setSuppressed((sup.data ?? []) as SuppressedEnrollment[]);
     setFollowups((fu.data ?? []) as Followup[]);
     setSends((lg.data ?? []) as SendRow[]);
     setDeliveryEnabled(settings.data?.delivery_enabled===true);setLastRun(runs.data?.[0]??null);
@@ -361,6 +371,62 @@ export default function AdminSequences() {
               </table>
             </div>
           </section>
+
+          {(pendingFirst.length > 0 || suppressed.length > 0) && (
+            <details className="rounded-2xl border border-brand-border-grey bg-white p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-brand-near-black">
+                Held &amp; suppressed enrollments · {pendingFirst.length} queued, {suppressed.length} suppressed
+              </summary>
+              <p className="mt-1 text-xs text-brand-mid-grey">
+                Enrollments waiting for their first automated reminder (or held while delivery is paused / filtered) and enrollments suppressed by lifecycle rules.
+              </p>
+
+              {pendingFirst.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase text-brand-mid-grey">Queued / held (0 sent) · {pendingFirst.length}</h3>
+                  <div className="overflow-x-auto rounded-xl border border-brand-border-grey">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-gray-50 uppercase text-brand-mid-grey">
+                        <tr><th className="p-2.5">Who</th><th className="p-2.5">Sequence</th><th className="p-2.5">Next scheduled</th></tr>
+                      </thead>
+                      <tbody>
+                        {pendingFirst.map(row => (
+                          <tr key={row.id} className="border-t border-brand-border-grey">
+                            <td className="p-2.5">{row.full_name ? `${row.full_name} (${row.email})` : row.email}{row.context?.project_name ? ` · ${row.context.project_name}` : ''}</td>
+                            <td className="p-2.5">{seqByKey.get(row.sequence_key)?.name ?? row.sequence_key}</td>
+                            <td className="p-2.5 text-brand-mid-grey">{until(row.next_send_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {suppressed.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase text-brand-mid-grey">Suppressed · {suppressed.length}</h3>
+                  <div className="overflow-x-auto rounded-xl border border-brand-border-grey">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-gray-50 uppercase text-brand-mid-grey">
+                        <tr><th className="p-2.5">Who</th><th className="p-2.5">Sequence</th><th className="p-2.5">Reason</th><th className="p-2.5">Enrolled</th></tr>
+                      </thead>
+                      <tbody>
+                        {suppressed.map(row => (
+                          <tr key={row.id} className="border-t border-brand-border-grey">
+                            <td className="p-2.5">{row.full_name ? `${row.full_name} (${row.email})` : row.email}{row.context?.project_name ? ` · ${row.context.project_name}` : ''}</td>
+                            <td className="p-2.5">{seqByKey.get(row.sequence_key)?.name ?? row.sequence_key}</td>
+                            <td className="p-2.5 font-medium text-amber-800">{(row.exit_reason ?? 'suppressed').replace(/_/g, ' ')}</td>
+                            <td className="p-2.5 text-brand-mid-grey">{ago(row.enrolled_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </details>
+          )}
         </div>
       )}
 

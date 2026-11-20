@@ -65,7 +65,7 @@ describe('closing out a project', () => {
 
   it('names the stage and the amount still owed, and offers no way to close', async () => {
     const view = await load(owed);
-    expect(text(view)).toContain('The project stays open until the amounts below are paid and confirmed.');
+    expect(text(view)).toContain('All stages complete. Pay the amounts below to close the project.');
     expect(text(view)).toContain('Still to pay: 48,000 XAF');
     expect(text(view)).toContain('Stage 4 name');
     expect(button(view, 'Close project')).toBeUndefined();
@@ -75,15 +75,14 @@ describe('closing out a project', () => {
 
   it('holds the project open for a receipt the contractor has not decided', async () => {
     const view = await load({ ...settled, pending_receipts: 2, can_close: false });
-    expect(text(view)).toContain('A payment receipt is still waiting for the contractor');
-    expect(text(view)).toContain('Receipts waiting for the contractor: 2');
+    expect(text(view)).toContain('All stages complete. Waiting for the contractor to confirm 2 receipt(s).');
     expect(button(view, 'Close project')).toBeUndefined();
   });
 
   it('tells somebody who cannot close it who can', async () => {
     const view = await load({ ...settled, can_close: false });
     expect(button(view, 'Close project')).toBeUndefined();
-    expect(text(view)).toContain('The Homeowner, the primary contractor or Jalla can close this project.');
+    expect(text(view)).toContain('The Homeowner, the main contractor or Groundwork can close this project.');
   });
 
   it('closes a settled project only after an explicit confirmation', async () => {
@@ -91,7 +90,7 @@ describe('closing out a project', () => {
     button(await load(settled), 'Close project')!.props.onClick();
     expect(h.close).not.toHaveBeenCalled();
     const modal = render().find(node => node.type === ConfirmModal && node.props.open)!;
-    expect(modal.props.description).toContain('no further work, receipts or payment decisions can be added');
+    expect(modal.props.description).toContain('After closing, no more work, receipts or payment decisions can be added.');
     modal.props.onConfirm(); await flush();
     expect(h.close).toHaveBeenCalledWith('project');
     expect(h.closed).toHaveBeenCalledTimes(1);

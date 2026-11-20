@@ -1,5 +1,7 @@
 # Groundwork — screenshots and video for Philip
 
+> **Historical Media Snapshot (23 Sep 2026 · Reviewed 20 Nov 2026):** Kept for reference; several screens shown here have since changed significantly: (1) a dedicated Verifier portal (`/verifiers/*`, `/verifier-signup`) now exists; (2) the Contractor portal moved to `/work/*`; (3) Plan Selection was removed from the wizard, verification gates are paused in free mode (`20261109001000`), and project payments now use direct receipt verification, substage breakdowns, and automatic carryover.
+
 Prepared 23 September 2026. Everything here is the **real Groundwork interface**, captured
 from the running application — no mockups, no redrawn screens.
 

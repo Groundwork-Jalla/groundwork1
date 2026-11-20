@@ -55,8 +55,30 @@ describe('canonical stage model', () => {
   });
 
   it('has exactly 60 substages, in the approved per-stage counts', () => {
-    expect(BASE.map(s => s.substages.length)).toEqual([5, 5, 5, 7, 8, 4, 10, 8, 5, 3]);
+    expect(BASE.map(s => s.substages.length)).toEqual([5, 5, 5, 7, 5, 4, 10, 11, 5, 3]);
     expect(BASE.reduce((n, s) => n + s.substages.length, 0)).toBe(60);
+  });
+
+  it('keeps physical construction sequence: backfill after foundation beams, plaster and tiles in finishing', () => {
+    const foundationKeys = BASE.find(s => s.key === 'foundation')!.substages.map(x => x.key);
+    expect(foundationKeys.indexOf('backfill')).toBeGreaterThan(
+      foundationKeys.indexOf('foundationPillarsBeams'),
+    );
+    expect(foundationKeys.indexOf('backfill')).toBeLessThan(
+      foundationKeys.indexOf('foundationFloorSlab'),
+    );
+
+    const structureKeys = BASE.find(s => s.key === 'structureWalls')!.substages.map(x => x.key);
+    const finishingKeys = BASE.find(s => s.key === 'finishing')!.substages.map(x => x.key);
+    for (const key of ['internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster']) {
+      expect(structureKeys).not.toContain(key);
+      expect(finishingKeys).toContain(key);
+    }
+    expect(finishingKeys.slice(0, 3)).toEqual([
+      'internalExternalPlastering',
+      'mortarFlooringTiles',
+      'wallTilesDecorativePlaster',
+    ]);
   });
 
   it('gives every stage and substage a unique, non-empty key', () => {

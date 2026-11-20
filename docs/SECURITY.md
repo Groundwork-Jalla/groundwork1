@@ -1,5 +1,7 @@
 # Account security — what is in the code, and what you must switch on
 
+> **Update (20 Nov 2026):** In addition to TOTP 2FA below, **email-based 2FA** (`080_email_second_factor.sql`, `api/_handlers/mfa-email.ts`, `src/lib/auth/email-otp.ts`) has also shipped. **Important caveat for §4:** neither TOTP nor email 2FA currently enforces `aal2` in Postgres RLS policies (and custom email OTP does not raise Supabase's JWT `aal`). Confirm the Supabase Dashboard toggles in §§1–3 (10-char password minimum, TOTP enabled, HaveIBeenPwned leaked-password protection) are switched on in Production.
+
 Four things shipped together: a password strength meter, one password policy enforced
 everywhere, TOTP two-factor authentication, and fixes to a password reset flow that was
 broken in two places.

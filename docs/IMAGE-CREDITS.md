@@ -1,12 +1,14 @@
 # Image credits
 
+*Verified: 20 Nov 2026*
+
 Attribution for third-party photography shipped in this repo.
 
 ## None currently
 
-The wizard preview panel (steps 2, 3 and 7) no longer uses photography. It draws
+The wizard preview panel (project type, building type, and roof type steps) no longer uses photography. It draws
 architectural sketches instead — `src/components/wizard/blueprints/`, one per
-selectable project type, building type and roof covering.
+selectable project type, building type and roof covering. First-party Groundwork brand/UI preview PNGs live in `public/brand/` and `public/logo-*.png`.
 
 That removed the two problems the photographs kept producing:
 

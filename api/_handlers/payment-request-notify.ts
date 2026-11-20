@@ -1,10 +1,12 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { sendViaResend } from '../_lib/resend-send.js';
 import { sendWhatsApp } from '../_lib/whatsapp-send.js';
+import { logEmailToCrm } from '../ghl/_email-log.js';
 import { senderFor } from '../../src/lib/email/senders.js';
+import { siteUrl } from '../../src/lib/site-url.js';
 
 const FROM = senderFor('other');
-const SITE = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://tryjalla.com').replace(/\/+$/, '');
+const SITE = siteUrl();
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -162,5 +164,8 @@ export async function handler(req: any, res: any) {
     : Promise.resolve({ ok: false, skipped: 'no_phone' });
 
   const [emailResult, whatsappResult] = await Promise.all([emailPromise, whatsappPromise]);
+  if (emailResult.ok && email) {
+    await logEmailToCrm({ to: email, subject, html, kind: 'stage_update', name: (homeowner.full_name as string | null) ?? null, from: FROM });
+  }
   res.status(200).json({ ok: true, email: emailResult.ok, whatsapp: whatsappResult.ok });
 }

@@ -231,7 +231,6 @@ function StageDetail({
           <h2 className={clientPresentation ? 'text-xl font-bold tracking-tight text-brand-near-black sm:text-2xl' : 'text-sm font-semibold text-brand-near-black leading-snug'}>
             {stageLabel(stage)}
           </h2>
-          {clientPresentation && <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.clientUi.workAndPayment')}</p>}
           {clientPresentation && <div className="mt-3 flex items-center gap-2 text-xs font-medium text-brand-mid-grey"><span className={cn('size-1.5 shrink-0 rounded-full', stage.status === 'complete' || stage.review_payment_pending ? 'bg-brand-green' : 'bg-brand-mid-grey')} aria-hidden />{t(stage.status === 'complete' || stage.review_payment_pending ? 'project.clientUi.workApproved' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.clientUi.workInProgress')}</div>}
         </div>
         <div className={cn('mt-0.5', clientPresentation ? 'min-w-0 rounded-lg bg-brand-off-white px-4 py-3 sm:max-w-[45%]' : 'flex shrink-0 items-center gap-2')}>

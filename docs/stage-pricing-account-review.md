@@ -1,5 +1,7 @@
 # Stage pricing and account corrections: review follow-up
 
+> **Update (20 Nov 2026):** Three updates since 13 Nov: (1) **custom substages & part-by-part pricing** shipped on 18 Nov (`20261118000000_substage_price_breakdown.sql`, `20261118000100_substage_payments.sql`); (2) **price-change reasons are now mandatory** (`20261118000300_price_change_needs_reason.sql`); (3) **clients with recorded payments can no longer be switched to a contractor role** (`20261117000100_client_with_payments_stays_client.sql`).
+
 The supplied meeting notes are review material. The user clarified the pricing
 decision directly: **a stage-price change may increase or reduce the project total
 after client approval**. The implementation follows that decision.

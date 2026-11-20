@@ -445,7 +445,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       if (hasStorageLimit) {
         const used = storageUsed ?? await getProjectStorageUsed(supabase, projectId);
         if (used + file.size > storageLimit) {
-          setUploadError(`Storage limit reached (${formatBytes(storageLimit)} for Self Verify). Upgrade to Jalla Verify for unlimited storage.`);
+          setUploadError(t('project.documents.storageFull'));
           return;
         }
       }

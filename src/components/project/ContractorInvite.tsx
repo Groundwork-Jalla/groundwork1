@@ -184,9 +184,11 @@ export function ContractorInvite({
         <HardHat className="size-4 shrink-0" aria-hidden />
         {t(additional ? 'projectLinks.additionalContractorTitle' : contractorChosen ? 'teamAccess.contractorTitle' : 'inviteUi.title')}
       </h3>
-      <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
-        {t(access?.needsPrimaryReview ? 'teamAccess.needsReview' : additional ? 'projectLinks.additionalContractorHelp' : contractorChosen ? 'teamAccess.contractorAssigned' : 'inviteUi.body')}
-      </p>
+      {(access?.needsPrimaryReview || (contractorChosen && !additional)) && (
+        <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
+          {t(access?.needsPrimaryReview ? 'teamAccess.needsReview' : 'teamAccess.contractorAssigned')}
+        </p>
+      )}
 
       {!access && <p className="mt-3 text-xs text-brand-mid-grey">{t(accessError ? 'teamAccess.loadFailed' : 'common.loading')}</p>}
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}

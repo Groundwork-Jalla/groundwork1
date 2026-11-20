@@ -229,7 +229,6 @@ export function SubstageRow({
         <div className="space-y-3">
           <EvidenceThumbs paths={substage.evidence_urls.slice(0, 3)} size="review" />
           <h3 className="text-base font-semibold text-brand-near-black">{substageLabel(substage)}</h3>
-          {approvalContext.lastUpdate && <p className="text-sm text-brand-mid-grey">{t('project.clientUi.approveLastUpdate')}</p>}
         </div>
       </ConfirmModal>}
     </div>

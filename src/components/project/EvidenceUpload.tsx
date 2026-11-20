@@ -202,9 +202,7 @@ export function EvidenceUpload({
         const used = storageUsed ?? await getProjectStorageUsed(supabase, projectId);
         const totalFileSize = validFiles.reduce((sum, f) => sum + f.size, 0);
         if (used + totalFileSize > storageLimit) {
-          setGlobalError(
-            `Storage limit reached (${formatBytes(storageLimit)} for Self Verify). Upgrade to Jalla Verify for unlimited storage.`
-          );
+          setGlobalError(t('project.documents.storageFull'));
           return;
         }
       }
@@ -612,9 +610,9 @@ export function EvidenceUpload({
       <ConfirmModal
         open={deleteTarget !== null}
         title={t('evidence.removeTitle')}
-        description="This will remove the file reference from this substage. The action cannot be undone."
-        confirmLabel="Remove"
-        cancelLabel="Keep"
+        description={t('evidence.removeBody')}
+        confirmLabel={t('evidence.removeConfirm')}
+        cancelLabel={t('evidence.removeKeep')}
         destructive
         loading={deleting}
         onConfirm={handleDeleteConfirm}

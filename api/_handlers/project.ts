@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
+import { sendDirectProjectActivationEmail } from '../_lib/direct-lifecycle-email.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { routingFields } from '../ghl/_routing-fields.js';
 
@@ -75,6 +76,20 @@ export async function handler(req: any, res: any) {
   const { data: ownerRoles } = await admin.from('user_roles').select('role').eq('user_id', project.user_id as string);
   const ownerRole = project.workflow_origin==='contractor'?'contractor':project.workflow_origin==='client'?'client':(ownerRoles ?? []).some(r => r.role === 'contractor') ? 'contractor' : 'client';
 
+  // ── Direct transactional Project Activation email via Resend (GHL-independent) ───────
+  // Delivered immediately regardless of GHL status or the delayed reminder switch.
+  // Handed off to `enrollForEvent` via `initial_email_sent` so `/admin/sequences`
+  // schedules Step 2 (24h+) with zero duplication.
+  const activation = await sendDirectProjectActivationEmail(admin, {
+    projectId: project.id as string,
+    projectName: (project.name as string | null) ?? '',
+    ownerId: project.user_id as string,
+    email,
+    fullName: (profile?.full_name as string | null) ?? null,
+    lang: (profile?.preferred_lang as string | null) ?? null,
+    role: ownerRole,
+  });
+
   const result = await forwardToGhl('project_created', {
     email,
     fullName: profile?.full_name as string | null,
@@ -91,6 +106,8 @@ export async function handler(req: any, res: any) {
     project_tier: (project.tier as string | null) ?? '',
     build_country: (project.country as string | null) ?? '',
     build_city:    (project.city as string | null) ?? '',
+    initial_email_sent: activation.sent || activation.alreadySent,
+    ...(activation.subject ? { initial_email_subject: activation.subject } : {}),
   }, {
     dedupeKey: `project_created:${project.id}`,
     // Also as a tag, so "everyone on Jalla Verify" is a smart list rather than a
@@ -120,5 +137,13 @@ export async function handler(req: any, res: any) {
 
   // 200 either way: the project exists and the caller is fire-and-forget. The reason is
   // returned for the logs rather than for the browser, which ignores it.
-  res.status(200).json({ ok: result.ok, reason: result.reason, linked });
+  res.status(200).json({
+    ok: !activation.error && result.ok,
+    reason: result.reason,
+    linked,
+    activationSent: activation.sent,
+    activationAlreadySent: activation.alreadySent,
+    ...(activation.error ? { activationError: activation.error } : {}),
+    ghlOk: result.ok,
+  });
 }

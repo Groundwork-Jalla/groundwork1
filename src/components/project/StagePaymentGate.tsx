@@ -13,7 +13,7 @@ import { receiptErrorText } from '@/lib/payments/receipt-error-text';
 import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentReceipt, signReceiptUrl,
   type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { DocumentViewer } from './DocumentViewer';
-import { ProjectExchangeRateNote, ReceiptExchangeRateNote } from './ExchangeRateNote';
+import { ReceiptExchangeRateNote } from './ExchangeRateNote';
 import { StagePaymentPlanPanel } from './StagePaymentPlanPanel';
 import { ContractorPaymentVerificationBar } from './ContractorPaymentVerificationBar';
 import type { ContractorStageVerification } from '@/lib/supabase/contractor-payments';
@@ -266,7 +266,6 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
     {!clientPresentation && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>}
     {scheduledPair?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {scheduledPair.usd}</p>}
-    <ProjectExchangeRateNote/>
     {balance&&<p role="status" className={clientPresentation ? 'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium leading-relaxed text-brand-mid-grey' : 'rounded-lg border border-brand-border-grey p-3 text-sm font-semibold'}>{clientPresentation && <span className={cn('size-1.5 shrink-0 rounded-full', balance.remaining === 0 ? 'bg-brand-green' : 'bg-state-held')} aria-hidden />}{t(balance.received===null?'project.receiptFlow.amountUnknown':balance.remaining===0?'project.receiptFlow.fullyPaid':balance.received>0?'project.receiptFlow.partiallyPaid':'project.receiptFlow.awaitingFunds')}{settled&&balance.remaining!==null&&balance.remaining>0&&<span className="mt-1 block w-full text-xs font-normal">{t('project.receiptFlow.partialAuthorized')}</span>}</p>}
     {balance && <dl className={cn('grid gap-3 text-xs', clientPresentation ? 'grid-cols-1 sm:grid-cols-3 [&>div]:min-w-0 [&>div]:rounded-lg [&>div]:border [&>div]:border-brand-border-grey [&>div]:p-3 [&_dd]:break-words [&_dd]:font-semibold [&_dd]:leading-relaxed' : 'grid-cols-2')}>
       {clientPresentation && <div><dt className="text-brand-mid-grey">{t('project.clientUi.stageBudget')}</dt><dd className="mt-1 font-mono">{format(scheduledAmount ?? payment.amount * fxRate, code)}</dd></div>}
@@ -317,7 +316,6 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         </span>
         {!part.paid && Number(part.covered) > 0 && <p className="w-full text-brand-mid-grey">{t('project.parts.partlyCovered', { covered: format(Number(part.covered), parts.currency ?? code), remaining: format(Number(part.remaining), parts.currency ?? code) })}</p>}
       </li>)}</ol>
-      {!isContractor && !readOnly && !payingPart && parts.parts.some(part => part.status !== 'complete') && <p role="status">{t('project.parts.waitForApproval')}</p>}
     </section>
     : <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment} clientPresentation={clientPresentation}
       onEditingChange={editing => setPlanEditing(editing ? scope : null)}

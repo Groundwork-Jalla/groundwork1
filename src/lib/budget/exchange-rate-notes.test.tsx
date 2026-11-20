@@ -44,12 +44,12 @@ describe('saved budget and receipt conversion explanations', () => {
   it('does not invent metadata for older receipts', () => {
     expect(renderToStaticMarkup(<ReceiptExchangeRateNote receipt={receipt({ fxSource: null, fxRate: null })}/>)).toContain('no recorded conversion details');
   });
-  it('identifies saved versus configured budget rates in both project views', () => {
+  it('identifies fixed project budget rates in both project views', () => {
     h.money = { code: 'XAF', rate: 586.368084, budgetRate: 586.368084, rateSource: 'saved_budget' };
     const client = renderToStaticMarkup(<ProjectExchangeRateNote/>);
     expect(client).toEqual(renderToStaticMarkup(<ProjectExchangeRateNote money={h.money}/>));
-    expect(client).toContain('Source: saved project budget'); expect(client).not.toContain('Today');
-    expect(renderToStaticMarkup(<ProjectExchangeRateNote money={{ ...h.money, rateSource: 'configured_budget' } as ProjectMoney}/>)).toContain('Groundwork country estimate');
+    expect(client).toContain('1 USD = 586.368084 XAF, fixed for this project.');
+    expect(client).not.toContain('Today');
   });
   it('labels fallback quotes and supplies provider attribution for current quotes', () => {
     const quote = { code: 'XAF', rate: 593.594, source: 'ExchangeRate-API' as const, asOf: '2026-11-13T00:00:00Z' };

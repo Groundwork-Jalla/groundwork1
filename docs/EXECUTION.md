@@ -1,5 +1,7 @@
 # Groundwork by Jalla — Project Execution Record
 
+> **Historical Snapshot (July 2026 — Phase 1–4 MVP):** Retained as a milestone record of the initial build. Many items below are superseded as of **20 Nov 2026**: the app now runs at `https://www.tryjalla.com` with **91 routes** (including dedicated `/work/*` contractor, `/verifiers/*`, and 37 `/admin/*` screens), **247 SQL migrations**, **323 Vitest suites**, free access with no 3-project cap (`167_no_project_creation_cap.sql`), Stripe checkout disabled (HTTP 410), and direct client-to-contractor receipt-verified stage/substage payments. For current routes and testing, see [`docs/PAGES.md`](PAGES.md) and [`docs/TESTING.md`](TESTING.md).
+
 **Construction Management Platform · July 2026**
 
 A platform that lets Africans living abroad manage, fund, and track construction projects back home — with full transparency, real evidence, and verified progress at every stage.

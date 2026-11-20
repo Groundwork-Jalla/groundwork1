@@ -47,6 +47,9 @@ export interface SendInput {
   replyTo?: string;
   cc?: string[];
   bcc?: string[];
+  /** Stable Resend Idempotency-Key header so retries / double-fires never duplicate mail. */
+  idempotencyKey?: string;
+  tags?: { name: string; value: string }[];
 }
 
 const BACKOFF_MS = [400, 1200];
@@ -73,7 +76,11 @@ export async function sendViaResend(input: SendInput): Promise<SendResult> {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          ...(input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : {}),
+        },
         body: JSON.stringify({
           from: input.from,
           to: [input.to],
@@ -83,6 +90,7 @@ export async function sendViaResend(input: SendInput): Promise<SendResult> {
           ...(input.replyTo ? { reply_to: input.replyTo } : {}),
           ...(input.cc?.length ? { cc: input.cc } : {}),
           ...(input.bcc?.length ? { bcc: input.bcc } : {}),
+          ...(input.tags?.length ? { tags: input.tags } : {}),
         }),
       });
 

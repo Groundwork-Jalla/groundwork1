@@ -1,5 +1,7 @@
 # Groundwork communications
 
+> **Update (20 Nov 2026):** Three major additions since 14 Nov: (1) **Direct Resend Day-0 emails** (`api/_lib/direct-lifecycle-email.ts`, `20261120000100`) now send Welcome & Project Activation immediately regardless of GHL or the `/admin/sequences` pause switch, handing Step 2 (24h+) off to the scheduler with zero duplication; (2) `reply_domain` is now **optional** for enabling delivery and sending reminders (falls back to `sender_email`), and paused/test-group holds retry in 5 minutes instead of 24h; (3) **Direct Meta WhatsApp Cloud API** (`20261114000600`, `docs/meta-whatsapp-setup.md`), **contact permission** (`20261117000200`), and **custom substages / part pricing** (`20261118000000`) have since been built.
+
 Groundwork owns activation reminders, recipient preferences, replies and staff
 follow-up. Resend transports email. GoHighLevel can keep sales and partner
 application workflows and an optional copy of contact facts; it no longer receives

@@ -1,6 +1,6 @@
 # Questions for the engineer — BQ calibration
 
-*Last updated 9 September 2026. Previous version 16 August.*
+*Last updated 9 September 2026 · Reviewed 20 Nov 2026 (all 18 calibration questions remain open in `src/lib/budget/lines.ts`; note that real contractor BOQ uploads + AI extraction via `ArchitecturePlanGate` and `20261111000200_confirmed_boq_budget.sql` now bypass the estimator whenever a BOQ is provided).*
 
 We built Groundwork's budget engine from four of your bills of quantities. **Naka now
 reproduces to −1.1%** — it is the only one of the four that priced a whole building the

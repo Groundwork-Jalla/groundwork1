@@ -1,6 +1,8 @@
 # Admin screens, redesigned (18 Nov 2026)
 
-Design concept only, nothing built. Illustrative data. Same theme as the WhatsApp CRM
+> **Implementation Status (20 Nov 2026 — Partially Built):** Overview, Action Center, Projects, Project Workspace (Overview, Stages, Financials, Site Updates, Documents, Conversations, Team tabs), Reviews, Finance (per-project split + Budgets + shared Ledger), Homeowners, Contractors, Audit Log, Inbox base, and the dropdown sidebar (including the `?channel=` active highlight fix) have shipped. **Still unbuilt from this set:** `ActivityTab` refresh, `/admin/site-updates`, `/admin/contractors/records`, `/admin/partners`, `/admin/verifiers`, `/admin/users*`, `/admin/notifications`, `/admin/support`, `/admin/analytics`, `/admin/applications*`, `/admin/drafts`, `/admin/waitlist`, `/admin/inquiries`, `/admin/crm`, `/admin/sequences` visual redesign, and the 4 placeholder modules (`inspections`, `tasks`, `site-managers`, `agents`).
+
+Original design concept (18 Nov 2026, illustrative data). Same theme as the WhatsApp CRM
 (`../2026-11-18-admin-whatsapp/`): white cards on the canvas, green highlight, dropdown sidebar.
 Every screen keeps every figure, filter, list, action and dialog it has today (inventory taken
 from the code on 18 Nov). The sidebar is ADMIN_NAV unchanged: 38 items, same labels and links.

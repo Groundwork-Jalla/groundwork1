@@ -1,8 +1,7 @@
 # SwyChr ↔ Groundwork — payout API contract audit
 *24 Sep 2026 · read-only · no code, no migration, no assumption resolved by us*
 
-> **Status:** questions, not conclusions. Everything below that is marked ⚠️ or ❌ stays
-> open until SwyChr answers; Groundwork implements nothing against a guess.
+> **Status (Updated 20 Nov 2026):** Partial SwyChr adapter scaffolding (`api/swychr/*`, `swychr-callback`, `swychr-poll` 5-min cron, `swychr-attach` manual payout bridge, `099_payout_destinations.sql`, `/admin/finance/*`) was subsequently built, while day-to-day construction builds pivoted in Nov 2026 to direct Homeowner-to-contractor receipt verification (`stage_payment_receipts`). All external contract questions marked ⚠️ or ❌ below remain open until SwyChr responds and live credentials are provisioned.
 
 ## 0. What this is
 

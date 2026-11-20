@@ -4,22 +4,27 @@ import { ensureProjectConversation, isConversationsUnavailable, sendConversation
 import type { ProjectMessageRow } from '@/types/project';
 
 // =========================================================
-// fetchMessages — ordered by oldest first (chat order)
+// fetchMessages — latest `limit` messages ordered oldest first (chat order)
 //
 // By project: after 091 every message on a project's threads carries project_id (the
 // backfill, the BEFORE INSERT trigger, and link_conversation all keep it so), and RLS
 // hides staff's internal notes from non-staff readers. Reading by conversation is the
 // Inbox's job (Phase 6); the project chat shows the project.
 // =========================================================
-export async function fetchMessages(projectId: string): Promise<ProjectMessageRow[]> {
+export async function fetchMessages(
+  projectId: string,
+  limit = 200,
+): Promise<ProjectMessageRow[]> {
+  const safeLimit = Math.max(1, Math.min(Math.floor(limit), 500));
   const { data, error } = await supabase
     .from('project_messages')
     .select('*')
     .eq('project_id', projectId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false })
+    .limit(safeLimit);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).slice().reverse();
 }
 
 // =========================================================

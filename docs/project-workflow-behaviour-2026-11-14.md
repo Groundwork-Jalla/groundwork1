@@ -1,5 +1,12 @@
 # Project, evidence, payment and price behavior — 14 November 2026
 
+> **Superseded in part (Updates through 20 Nov 2026):** Several payment/pricing behaviors below changed between 16–20 Nov (the companion `.html`/`.pdf` guide is also from 14 Nov and needs regeneration before external sharing):
+> - **Contractor-before-payment gate (`20261116000000`):** Homeowners cannot upload stage receipts until a primary contractor has joined the project.
+> - **Two-installment plans retired (`20261118000200`):** Replaced by **sub-stage price breakdowns & part-by-part payments** (`20261118000000`, `20261118000100`); custom substages are now built.
+> - **Automatic overpayment carryover & project close-out (`20261117000000`, `20261120000000`):** Excess payments now automatically carry forward across subsequent substages/stages and trigger admin overpayment alerts; manual "Allow work" / progression-with-balance buttons were removed (19 Nov).
+> - **Contractor-recorded offline payments & disputes (`20261119000000`, `20261119000100`):** Contractors can record upfront/offline payments (auto-unlocking stages) and Homeowners can flag disputes into `/admin/action-center`.
+> - **Mandatory price-change reason (`20261118000300`)** and **client-with-payments role lock (`20261117000100`)**.
+
 This describes the current implementation and the latest decisions from the chat.
 It is a behavior reference for the team's later comprehensive test, not a claim
 that every scenario has passed on the deployed application. The latest invitation,

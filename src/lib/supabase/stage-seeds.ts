@@ -108,10 +108,10 @@ function baseStages(): StageSeed[] {
       budget_pct: 8,
       substages: [
         { key: 'excavationPitsTrenches',           name: 'Excavation of pits and trenches' },
-        { key: 'backfill',                         name: 'Backfill' },
         { key: 'leanConcrete',                     name: 'Lean concrete' },
         { key: 'reinforcedConcreteFootings',       name: 'Reinforced concrete footings' },
         { key: 'foundationPillarsBeams',           name: 'Foundation pillars and beams' },
+        { key: 'backfill',                         name: 'Backfill' },
         { key: 'foundationFloorSlab',              name: 'Floor slab' },
         { key: 'foundationBlocksPolystyreneSand',  name: 'Foundation blocks + polystyrene + sand layer' },
       ],
@@ -127,9 +127,6 @@ function baseStages(): StageSeed[] {
         { key: 'staircase',                   name: 'Staircase' },
         { key: 'structureFloorSlab',          name: 'Floor slab' },
         { key: 'blockWalls',                  name: 'Block walls' },
-        { key: 'internalExternalPlastering',  name: 'Internal and external plastering' },
-        { key: 'mortarFlooringTiles',         name: 'Mortar flooring and tiles' },
-        { key: 'wallTilesDecorativePlaster',  name: 'Wall tiles and decorative plaster' },
       ],
     },
     {
@@ -168,6 +165,9 @@ function baseStages(): StageSeed[] {
       name: 'Finishing',
       budget_pct: 30,
       substages: [
+        { key: 'internalExternalPlastering', name: 'Internal and external plastering' },
+        { key: 'mortarFlooringTiles',        name: 'Mortar flooring and tiles' },
+        { key: 'wallTilesDecorativePlaster', name: 'Wall tiles and decorative plaster' },
         { key: 'woodenDoors',                name: 'Wooden doors' },
         { key: 'aluminiumGlassWindows',      name: 'Aluminium and glass windows' },
         { key: 'ironRailings',               name: 'Iron railings' },

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { enrollForEvent } from '../_lib/lifecycle.js';
+import { sendDirectWelcomeEmail } from '../_lib/direct-lifecycle-email.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { routingFields } from '../ghl/_routing-fields.js';
 
@@ -85,30 +86,6 @@ export async function handler(req: any, res: any) {
       res.status(200).json({ ok: true, updated: 'phone' });
       return;
     }
-  } else if (profile.synced_to_ghl) {
-    // GHL contact already mirrored (e.g. invite pre-provisioning or contractor onboarding),
-    // but lifecycle enrollment runs inside forwardToGhl which this guard bypassed — so the
-    // welcome email was never queued. Enroll now; the upsert is idempotent (ignoreDuplicates).
-    const email = (profile.email as string | null) ?? user.email ?? '';
-    const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', user.id);
-    const signupRoles = new Set((roleRows ?? []).map(r => String(r.role)));
-    const signupRole = signupRoles.has('contractor') || user.user_metadata?.signup_intent === 'contractor'
-      ? 'contractor' : 'client';
-    try {
-      await enrollForEvent(admin, 'user_signup', {
-        email,
-        fullName: profile.full_name as string | null,
-        lang: profile.preferred_lang as string | null,
-        phone: (profile.phone as string | null) ?? null,
-      }, {
-        user_id: user.id,
-        ...routingFields({ userRole: signupRole, entrySource: 'independent_signup' }),
-      });
-    } catch (e) {
-      console.error('[lifecycle] enrollment for pre-synced user failed:', e instanceof Error ? e.message : e);
-    }
-    res.status(200).json({ ok: true, alreadySynced: true });
-    return;
   }
 
   // profiles.email is the mirror of auth.users.email restored by migration 047. Falling
@@ -129,6 +106,49 @@ export async function handler(req: any, res: any) {
   const signupRole = signupRoles.has('contractor') || user.user_metadata?.signup_intent === 'contractor'
     ? 'contractor' : 'client';
 
+  // ── Direct transactional Welcome via Resend (GHL-independent) ────────────────────────
+  // Delivered immediately regardless of GHL status, `synced_to_ghl`, or the delayed
+  // reminder switch. Idempotent via `profiles.welcome_email_sent_at` + Resend
+  // `Idempotency-Key`, then handed off to `enrollForEvent` so `/admin/sequences` starts
+  // at Step 2 (24h+) with zero duplication.
+  const welcome = await sendDirectWelcomeEmail(admin, {
+    userId: user.id,
+    email,
+    fullName: profile.full_name as string | null,
+    lang: profile.preferred_lang as string | null,
+    role: signupRole,
+  });
+
+  const lifecycleFields = {
+    user_id: user.id,
+    ...routingFields({ userRole: signupRole, entrySource: 'independent_signup' }),
+    initial_email_sent: welcome.sent || welcome.alreadySent,
+    ...(welcome.subject ? { initial_email_subject: welcome.subject } : {}),
+  };
+
+  if (profile.synced_to_ghl && req.body?.syncPhone !== true) {
+    // GHL contact already mirrored (e.g. invite pre-provisioning or contractor onboarding),
+    // so skip GHL push but still ensure lifecycle enrollment is recorded for Step 2+ reminders.
+    try {
+      await enrollForEvent(admin, 'user_signup', {
+        email,
+        fullName: profile.full_name as string | null,
+        lang: profile.preferred_lang as string | null,
+        phone: (profile.phone as string | null) ?? null,
+      }, lifecycleFields);
+    } catch (e) {
+      console.error('[lifecycle] enrollment for pre-synced user failed:', e instanceof Error ? e.message : e);
+    }
+    res.status(200).json({
+      ok: !welcome.error,
+      alreadySynced: true,
+      welcomeSent: welcome.sent,
+      welcomeAlreadySent: welcome.alreadySent,
+      ...(welcome.error ? { welcomeError: welcome.error } : {}),
+    });
+    return;
+  }
+
   const result = await forwardToGhl('user_signup', {
     email,
     fullName: profile.full_name as string | null,
@@ -137,10 +157,7 @@ export async function handler(req: any, res: any) {
     // Carried from the first sync onwards, so a contact created today is messageable
     // today. Null when the client has not given one — never a placeholder.
     phone:    (profile.phone as string | null) ?? null,
-  }, {
-    user_id: user.id,
-    ...routingFields({ userRole: signupRole, entrySource: 'independent_signup' }),
-  }, {
+  }, lifecycleFields, {
     // One row per person: signing in on a new browser should not re-announce them.
     dedupeKey: `user_signup:${user.id}`,
     contactId: profile.ghl_contact_id as string | null,
@@ -148,8 +165,15 @@ export async function handler(req: any, res: any) {
 
   if (!result.ok) {
     // 200 with ok:false, not an error status: the caller is fire-and-forget and the
-    // account exists regardless. The unset flag is what records the miss.
-    res.status(200).json({ ok: false, reason: result.reason });
+    // account exists regardless. The welcome email already ran independently above.
+    res.status(200).json({
+      ok: false,
+      reason: result.reason,
+      welcomeSent: welcome.sent,
+      welcomeAlreadySent: welcome.alreadySent,
+      ...(welcome.error ? { welcomeError: welcome.error } : {}),
+      ghlOk: false,
+    });
     return;
   }
 
@@ -170,5 +194,12 @@ export async function handler(req: any, res: any) {
     console.warn('[ghl] user forwarded but could not be marked synced:', stampErr);
   }
 
-  res.status(200).json({ ok: true, stamped: !stampErr });
+  res.status(200).json({
+    ok: !welcome.error,
+    stamped: !stampErr,
+    welcomeSent: welcome.sent,
+    welcomeAlreadySent: welcome.alreadySent,
+    ...(welcome.error ? { welcomeError: welcome.error } : {}),
+    ghlOk: true,
+  });
 }

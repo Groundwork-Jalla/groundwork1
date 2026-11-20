@@ -1,5 +1,12 @@
 # Groundwork — Beta Feedback Backlog
 
+> **Status Update (20 Nov 2026):** Nearly all 3 Sep 2026 backlog items are now **DONE** (B1–B8, B10, F1–F5, F7–F10, F13–F14, F17, F19) or **SUPERSEDED** by free access (B9 Teams pricing, F12 certificate tier gating).
+> **Genuinely still open as of 20 Nov 2026:**
+> - **F11 (P1 — still live!):** `src/app/routes/profile.tsx` still prompts clients to upload government ID (`id-documents`) in profile completion despite Philip's 4 Sep decision to remove it.
+> - **B5 (ops):** Code uses `senderFor()` (`noreply@mail.tryjalla.com`), pending Resend domain/address verification for `certificates@mail.tryjalla.com` + Vercel env var overrides.
+> - **F6:** Home address is still not collected in the project creation wizard.
+> - **F15 / F16 / F18:** In-platform video calling, full BoQ-integrated bookkeeping ledger, and additional Vanessa-sourced guides remain deferred.
+
 **Source:** Beta Testers Feedback Implementation, 3 Sep 2026 (Philip / Favour)
 **Compiled:** 4 Sep 2026
 **Scope:** every item raised in the call, split into bugs and features, with estimates.

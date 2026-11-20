@@ -64,16 +64,16 @@ describe('stage payment plans and separate progression permission', () => {
 
   it('assumes full payment when no plan exists, and points to paying part by part instead of two installments', async () => {
     const view = await load();
-    expect(text(view)).toContain('Full stage payment. You can attach several vendor receipts.');
+    expect(text(view)).toContain('Paid in full. You can add more than one receipt.');
     expect(view.some(node => node.type === 'input' || node.type === 'select')).toBe(false);
     expect(view.some(node => node.type === 'button' && text(node) === 'Pay in two installments instead')).toBe(false);
-    expect(text(view)).toContain('Your contractor can propose a price for each part of the work');
+    expect(text(view)).toContain('Prefer to pay in parts? Ask your contractor to price each part.');
     expect(h.installment).toHaveBeenLastCalledWith(undefined);
   });
 
   it('does not show the part-by-part note to a contractor or on a read-only project', async () => {
-    expect(text(await load(base, { isContractor: true }))).not.toContain('propose a price for each part');
-    expect(text(await load(base, { readOnly: true }))).not.toContain('propose a price for each part');
+    expect(text(await load(base, { isContractor: true }))).not.toContain('price each part');
+    expect(text(await load(base, { readOnly: true }))).not.toContain('price each part');
   });
 
   it('says plainly when the database refuses a new installment plan', async () => {
@@ -82,7 +82,7 @@ describe('stage payment plans and separate progression permission', () => {
     input(render()).props.onChange({ target: { value: '20000' } });
     button(render(), 'Review payment plan').props.onClick();
     await dialog(render()).props.onConfirm();
-    expect(dialog(render()).props.error).toContain('Paying in two installments is no longer available');
+    expect(dialog(render()).props.error).toContain('Two installments are no longer offered.');
   });
 
   it('opens the split on its own, asks the receipt form to step aside, and puts everything back on cancel', async () => {
@@ -135,7 +135,7 @@ describe('stage payment plans and separate progression permission', () => {
     button(view, 'Change the payment plan').props.onClick();
     expect(input(render()).props.value).toBe('30000');
     button(render(), 'Pay in full instead').props.onClick();
-    expect(dialog(render()).props.description).toContain('Stage budget: 60,000 XAF, paid in full.');
+    expect(dialog(render()).props.description).toContain('Pay 60,000 XAF in full.');
     await dialog(render()).props.onConfirm();
     expect(h.save).toHaveBeenCalledWith(proposed, 'full', null);
   });
@@ -267,10 +267,11 @@ describe('money paid above one stage is shown where it was carried to', () => {
     expect(locked.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
-  it('says where an overpaid stage\u2019s excess went, and what is still held', async () => {
+  it('says where an overpaid stage\u2019s excess went, and what counts toward a later stage', async () => {
     const view = text(await load({ ...base, can_edit: false, received: '90000', remaining: '0', own_received: '90000', carried_in: '0', carried_out: '18000', unused_credit: '12000' }));
     expect(view).toContain('18,000 XAF paid above this stage\u2019s price was carried to another stage.');
-    expect(view).toContain('12,000 XAF paid above this stage\u2019s price is held as credit.');
+    expect(view).toContain('12,000 XAF paid above this stage\u2019s price will count toward a later stage.');
+    expect(view).not.toContain('held as credit');
   });
 });
 

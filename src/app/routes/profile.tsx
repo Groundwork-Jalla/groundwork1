@@ -5,10 +5,8 @@ import {
   User,
   Phone,
   Globe,
-  Upload,
   Check,
   Loader2,
-  Camera,
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,11 +31,9 @@ interface ProfileMeta {
   displayName: string;
   phone: string;
   country: string;
-  idDocumentPath: string;
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-type UploadState = 'idle' | 'uploading' | 'done' | 'error';
 type ActiveTab = 'profile' | 'account' | 'team' | 'notifications' | 'danger';
 
 interface NotifPrefs {
@@ -65,13 +61,12 @@ interface CompletionItem {
 
 function calcCompletion(meta: ProfileMeta): { pct: number; items: CompletionItem[] } {
   const items: CompletionItem[] = [
-    { label: 'Display name',       filled: !!meta.displayName.trim() },
-    { label: 'Phone number',        filled: !!meta.phone.trim() },
-    { label: 'Country',             filled: !!meta.country.trim() },
-    { label: 'Identity document',   filled: !!meta.idDocumentPath },
+    { label: 'Display name', filled: !!meta.displayName.trim() },
+    { label: 'Phone number', filled: !!meta.phone.trim() },
+    { label: 'Country',      filled: !!meta.country.trim() },
   ];
   const filled = items.filter(i => i.filled).length;
-  return { pct: filled * 25, items };
+  return { pct: Math.round((filled / items.length) * 100), items };
 }
 
 function CompletionMeter({ meta }: { meta: ProfileMeta }) {
@@ -167,27 +162,6 @@ function Field({
   );
 }
 
-// ── Upload progress bar ───────────────────────────────────
-
-function UploadBar({ progress }: { progress: number }) {
-  const t = useT();
-  return (
-    <div className="mt-3">
-      <div className="flex items-center justify-between text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-1">
-        <span>{t('common.uploading')}</span>
-        <span className="tabular-nums">{Math.round(progress)}%</span>
-      </div>
-      <div className="h-1 w-full rounded-full bg-brand-light-grey dark:bg-[#2c2c2c] overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-brand-near-black dark:bg-white"
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.2 }}
-        />
-      </div>
-    </div>
-  );
-}
-
 // ── Toggle Switch ─────────────────────────────────────────
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -247,21 +221,11 @@ export default function ProfilePage() {
   const [phoneLegacy, setPhoneLegacy] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [country, setCountry] = useState(user?.user_metadata?.country ?? DEFAULT_COUNTRY_CODE);
-  const [idDocumentPath, setIdDocumentPath] = useState(
-    user?.user_metadata?.id_document_path ?? '',
-  );
-  const idVerified: boolean = !!user?.user_metadata?.id_verified;
 
   // ── Save state ─────────────────────────────────────────
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveError, setSaveError] = useState('');
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Upload state ───────────────────────────────────────
-  const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadError, setUploadError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Account tab state ──────────────────────────────────
   const [resetSent, setResetSent] = useState(false);
@@ -320,7 +284,7 @@ export default function ProfilePage() {
     return () => { alive = false; };
   }, [user?.id, user?.user_metadata]);
 
-  const liveMeta: ProfileMeta = { displayName, phone, country, idDocumentPath };
+  const liveMeta: ProfileMeta = { displayName, phone, country };
 
   // ── Cleanup timers ─────────────────────────────────────
   useEffect(() => {
@@ -383,60 +347,6 @@ export default function ProfilePage() {
     // the value is already stored by this point.
     if (canonicalPhone) void syncPhoneToCrm();
     savedTimerRef.current = setTimeout(() => setSaveState('idle'), 2000);
-  }
-
-  // ── ID upload ──────────────────────────────────────────
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('File exceeds 5 MB. Please choose a smaller file.');
-      return;
-    }
-
-    setUploadState('uploading');
-    setUploadError('');
-    setUploadProgress(0);
-
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) { clearInterval(interval); return 90; }
-        return prev + 6;
-      });
-    }, 100);
-
-    const ext = file.name.split('.').pop() ?? 'bin';
-    const storagePath = `${user.id}/id_${Date.now()}.${ext}`;
-
-    const { error: uploadErr } = await supabase.storage
-      .from('id-documents')
-      .upload(storagePath, file, { upsert: true });
-
-    clearInterval(interval);
-
-    if (uploadErr) {
-      setUploadProgress(0);
-      setUploadState('error');
-      setUploadError(uploadErr.message);
-      return;
-    }
-
-    setUploadProgress(100);
-
-    const { error: metaErr } = await supabase.auth.updateUser({
-      data: { id_document_path: storagePath },
-    });
-
-    if (metaErr) {
-      setUploadState('error');
-      setUploadError(metaErr.message);
-      return;
-    }
-
-    setIdDocumentPath(storagePath);
-    setUploadState('done');
-    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   // ── Password reset ─────────────────────────────────────
@@ -698,97 +608,6 @@ export default function ProfilePage() {
                       )}
                     </div>
                   </form>
-                </section>
-
-                <Divider />
-
-                {/* ID verification section */}
-                <section>
-                  <div className="flex items-start justify-between gap-4 mb-1">
-                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-                      {t('profile.identityTitle')}
-                    </h2>
-
-                    {idVerified ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-state-complete bg-brand-off-white border border-state-complete/30 rounded-full px-2.5 py-0.5 shrink-0">
-                        <Check className="size-3" strokeWidth={3} />
-                        {t('profile.identityVerified')}
-                      </span>
-                    ) : idDocumentPath ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-state-held bg-brand-off-white border border-state-held/30 rounded-full px-2.5 py-0.5 shrink-0">
-                        {t('profile.identityPending')}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2.5 py-0.5 shrink-0">
-                        {t('profile.identityNone')}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-brand-mid-grey dark:text-brand-mid-grey mb-5">
-                    Upload a government-issued ID — passport, national ID, or driver's licence. Max 5 MB.
-                  </p>
-
-                  {idDocumentPath && uploadState !== 'uploading' && (
-                    <div className="flex items-center justify-between rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1c1c1c] px-4 py-3 mb-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-near-black dark:bg-white">
-                          <Check className="size-3.5 text-white dark:text-brand-near-black" strokeWidth={3} />
-                        </span>
-                        <span className="text-sm font-medium text-brand-near-black dark:text-white">
-                          {t('profile.idUploaded')}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white underline underline-offset-2 transition-colors"
-                      >
-                        {t('profile.reupload')}
-                      </button>
-                    </div>
-                  )}
-
-                  {!idDocumentPath && uploadState !== 'uploading' && uploadState !== 'done' && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-dashed border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1c1c1c] px-4 py-5 text-sm font-medium text-brand-mid-grey hover:border-brand-near-black dark:hover:border-white hover:text-brand-near-black dark:hover:text-white hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-all group"
-                    >
-                      <Camera className="size-4 group-hover:scale-105 transition-transform" />
-                      {t('profile.chooseFile')}
-                    </button>
-                  )}
-
-                  {uploadState === 'uploading' && <UploadBar progress={uploadProgress} />}
-
-                  {uploadState === 'error' && uploadError && (
-                    <div className="mt-3 flex flex-col gap-2">
-                      <p className="text-xs text-state-alert bg-brand-off-white border border-state-alert/30 rounded-lg px-3 py-2">
-                        {uploadError}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUploadState('idle');
-                          setUploadError('');
-                          fileInputRef.current?.click();
-                        }}
-                        className="self-start text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white underline underline-offset-2 transition-colors"
-                      >
-                        Try again
-                      </button>
-                    </div>
-                  )}
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={handleFileChange}
-                    className="sr-only"
-                    aria-label={t('profile.uploadIdDocument')}
-                  />
                 </section>
 
                 <Divider />

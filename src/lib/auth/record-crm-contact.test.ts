@@ -63,6 +63,13 @@ describe('the signup event is raised once per account, not once per browser', ()
     expect(h.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('does not cache sync when welcome email delivery reported an error', async () => {
+    h.fetch.mockResolvedValue({ ok: true, json: async () => ({ ok: true, welcomeError: 'resend_503' }) });
+    signedIn('test-client');
+    await recordCrmContact();
+    expect(storage.getItem(crmSyncedKey('test-client'))).toBeNull();
+  });
+
   it('does nothing without a session', async () => {
     await recordCrmContact();
     expect(h.fetch).not.toHaveBeenCalled();

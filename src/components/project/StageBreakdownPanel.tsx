@@ -118,7 +118,7 @@ export function StageBreakdownPanel({ stageId, stageName, projectName, clientPre
       <li key={sub.id} className="flex flex-wrap justify-between gap-2"><span className="min-w-0 break-words">{label(sub)}</span><span className="font-mono">{format(sub.amount)}</span></li>)}
       <li className="flex flex-wrap justify-between gap-2 border-t border-brand-border-grey pt-1.5 font-semibold"><span>{t('project.breakdown.stageTotal')}</span><span className="font-mono">{format(context.stage_amount)}</span></li>
     </ul>}
-    {!context.split && !pending && !editing && <p className="text-brand-mid-grey">{t(context.can_propose ? 'project.breakdown.hintContractor' : 'project.breakdown.notSplit', { amount: format(context.stage_amount) })}</p>}
+    {!context.split && !pending && !editing && context.can_propose && <p className="text-brand-mid-grey">{t('project.breakdown.hintContractor', { amount: format(context.stage_amount) })}</p>}
 
     {context.can_propose && !pending && !editing && <button type="button" onClick={start} data-action="split-stage"
       className="inline-flex items-center rounded-lg border border-brand-green/40 bg-brand-green/5 px-3 py-1.5 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">

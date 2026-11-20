@@ -1,50 +1,56 @@
 # GoHighLevel custom fields — contractor applications
 
-Every field below is sent on every contractor application. **A field GHL does not have is
-silently dropped** — no error, no warning, and on the contact it looks identical to a
-question the applicant left blank. That is the single most misleading failure mode in this
-integration, which is why this list exists.
+*Originally written 26 Aug 2026 · Updated 20 Nov 2026*
 
-Create them under **Settings → Custom Fields**, object **Contact**, with the exact key
-spelling shown. Type is Text unless noted.
+> **Ownership note (Nov 2026):** Groundwork now owns product activation communications (direct Resend Day-0 Welcome & Project Activation emails, `/admin/sequences` reminders, and Meta WhatsApp Cloud API). GoHighLevel remains the CRM for contractor applications, acquisition/sales pipelines, and optional contact mirroring. See [`docs/GHL-SETUP.md`](GHL-SETUP.md) and `api/_lib/communication-ownership.ts`.
 
-There are 104 in total. **Do not create all 104.** Tiers 1 and 2 are 24 fields and carry
-almost everything you would actually open a contact to find out. Tier 3 is 64 fields whose
-content is already readable in two summary fields you will have created in Tier 1.
+Every contractor application pushed to GoHighLevel sends a structured payload defined in `api/ghl/_contractor-payload.ts`. **A custom field key that does not exist in GHL is silently dropped** — it looks identical to a blank answer on the contact.
 
 ---
 
-## Tier 1 — create these first (20 fields)
+## Fastest way to set up: Auto-create from Admin
 
-Who the applicant is, whether they qualify, and where to read the rest.
+You do **not** need to create these ~99 fields by hand anymore:
+
+1. Open **`/admin/crm`** (uses `api/_handlers/crm-fields.ts`).
+2. Click **Check / Create missing fields**.
+3. Groundwork reads the exact live list from `contractorFieldKeys()` in `api/ghl/_contractor-payload.ts` and creates any missing Contact custom fields in GHL automatically.
+
+---
+
+## CRITICAL: Do NOT create native GHL fields as custom fields
+
+An earlier August 2026 version of this doc mistakenly listed native contact fields in Tier 1. **Never create these 8 fields as custom fields** — `api/ghl/_contractor-payload.ts` (`NATIVE_CONTACT_FIELDS`) deliberately strips them from custom fields and sends them on top-level GHL Contact fields instead:
+
+- `full_name`, `first_name`, `last_name`, `email`, `phone`, `country`, `city`, `source`
+
+Creating duplicate custom fields named `phone`, `email`, or `city` in GHL breaks GHL SMS/WhatsApp workflows and contact deduplication.
+
+---
+
+## Custom field groups (`contractorFieldKeys()` — 99 custom fields)
+
+Note: Enum values such as `role`, `operates_as`, `team_size`, `years_experience`, `project_types`, and screening answers are sent as **human-readable translated labels** (e.g., `"General Contractor"` / `"Entrepreneur général"`), not raw enum slugs.
+
+### Tier 1 — Core application fields (13 fields)
 
 | Key | Notes |
 |---|---|
-| `full_name` | |
-| `first_name` | |
-| `last_name` | |
-| `business_name` | |
-| `email` | |
-| `phone` | |
-| `country` | |
-| `city` | |
-| `role` | Their trade — e.g. `general_contractor` |
-| `role_other` | Free text, only when role is "other" |
-| `years_experience` | |
+| `business_name` | Company / business name |
+| `role` | Translated trade label (or `role_other` text when "other") |
+| `role_other` | Free text when role is "other" |
+| `years_experience` | Human-readable range |
 | `operates_as` | Registered business or individual |
-| `team_size` | |
-| `project_types` | Comma-separated |
-| `regions` | |
-| `concurrent_projects` | |
-| `status` | Application status at the time of the push |
-| `application_url` | **The deep link back to the full application. The most useful field here.** |
-| `projects_summary` | Long text. Their whole project history in one field. |
-| `documents_summary` | Long text. Every document, each with its link. |
+| `team_size` | Human-readable team size |
+| `project_types` | Comma-separated human-readable types |
+| `regions` | Free-text regions served |
+| `concurrent_projects` | Capacity |
+| `status` | Application status at push time |
+| `application_url` | Deep link to `/admin/applications/:id` |
+| `projects_summary` | Long text summary of past projects |
+| `documents_summary` | Long text list of uploaded documents with links |
 
-## Tier 2 — the screening answers (4 fields)
-
-The Section 6 standards. Worth having as their own fields because you will want to filter
-and automate on them.
+### Tier 2 — Screening & party fields (5 fields)
 
 | Key | Notes |
 |---|---|
@@ -52,67 +58,29 @@ and automate on them.
 | `accepts_verification` | `Yes` / `No` |
 | `accepts_no_side_pay` | `Yes` / `No` |
 | `agreed_to_terms` | `Yes` / `No` |
+| `groundwork_party` | `'Contractor'` |
 
-## Tier 3 — only if you need to filter on them (64 fields)
+### Tier 3 — Expanded project & document rows (64 fields)
 
-Everything here is *already legible* in `projects_summary` and `documents_summary`. Create
-these only when you want GHL to filter, sort or trigger automation on an individual value —
-a workflow that fires on `document_1_url` being present, say.
+All of this is already summarized in `projects_summary` and `documents_summary`; individual keys exist for filtering/automation:
 
-- `project_1_*` … `project_5_*` — `name`, `role`, `year`, `budget`, `location`,
-  `ref_name`, `ref_email`, `ref_phone` (40 fields)
+- `project_1_*` … `project_5_*` — `name`, `role`, `year`, `budget`, `location`, `ref_name`, `ref_email`, `ref_phone` (40 fields)
 - `document_1_*` … `document_8_*` — `label`, `size`, `url` (24 fields)
 
-## Tier 4 — bookkeeping (16 fields)
+### Tier 4 — Bookkeeping & credential track fields (17 fields)
 
-Useful for debugging, rarely for people.
+- Metadata (8): `application_id`, `submitted_at`, `lang`, `tags_csv`, `upload_count`, `project_count`, `portfolio_url`, `video_url`, `why_join`, `differentiator`, `ready_for_early`
+- Credential track (`CRED_KEYS`, **all lowercase** — GHL rejects camelCase keys):
+  `cred_avgproject`, `cred_diaspora`, `cred_diasporaproperty`, `cred_legalservices`, `cred_paymentstructure`, `cred_services`, `cred_software`, `cred_tradeprojects`, `cred_workstyle`
 
-`application_id`, `source`, `submitted_at`, `lang`, `tags_csv`, `upload_count`,
-`project_count`, `portfolio_url`, `video_url`, `why_join`, `differentiator`,
-`ready_for_early`, `cred_diaspora`, `cred_cnps`, `cred_taxId`, `cred_insurance`,
-`cred_licence`
-
-> The `cred_*` set changes with the applicant's credential track, so not every application
-> fills every one. That is expected, not a fault.
+> Different applicant tracks fill different subsets of `cred_*`; blank values on unrelated tracks are expected.
 
 ---
 
 ## Checking your work
 
-`/admin/applications/<id>` → **Send to CRM again**, then open the contact in GHL. Anything
-you created appears; anything you did not is simply absent. Compare against this list rather
-than against the contact, because an absent field and an empty one look the same.
+1. Run **Check / Create missing fields** in `/admin/crm`.
+2. Open any application at `/admin/applications/<id>` and click **Send to CRM again**.
+3. Open the contact in GHL and verify the fields populated. Toggle **"Hide empty fields"** in GHL's contact detail pane to hide unrelated sub-account fields from other funnels.
 
----
-
-## The fields that are *not* ours
-
-On a contractor contact you will also see things like:
-
-> What country is your project in? · What is your estimated total budget? · What stage is
-> your project in? · Are you currently sending monthly funds from salary? · Revenue Range ·
-> Biggest revenue challenge · Reason for seeking support · Desired outcome · Best time for
-> call
-
-**None of these come from Groundwork.** Nothing in this codebase sends them. They are custom
-fields that already exist in the GHL sub-account — from the homeowner intake questions and
-from other products sharing the location — and GHL shows **every** custom field on **every**
-contact, whether or not it applies. A contractor has no answer to "what is your estimated
-total budget?", so it renders as `--`.
-
-There is no per-contact-type field view in GHL's standard contact detail, so this is fixed
-by configuration, not by code. Three options, cheapest first:
-
-1. **Hide empty fields.** In the contact detail, next to *Search fields and folders*, there
-   is a filter control. Toggling empty fields off removes every `--` row at once and changes
-   no settings. This is almost certainly what you want.
-2. **Group ours into a folder.** Settings → Custom Fields → new folder, e.g.
-   *Contractor Application*, and move the fields from Tiers 1–4 above into it. The contact
-   detail then shows collapsible folders, so unrelated groups fold away. The account already
-   uses folders — *General Info* and *Additional Info* are two of them.
-3. **Delete what is genuinely dead.** Only for fields no form, workflow or automation still
-   writes to. Deleting a field deletes its stored answers on every contact, so check before
-   removing anything that another product is still filling in.
-
-**Match on the key, not the label.** A field displayed as "Language" is only filled by our
-`lang` if its *key* is `lang`. Two fields can share a label and behave completely differently.
+**Match on the key, not the label.** Two GHL fields can share the display label `"Language"` while only the one with key `lang` receives Groundwork's value.

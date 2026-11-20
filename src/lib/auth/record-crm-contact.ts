@@ -53,7 +53,7 @@ export async function recordCrmContact(): Promise<void> {
     // unset so the next session tries again — the row stays in the unsynced list either
     // way, but retrying costs nothing and closes most gaps without anyone noticing.
     const body = await r.json().catch(() => ({}));
-    if (r.ok && body?.ok) {
+    if (r.ok && body?.ok && !body?.welcomeError) {
       try { localStorage.setItem(DONE_KEY, '1'); } catch { /* private mode */ }
     }
   } catch {

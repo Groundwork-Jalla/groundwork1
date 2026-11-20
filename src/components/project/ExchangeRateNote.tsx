@@ -21,11 +21,8 @@ export function ProjectExchangeRateNote({ money, className = 'text-xs text-brand
   const t = useT(); const { lang } = useLanguage();
   if (!currency || currency.code === 'USD') return null;
   const rate = currency.budgetRate.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 12 });
-  const date = rateDate(currency.rateRecordedAt, lang);
   return <p className={className}>
-    {t('project.fx.budgetRate', { rate, currency: currency.code })}{' · '}
-    {t(currency.rateSource === 'configured_budget' ? 'project.fx.configuredSource' : 'project.fx.budgetSource')}
-    {' · '}{date ? t('project.fx.savedAt', { date }) : t('project.fx.budgetDateUnknown')}
+    {t('project.fx.budgetRateFixed', { rate, currency: currency.code })}
   </p>;
 }
 

@@ -1,3 +1,6 @@
+> **HISTORICAL PROTOTYPE ARCHIVE — DO NOT EXECUTE AGAINST THIS CODEBASE (July 2026).**
+> These early Lovable/Claude prompts target a different stack (`src/pages/*`, `ClientLayout`, TanStack Query, `@/integrations/supabase/client`) and a different Supabase schema (`budget_breakdown`, `user_subscriptions`, `pricing_plans`, etc.) than Groundwork's actual React Router v7 + Supabase architecture. Do not paste these prompts into coding agents. See [`docs/PAGES.md`](PAGES.md) and [`docs/SCREEN-DESIGNS.md`](SCREEN-DESIGNS.md) for current architecture.
+
 Groundwork — Claude Code Prompts (Per Sidebar Feature)
 One prompt per client-sidebar item, plus the subpages you can drill into from each. Paste any single block into Claude Code as a fresh task; each is self-contained and assumes the shared design system from the master system prompt (HSL 217 91% 60% primary blue, greyscale surfaces, Inter body + serif display, glass-card style, shadcn/ui + Tailwind, React Router, TanStack Query, Supabase client at @/integrations/supabase/client, ClientLayout wrapper).
 

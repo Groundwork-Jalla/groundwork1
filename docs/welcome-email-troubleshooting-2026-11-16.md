@@ -1,5 +1,10 @@
 # Welcome email troubleshooting — 16 November 2026
 
+> **RESOLVED (20 Nov 2026 — Hybrid Direct Resend Delivery):** Day-0 **Welcome** (`user_signup`) and **Project Activation** (`project_created`) emails no longer depend on GoHighLevel, `synced_to_ghl`, `reply_domain`, or the `/admin/sequences` `delivery_enabled` pause switch.
+> - `api/_lib/direct-lifecycle-email.ts` sends Day-0 Welcome (`CS01`/`CL01`) and Project Activation (`CS09`/`CL05`) **immediately via Resend** using `Idempotency-Key` + DB stamps (`profiles.welcome_email_sent_at`, `projects.activation_email_sent_at` in `20261120000100_direct_welcome_activation_and_lifecycle_fixes.sql`).
+> - `enrollForEvent` (`api/_lib/lifecycle.ts`) logs Step 1 in `lifecycle_sends` and schedules `/admin/sequences` starting at Step 2 (24h+) with zero duplication.
+> - `/admin/sequences` fixes also shipped: `reply_domain` is now optional for outbound reminders, the contractor `signup_intent` role race is fixed in `lifecycle_action_state`, paused/test-group holds retry in **5 minutes** instead of 24h, and suppressed/held enrollments are visible under *Needs attention*.
+
 For Favour and Ruth, following the 16 November client-onboarding test: a test client
 account received no welcome email and no automated sequence. This note gives the two
 causes found in the code, what was changed, and a checklist to run the test again.

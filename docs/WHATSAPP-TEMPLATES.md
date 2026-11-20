@@ -1,5 +1,7 @@
 # WhatsApp message templates
 
+> **Architecture Update (20 Nov 2026):** This document describes the original 6 static GoHighLevel WhatsApp templates (4 Sep 2026). Groundwork has since added a **direct Meta WhatsApp Cloud API** channel (`20261114000600_meta_whatsapp_communications.sql`, `api/_lib/meta-whatsapp.ts`, `shared/whatsapp.ts`) that auto-generates 86 bilingual (`groundwork_<step.code>`) templates from `lifecycle_sequence_steps` with URL buttons and `Reply STOP` footers. See [`docs/meta-whatsapp-setup.md`](meta-whatsapp-setup.md) and [`docs/whatsapp/2026-11-16-template-review/README.md`](whatsapp/2026-11-16-template-review/README.md) for the live Meta template catalog and submission status.
+
 Submit these in GHL → **Marketing → Templates** (or Meta Business Manager → WhatsApp
 Manager → Message Templates) **before** connecting a number. Approval takes hours to a
 day; the number itself can be set up in parallel.

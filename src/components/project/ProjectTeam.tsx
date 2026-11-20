@@ -25,7 +25,6 @@ export function ProjectTeam({ project, inviteContractor = false }: { project: Pi
         <h2 className="flex items-center gap-2 text-lg font-semibold text-brand-near-black dark:text-white">
           <Users className="size-5 shrink-0" aria-hidden />{t('projectTeam.title')}
         </h2>
-        <p className="mt-1 text-sm text-brand-mid-grey">{t('projectTeam.body')}</p>
       </header>
 
       {!access ? (
@@ -47,7 +46,7 @@ export function ProjectTeam({ project, inviteContractor = false }: { project: Pi
                   <p className="mt-0.5 text-xs text-brand-mid-grey">{t(roleKey)}</p>
                 </div>
               </div>
-              <p className="mt-4 text-xs leading-relaxed text-brand-mid-grey">{t(access.canInvite ? 'projectTeam.manageAccess' : 'projectTeam.viewAccess')}</p>
+              {!access.canInvite && <p className="mt-4 text-xs leading-relaxed text-brand-mid-grey">{t('projectTeam.viewAccess')}</p>}
             </section>
 
           </div>

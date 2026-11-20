@@ -1,5 +1,7 @@
 # Admin dashboard — from stat cards to an operations desk
 
+> **Status Update (20 Nov 2026):** Superseded as the active admin spec by `docs/groundwork-admin/01`–`06` and the Nov 2026 builds. Groundwork is now on **Vercel Pro** (the 12-function Hobby cap no longer applies), Stripe subscription revenue is paused (checkout returns HTTP 410), and Phases 2–5 + half of Phase 6 have shipped (`/admin`, `/admin/action-center`, `/admin/projects/:id` 7-tab workspace, `/admin/clients`, `/admin/contractors` + `/records`, `/admin/finance/*` with per-project split, `ProjectsMap` country SVG, `/admin/audit-log` + grouped activity, `/admin/team`). **Still unbuilt:** granular staff roles (`ops`/`finance`/`growth`), `/admin/inspections`, `/admin/tasks`, `/admin/site-managers`, `/admin/agents`, and unioning `admin_deleted_projects`/`security_notify_log` into the Audit Log.
+
 **Why.** The `/admin` overview is five links with a number on each. It cannot answer the
 only question the team has when it opens the panel: *which builds need me today?* Every
 project is watched by hand, in the client's own `/projects/:id` opened in a new tab. The
