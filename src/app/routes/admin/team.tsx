@@ -27,6 +27,7 @@ export default function AdminTeam() {
   const t = useT();
   const [rows, setRows] = useState<AdminUser[] | null>(null);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
+  const [roleFilter, setRoleFilter] = useState<StaffRole | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,7 @@ export default function AdminTeam() {
   useEffect(() => { load(); }, [load]);
 
   const staff = (rows ?? []).filter(u => rolesOf(u).some(r => ROLES.includes(r as TableRole)));
+  const visibleStaff = roleFilter ? staff.filter(u => rolesOf(u).includes(roleFilter)) : staff;
   const count = (role: TableRole) => staff.filter(u => rolesOf(u).includes(role)).length;
 
   async function toggleStaffRole(user: AdminUser, role: StaffRole) {
@@ -70,21 +72,46 @@ export default function AdminTeam() {
         </div>
       </header>
 
-      {/* 4-Card Staff RBAC Role Matrix */}
+      {/* 4-Card Staff RBAC Role Matrix (clickable role filter cards) */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {STAFF_ROLES.map(role => (
-          <div key={role} className="rounded-2xl border border-brand-border-grey bg-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <div className="flex items-center justify-between gap-2">
-              <span className={cn('rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide', ROLE_PILL[role])}>
-                {role}
-              </span>
-              <span className="font-mono text-xs text-brand-mid-grey">{t('admin.team.staffCount', { n: count(role) })}</span>
-            </div>
-            <p className="mt-2 text-sm font-bold text-brand-near-black dark:text-white">{t(`admin.team.roles.${role}` as TKey)}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{t(`admin.team.roleDesc.${role}` as TKey)}</p>
-          </div>
-        ))}
+        {STAFF_ROLES.map(role => {
+          const active = roleFilter === role;
+          return (
+            <button
+              key={role}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setRoleFilter(prev => (prev === role ? null : role))}
+              className={cn(
+                'rounded-2xl border bg-white p-4 text-left transition-colors dark:bg-[#1e1e1e]',
+                active
+                  ? 'border-brand-green ring-1 ring-brand-green'
+                  : 'border-brand-border-grey hover:border-brand-green/60 dark:border-[#2c2c2c]',
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn('rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide', ROLE_PILL[role])}>
+                  {role}
+                </span>
+                <span className="font-mono text-xs text-brand-mid-grey">{t('admin.team.staffCount', { n: count(role) })}</span>
+              </div>
+              <p className="mt-2 text-sm font-bold text-brand-near-black dark:text-white">{t(`admin.team.roles.${role}` as TKey)}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{t(`admin.team.roleDesc.${role}` as TKey)}</p>
+            </button>
+          );
+        })}
       </div>
+
+      {roleFilter && (
+        <div className="flex items-center justify-between rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-2 text-xs dark:border-[#2c2c2c] dark:bg-[#1a1a1a]">
+          <span className="text-brand-mid-grey">
+            {t(`admin.team.roles.${roleFilter}` as TKey)} · <span className="font-semibold text-brand-near-black dark:text-white">{visibleStaff.length}</span>
+          </span>
+          <button type="button" onClick={() => setRoleFilter(null)} className="font-semibold text-brand-green underline underline-offset-4">
+            {t('common.viewAll')}
+          </button>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="rounded-2xl border border-state-alert/30 bg-white px-5 py-3.5 text-xs text-state-alert dark:bg-[#1e1e1e]">{error}</p>
@@ -111,7 +138,7 @@ export default function AdminTeam() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-                {staff.map(u => {
+                {visibleStaff.map(u => {
                   const held = rolesOf(u);
                   return (
                     <tr key={u.id} className="hover:bg-brand-off-white/60 dark:hover:bg-[#242424]">

@@ -28,6 +28,7 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
     const role = viewer ? viewer.isAdmin ? 'admin' : viewer.isVerifier ? 'verifier' : viewer.isContractor ? 'contractor' : 'client' : data.account_role;
     return role === 'admin' ? '/admin' : role === 'verifier' ? '/verifiers' : role === 'contractor' ? '/work/onboarding' : '/dashboard';
   }
+  if (safeId(data.live_chat_session_id)) return viewer?.isAdmin ? '/admin/inbox?channel=live_chat' : null;
   if (safeId(data.whatsapp_contact_id)) return viewer?.isAdmin ? `/admin/sequences?tab=whatsapp&contact=${encodeURIComponent(data.whatsapp_contact_id)}` : null;
   if (s('communication_followup_id')) return viewer?.isAdmin ? '/admin/sequences' : null;
   if (safeId(data.application_id)) return `/admin/applications/${data.application_id}`;
@@ -65,7 +66,7 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
     const base = role === 'contractor' ? '/work/projects' : role === 'verifier' ? '/verifiers/projects' : '/projects';
     return `${base}/${data.project_id}${query.size ? `?${query}` : ''}`;
   }
-  if (s('conversation_id')) return viewer?.isContractor ? '/work' : viewer?.isVerifier ? '/verifiers' : '/messages';
+  if (s('conversation_id')) return viewer?.isAdmin ? '/admin/inbox' : viewer?.isContractor ? '/work' : viewer?.isVerifier ? '/verifiers' : '/messages';
   return null;
 }
 

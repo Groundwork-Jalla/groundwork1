@@ -142,6 +142,11 @@ export default function Login() {
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">{t('auth.login.title')}</h1>
       <p className="text-sm text-brand-mid-grey mt-2">{t('auth.login.subtitle')}</p>
+      {searchParams.get('reset') === '1' && (
+        <p role="status" className="mt-4 rounded-xl border border-brand-green/30 bg-brand-green/10 px-3.5 py-2.5 text-xs font-medium text-brand-green dark:text-[#b4d8bf]">
+          {t('auth.newPassword.resetReadyToSignIn')}
+        </p>
+      )}
       <ProjectInvitationRoleNotice search={searchParams.toString()} />
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">

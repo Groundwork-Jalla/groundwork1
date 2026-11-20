@@ -12,6 +12,7 @@ import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned
 import { INVITED_PASSWORD_PATH, passwordSetupPathForLink } from "@/lib/auth/password-setup-link";
 import { signupIntentOf } from "@/lib/auth/signup-account";
 import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 import {
   projectAuthCallbackUrl, projectInvitationError, projectInvitationPath, readProjectInvitation,
   rememberProjectInvitation, safeAuthReturn, withProjectInvitation,
@@ -106,7 +107,7 @@ export default function AuthCallback() {
 
   async function resendLink(flow: AuthEmailFlow, email: string) {
     setResend('sending');
-    const origin = window.location.origin;
+    const origin = authCallbackOrigin();
     // `?flow=recovery` has to survive the resend. Without it the replacement link comes
     // back indistinguishable from a sign-in, and the only thing left to identify it is the
     // localStorage record — which this same page clears as soon as a recovery link

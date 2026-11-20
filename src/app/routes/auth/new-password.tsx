@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
+import { forgetEmailRequest } from "@/lib/auth/last-email-request";
 import { mustChangePassword } from "@/lib/auth/provisioned";
 import { PhoneField } from "@/components/ui/PhoneField";
 import { isE164 } from "@/lib/phone";
@@ -52,6 +53,7 @@ export default function NewPassword() {
   const [noSession, setNoSession] = useState(false);
   const [unavailableInvitation, setUnavailableInvitation] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alreadySet, setAlreadySet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // The reset ends on an explicit confirmation, not a redirect. See handleSubmit.
   const [done, setDone] = useState(false);
@@ -127,8 +129,22 @@ export default function NewPassword() {
     if (password !== confirm) { setError(t('auth.newPassword.mismatch')); return; }
 
     setSubmitting(true);
+    setAlreadySet(false);
     const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) { setSubmitting(false); setError(updateError.message); return; }
+    if (updateError) {
+      setSubmitting(false);
+      if (/same_password|different from the old password/i.test(updateError.message)) {
+        setAlreadySet(true);
+        setError(t('auth.newPassword.alreadySet'));
+      } else {
+        setError(updateError.message);
+      }
+      return;
+    }
+
+    // Clear any remembered recovery flow so a later sign-in or callback never loops
+    // back onto this password reset page.
+    forgetEmailRequest();
 
     // Their corrected number, if they changed it. Best-effort on purpose: a failure
     // here must not cost them the password they just set, which is the whole reason
@@ -147,36 +163,21 @@ export default function NewPassword() {
       await supabase.auth.updateUser({ data: { [PASSWORD_SET_MARKER]: new Date().toISOString() } }).catch(() => {});
     }
 
-    // Kill every OTHER session for this account.
-    //
-    // A password reset is what someone does when they think an account is compromised,
-    // and Supabase leaves existing sessions signed in when the password changes — so
-    // whoever was already in stayed in, on the old refresh token, indefinitely. Resetting
-    // the password looked like it locked them out and did not.
-    //
-    // `scope: 'others'` deliberately: this browser has to survive, or the person who just
-    // reset their password is thrown back to the login screen for their trouble. Failure
-    // is non-fatal — the password IS changed by this point, and blocking on the cleanup
-    // would leave them staring at an error for something that succeeded.
+    // For a standard password reset, sign out every session (including the temporary
+    // recovery session) so the user signs in cleanly with their new password instead of
+    // ever looping back into a recovery/reset state. For first-time / invite / Google
+    // password setup, revoke other sessions only so they can continue directly in.
     try {
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+      const scope = mode === 'reset' && !invitation ? 'global' : 'others';
+      const { error: signOutError } = await supabase.auth.signOut({ scope });
       setOthersSignedOut(!signOutError);
+      if (scope === 'others') {
+        await supabase.auth.refreshSession().catch(() => {});
+      }
     } catch {
       /* Best-effort. The new password already holds — we just do not claim otherwise. */
     }
 
-    // ── Stop here. Do not redirect. ───────────────────────────────────────────────────
-    //
-    // Philip, on why adoption is stalling: the reset "is perceived as an automated login
-    // rather than a reset tool". The mechanism was fixed weeks ago — this page exists,
-    // and the password really does change — but the ENDING was still a silent redirect
-    // onto the dashboard. Set a password, land signed in, told nothing. From the user's
-    // side that is indistinguishable from the bug it replaced.
-    //
-    // A trust product cannot perform its most security-sensitive action invisibly. So the
-    // flow ends on an explicit confirmation that names what happened, including the other
-    // devices being signed out — which is the part that makes it read as a security
-    // action rather than a convenience, and which nobody would otherwise know occurred.
     setSubmitting(false);
     setDone(true);
   }
@@ -189,6 +190,10 @@ export default function NewPassword() {
   }
 
   async function handleContinue() {
+    if (mode === 'reset' && !invitation) {
+      navigate('/auth/login?reset=1', { replace: true });
+      return;
+    }
     if (invitation) {
       setSubmitting(true);
       setError(null);
@@ -245,7 +250,7 @@ export default function NewPassword() {
           </Link>
         )}
         <Button onClick={handleContinue} disabled={submitting} className="mt-6 w-full">
-          {t('auth.newPassword.doneCta')}
+          {t(mode === 'reset' && !invitation ? 'auth.newPassword.doneCtaLogin' : 'auth.newPassword.doneCta')}
         </Button>
       </motion.div>
     );
@@ -322,13 +327,18 @@ export default function NewPassword() {
         </div>
 
         {error && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-brand-near-black bg-brand-light-grey rounded-md px-3 py-2"
+            className="text-sm text-brand-near-black bg-brand-light-grey rounded-md px-3 py-2 space-y-1.5"
           >
-            {error}
-          </motion.p>
+            <p>{error}</p>
+            {alreadySet && (
+              <Link to="/auth/login" className="inline-block text-xs font-semibold text-brand-green underline underline-offset-4">
+                {t('auth.newPassword.doneCtaLogin')}
+              </Link>
+            )}
+          </motion.div>
         )}
 
         <Button type="submit" disabled={submitting} className="w-full">
