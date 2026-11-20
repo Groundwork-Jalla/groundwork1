@@ -16,6 +16,7 @@ import {
 import { myApplicationState, myApplicationDetail, type ApplicationState } from '@/lib/supabase/partner-application';
 import { fetchMyDevices, type UserDevice } from '@/lib/supabase/user-devices';
 import { errorMessage } from '@/lib/errors';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -120,7 +121,7 @@ export default function ContractorProfile() {
   async function sendReset() {
     if (!user?.email) return;
     await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/auth/reset`,
+      redirectTo: `${authCallbackOrigin()}/auth/callback?flow=recovery`,
     });
     setResetSent(true);
   }
@@ -130,7 +131,7 @@ export default function ContractorProfile() {
     : '—';
 
   return (
-    <div className="flex flex-col gap-5">
+    <div data-clarity-mask="true" className="flex flex-col gap-5">
       <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
         {t('nav.viewProfile')}
       </h1>

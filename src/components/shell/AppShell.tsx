@@ -87,7 +87,7 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#e4e3df] bg-[#ffffff] px-4 dark:border-[#2c2c2c] dark:bg-[#161616] sm:px-6">
+        <header className="safe-top flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-[#e4e3df] bg-[#ffffff] px-4 dark:border-[#2c2c2c] dark:bg-[#161616] sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
@@ -97,7 +97,10 @@ export function AppShell({
             >
               <Menu className="size-5 text-[#0a0a0a] dark:text-white" />
             </button>
-            <div className="md:hidden"><GroundworkLogo size="sm" variant={sidebarAppearance === 'calm' ? 'green' : 'dark'} /></div>
+            <div className="md:hidden">
+              <span className="dark:hidden"><GroundworkLogo size="sm" variant="dark" /></span>
+              <span className="hidden dark:block"><GroundworkLogo size="sm" variant="light" /></span>
+            </div>
             <h1 className="hidden shrink-0 text-sm font-semibold text-[#0a0a0a] dark:text-white md:block">
               {headerTitle ?? t(pageTitleKey(pathname, nav))}
             </h1>
@@ -122,7 +125,7 @@ export function AppShell({
         <main className="flex-1 overflow-y-auto">{children}</main>
 
         {/* Mobile tab bar — the first five destinations, mirroring the sidebar. */}
-        <nav className="flex shrink-0 items-center border-t border-[#e4e3df] bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#0f0f0f] md:hidden">
+        <nav className="safe-bottom flex shrink-0 items-center border-t border-[#e4e3df] bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#0f0f0f] md:hidden">
           {nav.slice(0, 5).map(({ to, labelKey, shortKey, icon: Icon, exact }) => (
             <NavLink
               key={to}

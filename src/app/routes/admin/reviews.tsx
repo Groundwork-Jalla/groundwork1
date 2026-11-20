@@ -183,7 +183,7 @@ function StageReviewCard({
           </div>
           <h3 className="mt-1.5 truncate text-xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{item.stageName}</h3>
           <p className="mt-1 truncate text-[13px] text-brand-mid-grey">
-            <Link to={workspaceHref(item.projectId)} className="font-medium text-brand-green hover:underline dark:text-state-complete">
+            <Link to={`/projects/${item.projectId}`} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-green hover:underline dark:text-state-complete">
               {item.projectName}
             </Link>
             {' · '}{item.ownerName || item.ownerEmail}

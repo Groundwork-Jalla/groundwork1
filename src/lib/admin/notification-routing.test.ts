@@ -115,13 +115,15 @@ describe('the email link names the tab too', () => {
 describe('the unread count is visible in both themes', () => {
   const bell = read('src/components/ui/NotificationBell.tsx');
 
-  it('the badge ink flips with its background', () => {
+  it('the badge keeps high-contrast white-on-brand-green ink in both themes', () => {
     /**
-     * THE REPORTED BUG. `--color-state-active` is "the colour of text" and flips with
-     * the theme — #0a0a0a light, #f0f0f0 dark. Against a fixed `text-white` the count
-     * was white on near-white: an unread badge with an invisible number.
+     * THE REPORTED BUG. `--color-state-active` flips with the theme (#0a0a0a light,
+     * #f0f0f0 dark), which previously made a fixed `text-white` badge invisible in
+     * dark mode. The badge now uses Brand Green (`bg-brand-green`, #1f4d36) with
+     * `text-white`, keeping high contrast in both light and dark themes.
      */
-    expect(bell).toMatch(/bg-state-active[^"]*text-white dark:text-brand-near-black/);
+    expect(bell).toMatch(/bg-brand-green[^"]*text-white/);
+    expect(bell).not.toMatch(/bg-state-active[^"]*text-white/);
   });
 
   it('and the panel is not light-only', () => {

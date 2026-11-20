@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchInvites, inviteContractor, revokeInvite } from '@/lib/supabase/invites';
 import type { ContractorInviteRow } from '@/types/project';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 // =========================================================
 // The primary client invites the initial contractor who is building this.
@@ -134,7 +135,7 @@ export function ContractorInvite({
         projectId, userId, address, projectName, inviterName, lang);
       if (!mounted.current || current.current !== scope) return;
       if (emailSent) setSent(address);
-      else setNotEmailed({ email: address, link: `${window.location.origin}/invite/${encodeURIComponent(saved.token)}` });
+      else setNotEmailed({ email: address, link: `${authCallbackOrigin()}/invite/${encodeURIComponent(saved.token)}` });
       setEmail('');
       await Promise.all([load(), refresh()]);
     } catch (err) {

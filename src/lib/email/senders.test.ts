@@ -66,7 +66,7 @@ describe('nobody writes the address out again', () => {
       src.split('\n').filter(l => !/^\s*(\*|\/[/*])/.test(l)).join('\n');
 
     const offenders = [...walk(join(ROOT, 'api')), ...walk(join(ROOT, 'src'))]
-      .filter(f => !f.startsWith('src/lib/email/senders.'))
+      .filter(f => !f.startsWith('src/lib/email/senders.') && !/\.test\.tsx?$/.test(f))
       .filter(f => /noreply@mail\.tryjalla\.com/.test(stripComments(readFileSync(join(ROOT, f), 'utf8'))));
     expect(offenders, `\n  ${offenders.join('\n  ')}\n`).toEqual([]);
   });

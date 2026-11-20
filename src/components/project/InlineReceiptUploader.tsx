@@ -8,6 +8,7 @@ import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib
 import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
 import { receiptErrorText } from '@/lib/payments/receipt-error-text';
 import { uploadStagePaymentReceipt } from '@/lib/supabase/verifications';
+import { compressImageForUpload } from '@/lib/mobile/compress-image';
 
 interface InlineReceiptUploaderProps {
   projectId: string;
@@ -93,7 +94,8 @@ export function InlineReceiptUploader({
     setError(null);
     setSuggestion(null);
     try {
-      await uploadStagePaymentReceipt(projectId, stageId, pickedFile, {
+      const prepared = await compressImageForUpload(pickedFile);
+      await uploadStagePaymentReceipt(projectId, stageId, prepared, {
         amount,
         currency,
         fxRate: currency === projectCode ? projectFxRate : currency === 'USD' ? 1 : undefined,

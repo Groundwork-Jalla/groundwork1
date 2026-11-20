@@ -39,6 +39,7 @@ import { handler as readFloorPlan } from './_handlers/read-floor-plan.js';
 import { handler as sendShareInvite } from './_handlers/send-share-invite.js';
 import { handler as readPaymentReceipt } from './_handlers/read-payment-receipt.js';
 import { attachBody } from './_lib/body.js';
+import { handleCors } from './_lib/cors.js';
 import { handler as whatsappAdmin } from './_handlers/whatsapp-admin.js';
 import { handler as whatsappProfile } from './_handlers/whatsapp-profile.js';
 import { handler as whatsappWebhook } from './_handlers/whatsapp-webhook.js';
@@ -142,6 +143,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
 };
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (!(await attachBody(req, res))) return;
 
   // Accepted from the query as well as the body: GHL's outbound webhook builder can set

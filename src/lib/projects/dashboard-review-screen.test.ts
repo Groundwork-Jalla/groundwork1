@@ -9,6 +9,9 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
     return [h.hooks[i], (value: any) => { h.hooks[i] = typeof value === 'function' ? value(h.hooks[i]) : value; }]; },
   useEffect: (effect: () => any, deps: any[]) => { const i = h.index++, old = h.hooks[i];
     if (!old || deps.some((v, j) => !Object.is(v, old.deps[j]))) h.effects.push(() => { old?.cleanup?.(); h.hooks[i] = { deps, cleanup: effect() }; }); },
+  useMemo: (factory: () => any, deps?: any[]) => { const i = h.index++, old = h.hooks[i];
+    if (!old || !deps || deps.some((v, j) => !Object.is(v, old.deps[j]))) h.hooks[i] = { deps, value: factory() };
+    return h.hooks[i].value; },
 }));
 vi.mock('react-router', () => ({ Link: 'a' }));
 vi.mock('framer-motion', () => ({ motion: { div: 'div' }, AnimatePresence: 'presence' }));

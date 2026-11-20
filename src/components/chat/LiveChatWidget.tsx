@@ -230,7 +230,7 @@ export function LiveChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 sm:bottom-5 sm:right-5" data-live-chat-widget>
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:right-5" data-live-chat-widget>
       {open && (
         <section
           role="dialog"

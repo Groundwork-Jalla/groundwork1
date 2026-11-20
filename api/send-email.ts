@@ -3,8 +3,10 @@
 import { logEmailToCrm } from './ghl/_email-log.js';
 import { callerEmailKind } from '../src/lib/email/email-kind.js';
 import { senderFor } from '../src/lib/email/senders.js';
+import { handleCors } from './_lib/cors.js';
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

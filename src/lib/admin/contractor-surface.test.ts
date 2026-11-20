@@ -128,7 +128,9 @@ describe('authority the contractor must not be offered', () => {
     for (const file of SURFACES) {
       const src = strings(file).toLowerCase();
       for (const label of BANNED) {
-        expect(src, `${file} offers "${label}"`).not.toContain(label.toLowerCase());
+        // Word boundaries prevent payment-state enum reads like `'reconciled'` from
+        // false-positiving while still catching any `'Reconcile'` action label.
+        expect(src, `${file} offers "${label}"`).not.toMatch(new RegExp(`\\b${label.toLowerCase()}\\b`));
       }
     }
   });

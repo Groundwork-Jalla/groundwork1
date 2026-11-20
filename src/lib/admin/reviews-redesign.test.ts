@@ -150,7 +150,11 @@ describe('Stage Reviews, redesigned', () => {
 
   it('every evidence file still opens', async () => {
     const view = await settle();
-    expect(view.filter(n => n.type === 'a' && n.props.href === 'https://x/1.jpg')).toHaveLength(1);
+    // Evidence now opens inside the in-app EvidenceLightbox via EvidenceThumbs rather
+    // than navigating to a raw relative storage path.
+    const thumbs = view.find(n => n.type?.name === 'EvidenceThumbs');
+    expect(thumbs?.props.paths).toEqual(['https://x/1.jpg']);
+    expect(view.filter(n => n.type === 'button' && n.props.title === '1.jpg')).toHaveLength(1);
   });
 
   it('the new strings are translated', () => {

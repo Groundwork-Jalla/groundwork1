@@ -94,11 +94,9 @@ export function AppSidebar({
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[#e4e3df] bg-[#ffffff] dark:border-white/10 dark:bg-[#0f0f0f]">
       <div className={cn('border-b border-[#e4e3df] px-5 dark:border-white/10', calm ? 'py-6' : 'py-5')}>
         <div className="flex flex-col leading-none">
-          {/* Keep the wordmark legible against either the home sidebar or the default shell. */}
-          {calm ? <GroundworkLogo size="xl" variant="green" /> : <>
-            <span className="dark:hidden"><GroundworkLogo size="sm" variant="dark" /></span>
-            <span className="hidden dark:block"><GroundworkLogo size="sm" variant="light" /></span>
-          </>}
+          {/* Keep the Groundwork brand wordmark black on light surfaces and white on dark surfaces. */}
+          <span className="dark:hidden"><GroundworkLogo size={calm ? 'xl' : 'sm'} variant="dark" /></span>
+          <span className="hidden dark:block"><GroundworkLogo size={calm ? 'xl' : 'sm'} variant="light" /></span>
           {badge && <span className="mt-0.5 text-[10px] text-[#9a9a96] dark:text-white/50">{badge}</span>}
         </div>
       </div>

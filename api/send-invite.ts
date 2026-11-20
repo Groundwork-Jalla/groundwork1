@@ -21,11 +21,13 @@ import { sendViaResend } from './_lib/resend-send.js';
 import { forwardToGhl } from './ghl/_forward.js';
 import { routingFields } from './ghl/_routing-fields.js';
 import { senderFor } from '../src/lib/email/senders.js';
+import { handleCors } from './_lib/cors.js';
 
 const FROM = senderFor('contractor_invite');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

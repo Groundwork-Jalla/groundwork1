@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Groundwork</string>
+    <string name="title_activity_main">Groundwork</string>
+    <string name="package_name">com.tryjalla.groundwork</string>
+    <string name="custom_url_scheme">com.tryjalla.groundwork</string>
+</resources>

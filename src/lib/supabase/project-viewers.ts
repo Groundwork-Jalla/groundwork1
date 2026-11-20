@@ -4,6 +4,7 @@ import type { Lang } from '@/lib/i18n/types';
 import { trackFunnel } from '@/lib/analytics/funnel';
 import { trackLifecycle } from '@/lib/analytics/lifecycle';
 import { rememberProjectInvitation } from '@/lib/auth/project-invitation';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 // =========================================================
 // Sharing a build with the people who care about it (112).
@@ -195,7 +196,7 @@ export async function sendShareInviteEmail(
 
 /** The link itself, for when the email could not be sent or they want to paste it. */
 export function shareLinkFor(shareToken: string): string {
-  return `${window.location.origin}/share/${encodeURIComponent(shareToken)}`;
+  return `${authCallbackOrigin()}/share/${encodeURIComponent(shareToken)}`;
 }
 
 export interface ViewerInvitePreview {

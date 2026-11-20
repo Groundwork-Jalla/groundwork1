@@ -3,6 +3,7 @@ import { Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
 import { projectInvitationLinkPath, type ProjectInvitationLink as InvitationLink, type ProjectInvitationRole } from '@/lib/supabase/project-invitation-links';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 /** A project invitation, followed by normal sign-in. This never creates an auth session. */
 export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCreate, onRefresh, primaryContractor = true }: {
@@ -11,7 +12,7 @@ export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCr
   primaryContractor?: boolean;
 }) {
   const t = useT();
-  const url = link ? `${window.location.origin}${projectInvitationLinkPath(role, link.token)}` : '';
+  const url = link ? `${authCallbackOrigin()}${projectInvitationLinkPath(role, link.token)}` : '';
   const key = `${scope}:${url}`;
   const current = useRef(key); current.current = key;
   const [copied, setCopied] = useState(false);

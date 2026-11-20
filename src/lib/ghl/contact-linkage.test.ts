@@ -42,7 +42,7 @@ describe('crm-project persists the returned contact id', () => {
 
   it('a bookkeeping failure is logged, never a failed response; the response reports whether it linked', () => {
     expect(h).toContain("console.warn('[ghl] project forwarded but owner contact id not stored:', linkErr);");
-    expect(h).toContain('res.status(200).json({ ok: result.ok, reason: result.reason, linked });');
+    expect(h).toMatch(/res\.status\(200\)\.json\(\{[\s\S]*?reason: result\.reason,[\s\S]*?linked,[\s\S]*?ghlOk: result\.ok,/);
     expect(h).toContain('linked = !linkErr && (stamped?.length ?? 0) > 0;');
     // The forward's own outcome is untouched: the link happens after it and does not gate it.
     expect(at("const result = await forwardToGhl('project_created'")).toBeLessThan(at('if (result.ok && result.contactId && !ownerContactId) {'));

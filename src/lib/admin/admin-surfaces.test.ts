@@ -164,22 +164,25 @@ describe('Site updates is one entity, read across projects', () => {
 
 describe('Notifications shares one source of truth with the bell', () => {
   const page = code('src/app/routes/admin/notifications.tsx');
+  const bell = code('src/components/ui/NotificationBell.tsx');
 
   it('same rows, same destination resolver, same read-state functions', () => {
-    expect(page).toContain('fetchNotifications(user.id, PAGE)');
-    expect(page).toContain("import { destinationFor } from '@/components/ui/NotificationBell'");
-    expect(page).toContain('markNotificationRead(n.id)');
-    expect(page).toContain('markAllNotificationsRead(user.id)');
+    expect(page).toContain('useNotifications(user?.id, PAGE)');
+    expect(bell).toContain('useNotifications(userId, limit)');
+    expect(page).toContain("from '@/lib/notification-destination'");
+    expect(bell).toContain("from '@/lib/notification-destination'");
+    expect(page).toContain('feed.markRead(n.id)');
+    expect(page).toContain('feed.markAllRead()');
   });
 
   it('unread is the column, not a number this page made up', () => {
-    expect(page).toContain('(rows ?? []).filter(n => !n.read_at).length');
+    expect(page).toContain('const unread = feed.unread;');
     expect(page).not.toMatch(/unreadCount\s*=\s*\d|badge\s*=\s*\d/);
   });
 
   it('a notification with nothing to open says so rather than being a dead click', () => {
     expect(page).toContain("t('admin.notifications.noTarget')");
-    expect(page).toContain('const to = destinationFor(n.data);');
+    expect(page).toContain('destinationFor(notificationData(n), { isAdmin: true })');
   });
 
   it('invents no categories', () => {

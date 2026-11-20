@@ -373,11 +373,15 @@ describe('the role survives the email round trip', () => {
       .replace(/^\s*--.*$/gm, '');
     expect(all).not.toMatch(/raw_user_meta_data[\s\S]{0,200}?INSERT INTO public\.user_roles/);
     // Admin correction may remove an old intent so a later callback cannot undo a
-    // client conversion. This exact cleanup grants no role; every other SQL use of
-    // signup_intent remains prohibited.
+    // client conversion, and `lifecycle_action_state` may read `signup_intent` to avoid
+    // suppressing a brand-new contractor's welcome flow before `/auth/callback` finishes.
+    // None of these grant a role; every other SQL use of `signup_intent` stays prohibited.
     const withoutCleanup = all
       .replace(/UPDATE auth\.users SET raw_user_meta_data=raw_user_meta_data-'signup_intent'\s+WHERE id=p_user AND raw_user_meta_data->>'signup_intent'='contractor';/g, '')
-      .replace(/UPDATE auth\.users SET raw_user_meta_data=\(coalesce\(raw_user_meta_data,'\{\}'::jsonb\)-'signup_intent'\)\s*\|\|jsonb_build_object\('role',p_role,'onboarding_complete',true\) WHERE id=p_user;/g, '');
+      .replace(/UPDATE auth\.users SET raw_user_meta_data=\(coalesce\(raw_user_meta_data,'\{\}'::jsonb\)-'signup_intent'\)\s*\|\|jsonb_build_object\('role',p_role,'onboarding_complete',true\) WHERE id=p_user;/g, '')
+      .replace(/v_uid uuid; v_signup_intent text; v_project uuid;/g, '')
+      .replace(/SELECT id, raw_user_meta_data->>'signup_intent'\s+INTO v_uid, v_signup_intent/g, '')
+      .replace(/AND coalesce\(v_signup_intent, ''\) <> 'contractor' THEN/g, '');
     expect(withoutCleanup).not.toMatch(/signup_intent/);
   });
 });

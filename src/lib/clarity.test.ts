@@ -41,6 +41,7 @@ describe('Microsoft Clarity privacy guard & masking', () => {
       'src/components/chat/LiveChatWidget.tsx',
       'src/components/project/DocumentViewer.tsx',
       'src/app/routes/profile.tsx',
+      'src/app/routes/work/profile.tsx',
       'src/app/routes/work/payouts.tsx',
     ];
     for (const file of maskedFiles) {

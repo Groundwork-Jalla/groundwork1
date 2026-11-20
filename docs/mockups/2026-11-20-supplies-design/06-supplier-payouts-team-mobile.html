@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>06 · Supplier Payouts, Multi-Staff RBAC & Unified Mobile App</title>
+  <link rel="stylesheet" href="supplies.css" />
+  <style>
+    .showcase { width: 1440px; height: 900px; background: var(--canvas); display: grid; grid-template-columns: minmax(0, 1fr) 410px; gap: 24px; padding: 24px 28px; overflow: hidden; }
+    .left-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .right-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    .perm-yes { color: var(--green); font-weight: 800; }
+    .perm-no  { color: var(--muted); }
+  </style>
+</head>
+<body>
+<div class="showcase">
+  <!-- Left: Desktop Supplier Payout Accounts + Multi-Staff RBAC -->
+  <div class="left-col">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;">Supplier Portal · Governance &amp; Direct Payments</div>
+        <h1 style="font-size:21px;font-weight:800;letter-spacing:-0.4px;margin-top:2px;">Payout Accounts &amp; Staff Permissions</h1>
+      </div>
+      <span class="pill-green">🔒 Owner-Protected Payouts</span>
+    </div>
+
+    <!-- Payout Accounts Card -->
+    <section class="card" style="padding:18px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div>
+          <div style="font-size:14.5px;font-weight:800;">Verified Payment Accounts (Shown Directly to Buyers)</div>
+          <div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Only the Supplier <strong>Owner</strong> can add or change bank / MoMo accounts. Groundwork verifies account names before going live.</div>
+        </div>
+        <span class="btn-primary btn-sm">+ Add Payment Account</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="border:1.5px solid rgba(31,77,54,0.3);background:var(--green-tint);border-radius:13px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;font-weight:800;">Afriland First Bank · Cameroon</span>
+            <span class="pill-green">✓ Default · Verified</span>
+          </div>
+          <div style="font-size:12px;color:var(--mid);margin-top:6px;">Account Holder: <strong style="color:var(--ink);">QUINCAILLERIE DU LITTORAL SARL</strong></div>
+          <div class="mono" style="font-size:12.5px;font-weight:700;margin-top:4px;">10005 · 00001 · 04829104211 · 47</div>
+          <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600;">Used for orders ≥ 250,000 XAF · Wire &amp; diaspora bank transfer</div>
+        </div>
+
+        <div style="border:1px solid var(--rule);background:var(--white);border-radius:13px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;font-weight:800;">MTN MoMo Merchant</span>
+            <span class="pill-green">✓ Verified</span>
+          </div>
+          <div style="font-size:12px;color:var(--mid);margin-top:6px;">Merchant Name: <strong style="color:var(--ink);">QUINCAILLERIE LITTORAL DLA</strong></div>
+          <div class="mono" style="font-size:12.5px;font-weight:700;margin-top:4px;">+237 677 88 12 40 · Code #40912</div>
+          <div style="font-size:11px;color:var(--mid);margin-top:6px;">Instant local mobile money for contractor top-up orders</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Supplier Staff RBAC Card -->
+    <section class="card" style="overflow:hidden;flex:1;display:flex;flex-direction:column;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:14.5px;font-weight:800;">Supplier Team &amp; Staff Roles (4 members)</div>
+          <div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Let your store manager, sales clerks, and drivers run daily operations safely without exposing payout bank settings.</div>
+        </div>
+        <span class="btn-primary btn-sm">+ Invite Staff Member</span>
+      </div>
+
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Team Member</th>
+            <th>Role</th>
+            <th>Catalog</th>
+            <th>Buyer Chat</th>
+            <th>Dispatch</th>
+            <th>Payout Accounts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div style="font-weight:700;">Paul Mbarga</div><div style="font-size:11px;color:var(--mid);">paul@quincaillerie-littoral.cm</div></td>
+            <td><span class="pill-green">Owner</span></td>
+            <td class="perm-yes">✓ Edit</td>
+            <td class="perm-yes">✓ Full</td>
+            <td class="perm-yes">✓ Full</td>
+            <td class="perm-yes">✓ Full control</td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:700;">Armand Fotso</div><div style="font-size:11px;color:var(--mid);">armand@quincaillerie-littoral.cm</div></td>
+            <td><span class="pill-muted">Store Manager</span></td>
+            <td class="perm-yes">✓ Edit</td>
+            <td class="perm-yes">✓ Full</td>
+            <td class="perm-yes">✓ Full</td>
+            <td class="perm-no">Read-only</td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:700;">Nadège Biya</div><div style="font-size:11px;color:var(--mid);">nadege@quincaillerie-littoral.cm</div></td>
+            <td><span class="pill-muted">Sales Clerk</span></td>
+            <td class="perm-no">View</td>
+            <td class="perm-yes">✓ Quotes</td>
+            <td class="perm-no">View</td>
+            <td class="perm-no">No access</td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:700;">Brice Ndongo</div><div style="font-size:11px;color:var(--mid);">+237 699 41 08 15 · Truck #CM-402</div></td>
+            <td><span class="pill-amber">Dispatch / Driver</span></td>
+            <td class="perm-no">—</td>
+            <td class="perm-no">Delivery only</td>
+            <td class="perm-yes">✓ Proof Photo</td>
+            <td class="perm-no">No access</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Right: Unified Groundwork Mobile App (Capacitor iOS/Android) Preview -->
+  <div class="right-col">
+    <div style="text-align:center;">
+      <span class="pill-green">📱 Unified Groundwork Mobile App</span>
+      <div style="font-size:12px;color:var(--mid);margin-top:4px;">Supplier Dispatch View (iOS &amp; Android)</div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-notch">
+        <span>9:41</span>
+        <div class="phone-pill"></div>
+        <span>5G 🔋</span>
+      </div>
+      <div style="background:var(--white);border-bottom:1px solid var(--rule);padding:11px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:13.5px;font-weight:800;">Dispatch #GW-SUP-4821</div>
+          <div style="font-size:10.5px;color:var(--green);font-weight:700;">● Paid · Ready for Site Drop</div>
+        </div>
+        <span class="pill-green" style="font-size:10px;">Douala</span>
+      </div>
+
+      <div style="flex:1;padding:13px 14px;display:flex;flex-direction:column;gap:11px;overflow:hidden;">
+        <div class="card" style="padding:12px;">
+          <div style="font-size:10.5px;font-weight:700;color:var(--mid);text-transform:uppercase;">Destination Site</div>
+          <div style="font-size:14px;font-weight:800;margin-top:2px;">Villa Bonabéri · Lot 14</div>
+          <div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Receiver: Jean-Paul N. · +237 677 14 22 09</div>
+          <div style="display:flex;gap:7px;margin-top:9px;">
+            <span class="btn-outline-green btn-sm" style="flex:1;">📞 Call Foreman</span>
+            <span class="btn-outline btn-sm" style="flex:1;">📍 Open Map</span>
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px;font-size:12px;">
+          <div style="font-weight:800;margin-bottom:6px;">Load Checklist</div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--rule);"><span>✓ 200 × Dangote Cement 42.5R</span><span class="mono" style="color:var(--green);font-weight:700;">Loaded</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>✓ 60 × Fe500 12mm Rebar</span><span class="mono" style="color:var(--green);font-weight:700;">Loaded</span></div>
+        </div>
+
+        <div class="card" style="padding:12px;border-color:var(--green);background:var(--green-tint);">
+          <div style="font-size:12px;font-weight:800;color:var(--green);">Confirm Site Delivery</div>
+          <div style="font-size:11px;color:var(--mid);margin-top:3px;line-height:1.4;">Take a clear photo of offloaded materials at site. Compressed automatically for 3G/4G.</div>
+          <div style="margin-top:9px;display:flex;flex-direction:column;gap:7px;">
+            <span class="btn-primary btn-full" style="padding:10px;">📷 Take Delivery Photo</span>
+            <span class="btn-outline btn-full btn-sm">Receiver Name: Jean-Paul N.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Native Mobile Bottom Tab Bar -->
+      <div style="background:var(--white);border-top:1px solid var(--rule);padding:9px 12px 14px;display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:10px;font-weight:700;">
+        <div style="color:var(--green);">▤<br/>Orders</div>
+        <div style="color:var(--mid);">▦<br/>Catalog</div>
+        <div style="color:var(--mid);">💬<br/>Chat</div>
+        <div style="color:var(--mid);">👥<br/>Team</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

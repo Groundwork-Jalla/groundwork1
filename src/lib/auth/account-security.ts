@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import { emailMfaEnabled } from './email-otp';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 // =========================================================
 // What an account has, and what it is still missing.
@@ -79,7 +80,7 @@ export async function requestEmailChange(newEmail: string): Promise<void> {
   if (!EMAIL_RE.test(email)) throw new Error('invalid_email');
   const { error } = await supabase.auth.updateUser(
     { email },
-    { emailRedirectTo: `${window.location.origin}/auth/callback?flow=email_change` },
+    { emailRedirectTo: `${authCallbackOrigin()}/auth/callback?flow=email_change` },
   );
   if (error) throw error;
 }

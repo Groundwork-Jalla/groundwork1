@@ -151,7 +151,9 @@ export default function Signup() {
 
     // Instant sign-in path (email confirmation disabled)
     if (data.session) {
-      window.location.href = projectAuthCallbackUrl(window.location.origin, searchParams.toString());
+      // Keep navigation relative so native Capacitor WebViews stay inside the local bundle.
+      const callback = new URL(projectAuthCallbackUrl(window.location.origin, searchParams.toString()));
+      window.location.href = `${callback.pathname}${callback.search}${callback.hash}`;
       return;
     }
 

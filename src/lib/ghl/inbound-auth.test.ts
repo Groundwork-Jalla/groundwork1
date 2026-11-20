@@ -65,7 +65,8 @@ describe('every other action still receives the same parsed req.body', () => {
     expect(b).toContain('req.body = parsed.body;');
     const { execSync } = require('node:child_process');
     // The raw bytes exist for one reason: a provider signed them. GHL signs the body;
-    // SwyChr signs `{timestamp}.{body}`; Resend (Svix) signs `{id}.{timestamp}.{body}`.
+    // SwyChr signs `{timestamp}.{body}`; Resend (Svix) signs `{id}.{timestamp}.{body}`;
+    // Meta WhatsApp signs the raw body with `X-Hub-Signature-256`.
     // Any OTHER handler reading rawBody would be parsing the request a second way,
     // which is how the two copies drift apart — so this list stays exhaustive and a
     // new reader has to be added here deliberately.
@@ -74,6 +75,7 @@ describe('every other action still receives the same parsed req.body', () => {
       'api/_handlers/email-receipt.ts',
       'api/_handlers/inbound.ts',
       'api/_handlers/swychr-callback.ts',
+      'api/_handlers/whatsapp-webhook.ts',
     ]);
     expect(src('api/events.ts')).toContain("from './_lib/body.js'");
   });

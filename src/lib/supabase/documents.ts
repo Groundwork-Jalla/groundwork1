@@ -117,12 +117,17 @@ export async function signedUrlIn(
    */
   thumb?: { width: number; height: number },
 ): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(
-    path, 3600,
-    thumb ? { transform: { width: thumb.width, height: thumb.height, resize: 'cover' } } : undefined,
-  );
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+  if (!supabase?.storage) return null;
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(
+      path, 3600,
+      thumb ? { transform: { width: thumb.width, height: thumb.height, resize: 'cover' } } : undefined,
+    );
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  } catch {
+    return null;
+  }
 }
 
 /**

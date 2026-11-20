@@ -45,7 +45,7 @@ describe('a message notification now resolves', () => {
 
   it('the bell still builds the verifier link', () => {
     expect(destinationFor({ project_id: P, conversation_id: 'c', role: 'verifier' }))
-      .toBe(`/verifiers/projects/${P}?tab=messages`);
+      .toBe(`/verifiers/projects/${P}?tab=messages&conversation_id=c`);
   });
 
   it('and that is a real route now', () => {

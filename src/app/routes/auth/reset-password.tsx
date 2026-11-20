@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/lib/i18n";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
+import { authCallbackOrigin } from "@/lib/mobile/runtime";
 
 export default function ResetPassword() {
   const t = useT();
@@ -26,7 +27,7 @@ export default function ResetPassword() {
     // onboarding, leaving the old password in place. "Forgot password?" silently did
     // nothing. Found in beta testing, 25 Aug 2026.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?flow=recovery`,
+      redirectTo: `${authCallbackOrigin()}/auth/callback?flow=recovery`,
     });
     setSubmitting(false);
     if (error) {

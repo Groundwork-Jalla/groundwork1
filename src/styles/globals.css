@@ -245,3 +245,23 @@ html.dark .auth-panel-left {
   background-color: #0a0a0a;
   color: #ffffff;
 }
+
+/* ── Mobile / Capacitor Safe-Area Utilities ──────────────
+   Evaluate to 0px on desktop & standard browsers; automatically clear
+   iPhone Dynamic Island / notch and gesture home-indicator on mobile & native apps. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+html.native-app,
+html.native-app body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}

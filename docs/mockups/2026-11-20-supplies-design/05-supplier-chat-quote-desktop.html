@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>05 · Supplier ↔ Buyer Chat & In-Chat Custom Quote</title>
+  <link rel="stylesheet" href="supplies.css" />
+  <style>
+    .inbox-grid { flex: 1; display: grid; grid-template-columns: 310px minmax(0, 1fr); overflow: hidden; }
+    .thread-list { background: var(--white); border-right: 1px solid var(--rule); display: flex; flex-direction: column; }
+    .thread-item { padding: 13px 15px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
+    .thread-item.active { background: var(--green-tint); border-left: 3px solid var(--green); }
+    .chat-pane { display: flex; flex-direction: column; background: var(--canvas); min-width: 0; }
+    .chat-head { height: 64px; background: var(--white); border-bottom: 1px solid var(--rule); padding: 0 22px; display: flex; align-items: center; justify-content: space-between; }
+    .chat-body { flex: 1; padding: 18px 24px; display: flex; flex-direction: column; gap: 13px; overflow: hidden; }
+    .msg-in { align-self: flex-start; max-width: 68%; background: var(--white); border: 1px solid var(--rule); border-radius: 16px 16px 16px 4px; padding: 11px 14px; font-size: 13px; line-height: 1.45; box-shadow: var(--shadow-xs); }
+    .msg-out { align-self: flex-end; max-width: 68%; background: var(--green); color: #fff; border-radius: 16px 16px 4px 16px; padding: 11px 14px; font-size: 13px; line-height: 1.45; }
+    .quote-card { align-self: flex-end; width: 470px; background: var(--white); border: 1.5px solid var(--green); border-radius: 16px; padding: 15px 17px; box-shadow: var(--shadow-sm); }
+    .chat-compose { background: var(--white); border-top: 1px solid var(--rule); padding: 13px 20px; display: flex; flex-direction: column; gap: 9px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div><div class="brand-name">Groundwork</div><span class="brand-sub">by Jalla · Supplier Portal</span></div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;">
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">▤ Orders (6)</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">▦ Catalog (42)</div>
+      <div class="nav-item active" style="padding:9px 11px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;"><span>💬 Buyer Chat</span><span class="nav-badge" style="font-size:10px;padding:1px 7px;border-radius:999px;">3</span></div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">🏛 Payout Accounts</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">👥 Staff &amp; Roles</div>
+    </nav>
+  </aside>
+
+  <div class="inbox-grid">
+    <!-- Left Rail: Buyer Conversations -->
+    <section class="thread-list">
+      <div style="padding:15px;border-bottom:1px solid var(--rule);">
+        <div style="font-size:15px;font-weight:800;">Buyer Conversations</div>
+        <div style="font-size:11px;color:var(--mid);margin-top:2px;">Direct chat with Homeowners &amp; contractors · Synced with WhatsApp alerts</div>
+      </div>
+
+      <div class="thread-item active">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:800;">Clarisse T. · Odza Residence</span>
+          <span style="font-size:10.5px;color:var(--green);font-weight:700;">2m ago</span>
+        </div>
+        <div style="font-size:11px;color:var(--green);font-weight:600;">Homeowner (Paris) · Stage 5 · Yaoundé</div>
+        <div style="font-size:12px;color:var(--mid);">Quote sent: 1,036,000 XAF (150 bags + 40 bars)</div>
+      </div>
+
+      <div class="thread-item">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;">Jean-Paul N. · Villa Bonabéri</span>
+          <span class="pill-amber" style="font-size:10px;padding:1px 6px;">1 new</span>
+        </div>
+        <div style="font-size:11px;color:var(--mid);">Site Contractor · Douala · Order GW-SUP-4821</div>
+        <div style="font-size:12px;color:var(--mid);">"Gate is open from 8am tomorrow for the 10T truck."</div>
+      </div>
+
+      <div class="thread-item">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;">Samuel E. · Kribi Beach Duplex</span>
+          <span style="font-size:10.5px;color:var(--muted);">1h ago</span>
+        </div>
+        <div style="font-size:11px;color:var(--mid);">Homeowner (Houston, US) · Inquiry</div>
+        <div style="font-size:12px;color:var(--mid);">"Do you stock anti-salt roofing sheets for Kribi?"</div>
+      </div>
+
+      <div class="thread-item">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;">Benoît K. · Bastos Villa</span>
+          <span style="font-size:10.5px;color:var(--muted);">Yesterday</span>
+        </div>
+        <div style="font-size:11px;color:var(--mid);">Contractor · Yaoundé · Delivered ✓</div>
+        <div style="font-size:12px;color:var(--mid);">"Received 300/300 bags in good condition, merci!"</div>
+      </div>
+    </section>
+
+    <!-- Right: Active Thread + Custom Quote Card -->
+    <section class="chat-pane">
+      <header class="chat-head">
+        <div>
+          <div style="font-size:15px;font-weight:800;">Clarisse T. <span class="pill-green" style="margin-left:6px;">Homeowner · Odza Residence (Yaoundé)</span></div>
+          <div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Linked to Stage 5: Structure &amp; Walls · Handled by: <strong>Nadège (Sales Clerk)</strong></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="pill-wa">● WhatsApp Ping Active</span>
+          <span class="btn-outline-green btn-sm">+ Build Custom Quote</span>
+        </div>
+      </header>
+
+      <div class="chat-body">
+        <div class="msg-in">
+          <div style="font-size:10.5px;font-weight:700;color:var(--mid);margin-bottom:3px;">Clarisse T. (Homeowner · Paris) · 10:02 WAT</div>
+          Bonjour! My contractor needs <strong>150 bags of Dangote 42.5R</strong> and <strong>40 bars of 12mm Fe500 rebar</strong> delivered to our site in Odza, Yaoundé by Thursday morning. Can you confirm stock and exact truck delivery cost from Douala?
+        </div>
+
+        <div class="msg-out">
+          <div style="font-size:10.5px;opacity:0.8;margin-bottom:3px;">Nadège · Quincaillerie du Littoral · 10:09 WAT</div>
+          Bonjour Mme Clarisse! Both are in stock today at our Bonabéri yard. We have a 10T truck leaving for Yaoundé Thursday 6:00 AM — it can drop directly at your Odza gate before noon. I've attached an official quote with our bulk cement rate below:
+        </div>
+
+        <!-- Structured In-Chat Custom Quote Card -->
+        <div class="quote-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);padding-bottom:9px;margin-bottom:10px;">
+            <div>
+              <div class="mono" style="font-size:10.5px;font-weight:800;color:var(--green);">CUSTOM QUOTE · #Q-4820</div>
+              <div style="font-size:14px;font-weight:800;">Odza Residence · Stage 5 Delivery</div>
+            </div>
+            <span class="pill-green">Valid 48h</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;">
+            <div style="display:flex;justify-content:space-between;"><span>150 × Dangote Cement 42.5R (Bulk 4,900)</span><span class="mono" style="font-weight:700;">735,000 XAF</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>40 × Fe500 12mm Rebar (12m bar)</span><span class="mono" style="font-weight:700;">186,000 XAF</span></div>
+            <div style="display:flex;justify-content:space-between;color:var(--mid);"><span>Douala → Odza Yaoundé 10T Haulage</span><span class="mono" style="font-weight:700;">115,000 XAF</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--rule);padding-top:9px;margin-top:3px;font-size:14px;font-weight:800;">
+              <span>Total Quote</span>
+              <span class="mono" style="color:var(--green);">1,036,000 XAF <span style="font-size:11px;color:var(--mid);font-weight:600;">(≈ $1,727)</span></span>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span style="font-size:11px;color:var(--mid);">🚚 Est. Delivery: Thu 26 Nov, 10:00–12:00 WAT</span>
+            <span class="btn-primary btn-sm">Buyer Action: Approve &amp; Pay →</span>
+          </div>
+        </div>
+
+        <div class="msg-in">
+          <div style="font-size:10.5px;font-weight:700;color:var(--mid);margin-bottom:3px;">Clarisse T. (Homeowner · Paris) · 10:15 WAT</div>
+          Perfect — much clearer than paying cash through middlemen! I just approved the quote and sent the Afriland transfer, uploading my receipt now.
+        </div>
+      </div>
+
+      <div class="chat-compose">
+        <div style="display:flex;gap:7px;">
+          <span class="btn-outline-green btn-sm">+ Send Custom Quote</span>
+          <span class="btn-outline btn-sm">🚚 Share Delivery Window</span>
+          <span class="btn-outline btn-sm">📷 Attach Stock Photo</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="field-input" style="flex:1;color:var(--muted);">Reply to Clarisse T. (also triggers instant notification)...</div>
+          <span class="btn-primary">Send Reply</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

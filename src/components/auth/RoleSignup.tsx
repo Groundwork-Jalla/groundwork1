@@ -18,6 +18,7 @@ import { getClaimPreview, rememberClaim, rememberContractorRegistration, registe
 import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration, registerVerifierAccount } from '@/lib/supabase/verifier-claim';
 import { useT, type TKey } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 // =========================================================
 // The one front door for a contractor, and the one for a verifier.
@@ -238,7 +239,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
         // different browser, so the door is recorded on the account as well — see
         // signupMetadata. Without it they land in client onboarding holding no role.
         data: signupMetadata(fullName.trim(), canonicalPhone, role as SignupIntent),
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${authCallbackOrigin()}/auth/callback`,
       },
     });
     setSubmitting(false);

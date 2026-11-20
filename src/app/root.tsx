@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import "@/lib/sentry";
 import { GA_ID } from "@/lib/analytics";
 import { ClarityTracker } from "@/lib/clarity";
+import { NativeAppBridge } from "@/components/mobile/NativeAppBridge";
 import "../styles/globals.css";
 import { useT } from '@/lib/i18n';
 
@@ -27,6 +28,7 @@ export const links: Route.LinksFunction = () => [
   // page, so this slot needs a real raster. 512 is the size iOS prefers to
   // downscale from for home-screen icons.
   { rel: "apple-touch-icon", sizes: "512x512", href: "/logo-512.png" },
+  { rel: "manifest", href: "/manifest.webmanifest" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
@@ -66,7 +68,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             alone is ignored. Both, because one of them silently not applying is how
             this reached production in the first place. */}
         <meta name="google" content="notranslate" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#1f4d36" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Groundwork by Jalla</title>
         <Meta />
         {/* Apply saved theme class before first paint — prevents flash */}
@@ -160,6 +165,7 @@ function AppInner() {
         <ThemeProvider>
           <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
             <div id="main-content">
+              <NativeAppBridge />
               <ClarityTracker />
               <AccountRoleSync />
               <Outlet />

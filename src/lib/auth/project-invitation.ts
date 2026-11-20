@@ -1,4 +1,5 @@
 import { isSafeInternalPath } from './post-auth-path';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 
 export type ProjectInvitation = { kind: 'contractor' | 'viewer'; token: string };
 type InvitationStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -93,7 +94,8 @@ export function contractorProjectReturn(path: string | null): string | null {
 export function projectAuthCallbackUrl(origin: string, search = ''): string {
   const invitation = readProjectInvitation(search);
   if (invitation) rememberProjectInvitation(invitation);
-  const callback = new URL(withProjectInvitation('/auth/callback', invitation), origin);
+  const safeOrigin = authCallbackOrigin(origin);
+  const callback = new URL(withProjectInvitation('/auth/callback', invitation), safeOrigin);
   const redirect = safeAuthReturn(new URLSearchParams(search).get('redirect'));
   if (redirect) callback.searchParams.set('redirect', redirect);
   return callback.href;

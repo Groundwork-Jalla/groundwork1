@@ -18,8 +18,10 @@
 
 import { buildContractorPayload, markApplicationSynced } from './_contractor-payload.js';
 import { ghlSettings } from './_config.js';
+import { handleCors } from '../_lib/cors.js';
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

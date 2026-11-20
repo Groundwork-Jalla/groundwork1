@@ -18,6 +18,7 @@
 import { siteUrl } from '../src/lib/site-url.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
 import { applicationSender } from './_lib/communication-email.js';
+import { handleCors } from './_lib/cors.js';
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
 
 function esc(s: unknown): string {
@@ -77,6 +78,7 @@ export function internalHtml(a: Record<string, any>, appUrl: string): string {
 }
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

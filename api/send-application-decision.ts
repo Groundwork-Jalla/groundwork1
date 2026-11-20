@@ -21,6 +21,7 @@ import { forwardToGhl } from './ghl/_forward.js';
 import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
 import { applicationSender } from './_lib/communication-email.js';
+import { handleCors } from './_lib/cors.js';
 
 function admin() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -29,6 +30,7 @@ function admin() {
 }
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>04 · Supplier Portal: Upload Goods & Manage Construction Catalog</title>
+  <link rel="stylesheet" href="supplies.css" />
+  <style>
+    .main-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .topbar { height: 58px; background: var(--white); border-bottom: 1px solid var(--rule); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+    .workspace { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 18px; padding: 18px 22px; overflow: hidden; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div><div class="brand-name">Groundwork</div><span class="brand-sub">by Jalla · Supplier Portal</span></div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;flex:1;">
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);"><span>▤ Orders</span></div>
+      <div class="nav-item active" style="padding:9px 11px;border-radius:10px;font-size:13px;display:flex;justify-content:space-between;"><span>▦ Catalog</span><span class="nav-badge" style="font-size:10px;padding:1px 7px;border-radius:999px;">42</span></div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);"><span>💬 Buyer Chat</span></div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);"><span>🏛 Payout Accounts</span></div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);"><span>👥 Staff &amp; Roles</span></div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);"><span>◈ Store Profile</span></div>
+    </nav>
+  </aside>
+
+  <div class="main-wrap">
+    <header class="topbar">
+      <div>
+        <div style="font-size:16px;font-weight:800;">Product Catalog &amp; Pricing</div>
+        <div style="font-size:11.5px;color:var(--mid);">Upload goods once — shown automatically to Homeowners &amp; contractors in Douala &amp; Yaoundé</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="btn-outline btn-sm">↑ Import Price List (Excel/CSV)</span>
+        <span class="btn-primary btn-sm">+ Add Product</span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <!-- Left: Product Catalog Table -->
+      <div class="card" style="overflow:hidden;display:flex;flex-direction:column;">
+        <div style="padding:13px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;gap:6px;">
+            <span class="filter-chip on" style="padding:4px 10px;font-size:11px;">All (42)</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Cement (6)</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Rebar &amp; Steel (11)</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Blocks (5)</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Plumbing (12)</span>
+          </div>
+        </div>
+
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Unit</th>
+              <th>Price (XAF / USD)</th>
+              <th>Build Stages</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="sel">
+              <td>
+                <div style="font-weight:700;">Dangote Cement 42.5R</div>
+                <div style="font-size:11px;color:var(--green);font-weight:600;">Bulk 100+: 4,900 XAF</div>
+              </td>
+              <td>50kg bag</td>
+              <td><div class="mono" style="font-weight:800;">5,100 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $8.50</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 4 · 5</span></td>
+              <td><span class="pill-green">In stock</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;">Fe500 12mm Rebar (12m)</div>
+                <div style="font-size:11px;color:var(--mid);">MOQ: 20 bars</div>
+              </td>
+              <td>12m bar</td>
+              <td><div class="mono" style="font-weight:700;">4,650 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $7.75</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 4 · 5</span></td>
+              <td><span class="pill-green">In stock</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;">CIMENCAM Robuste 42.5</div>
+                <div style="font-size:11px;color:var(--mid);">MOQ: 50 bags</div>
+              </td>
+              <td>50kg bag</td>
+              <td><div class="mono" style="font-weight:700;">5,000 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $8.33</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 4 · 5</span></td>
+              <td><span class="pill-green">In stock</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;">15cm Vibrated Hollow Block</div>
+                <div style="font-size:11px;color:var(--mid);">Pallet: 500 pcs</div>
+              </td>
+              <td>Piece</td>
+              <td><div class="mono" style="font-weight:700;">375 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $0.63</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 5</span></td>
+              <td><span class="pill-amber">Low stock</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;">Granite Crushed Gravel 5/15</div>
+                <div style="font-size:11px;color:var(--mid);">Quote delivery in chat</div>
+              </td>
+              <td>10T truck</td>
+              <td><div class="mono" style="font-weight:700;">225,000 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $375</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 4 · 5</span></td>
+              <td><span class="pill-green">In stock</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="font-weight:700;">Aluzinc Roofing Sheet 0.45mm</div>
+                <div style="font-size:11px;color:var(--mid);">Custom cut to roof spec</div>
+              </td>
+              <td>Sheet (3m)</td>
+              <td><div class="mono" style="font-weight:700;">6,400 XAF</div><div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $10.67</div></td>
+              <td><span class="pill-muted" style="font-size:10px;">Stage 6</span></td>
+              <td><span class="pill-muted">Made to order</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Right: Add / Edit Product Drawer -->
+      <aside class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px;border-color:rgba(31,77,54,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:0.4px;">Upload / Edit Product</div>
+            <div style="font-size:15.5px;font-weight:800;">Dangote Cement 42.5R</div>
+          </div>
+          <span class="pill-green">Live on Groundwork</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label class="field-label">Category</label>
+            <div class="field-input">Cement &amp; Aggregates ▾</div>
+          </div>
+          <div>
+            <label class="field-label">Pricing Unit</label>
+            <div class="field-input">50kg Bag ▾</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label class="field-label">Unit Price (XAF)</label>
+            <div class="field-input mono" style="font-weight:700;">5,100</div>
+            <div class="mono" style="font-size:10.5px;color:var(--mid);margin-top:3px;">Auto-shown as ≈ $8.50 USD</div>
+          </div>
+          <div>
+            <label class="field-label">Bulk Price (100+ bags)</label>
+            <div class="field-input mono" style="font-weight:700;">4,900</div>
+            <div style="font-size:10.5px;color:var(--green);margin-top:3px;">Encourages large stage orders</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">Recommended Build Stages</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="filter-chip on" style="padding:4px 9px;font-size:11px;">✓ 4 · Foundation</span>
+            <span class="filter-chip on" style="padding:4px 9px;font-size:11px;">✓ 5 · Structure &amp; Walls</span>
+            <span class="filter-chip" style="padding:4px 9px;font-size:11px;">6 · Roofing</span>
+            <span class="filter-chip" style="padding:4px 9px;font-size:11px;">8 · Finishing</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">Delivery Coverage &amp; Fee</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;">
+            <span class="pill-green">✓ Douala · 35,000 XAF</span>
+            <span class="pill-green">✓ Yaoundé · 85,000 XAF</span>
+            <span class="pill-muted">Kribi · Quote in chat</span>
+          </div>
+        </div>
+
+        <div style="border:1.5px dashed var(--rule-strong);border-radius:11px;padding:12px;text-align:center;background:var(--canvas);">
+          <div style="font-size:12px;font-weight:700;color:var(--ink);">Product Photos (2 uploaded)</div>
+          <div style="font-size:11px;color:var(--mid);margin-top:2px;">Drop yard or product photos · Compressed for fast mobile browsing</div>
+        </div>
+
+        <div style="margin-top:auto;display:flex;gap:8px;">
+          <span class="btn-outline" style="flex:1;">Save Draft</span>
+          <span class="btn-primary" style="flex:2;">Publish to Supplies</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</body>
+</html>

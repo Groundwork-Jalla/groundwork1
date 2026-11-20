@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>01 · Groundwork Supplies Marketplace (Homeowner & Contractor)</title>
+  <link rel="stylesheet" href="supplies.css" />
+  <style>
+    .main-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .topbar { height: 58px; background: var(--white); border-bottom: 1px solid var(--rule); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+    .body-grid { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 348px; gap: 18px; padding: 18px 22px; overflow: hidden; }
+    .catalog-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .prod-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .prod-card { background: var(--white); border: 1px solid var(--rule); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-xs); }
+    .prod-card.in-cart { border-color: var(--green); box-shadow: 0 0 0 1px rgba(31,77,54,0.18); }
+    .cart-col { background: var(--white); border: 1px solid var(--rule); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-xs); }
+    .cart-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+    .qty-pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
+    .search-box { display: flex; align-items: center; gap: 8px; background: var(--canvas); border: 1px solid var(--rule); border-radius: 10px; padding: 7px 12px; width: 320px; color: var(--mid); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <!-- Unified Groundwork Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div>
+          <div class="brand-name">Groundwork</div>
+          <span class="brand-sub" style="font-size:10px;color:var(--muted);">by Jalla</span>
+        </div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;flex:1;">
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);display:flex;align-items:center;gap:9px;"><span>▣</span> Dashboard</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);display:flex;align-items:center;gap:9px;"><span>◫</span> My Projects</div>
+      <div class="nav-item active" style="padding:9px 11px;border-radius:10px;font-size:13px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:9px;"><span>▦</span> Supplies</span>
+        <span class="nav-badge" style="font-size:10px;padding:1px 7px;border-radius:999px;font-weight:700;">New</span>
+      </div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);display:flex;align-items:center;gap:9px;"><span>▤</span> Documents</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);display:flex;align-items:center;gap:9px;"><span>◷</span> Messages</div>
+      <div style="margin-top:auto;border-top:1px solid var(--rule);padding-top:12px;">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;">
+          <div style="width:30px;height:30px;border-radius:999px;background:var(--green-soft);color:var(--green);display:grid;place-items:center;font-weight:800;font-size:11px;">FN</div>
+          <div>
+            <div style="font-size:12.5px;font-weight:700;">Favour N.</div>
+            <div style="font-size:10.5px;color:var(--mid);">Homeowner · London, UK</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Workspace -->
+  <div class="main-wrap">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;letter-spacing:-0.3px;">Groundwork Supplies</div>
+          <div style="font-size:11.5px;color:var(--mid);">Verified Cameroon suppliers · Direct site delivery · Zero middleman markup</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="search-box">🔍 Search cement, 12mm rebar, blocks, Douala...</div>
+        <div style="display:inline-flex;border:1px solid var(--rule);border-radius:9px;padding:2px;background:var(--canvas);font-size:11px;font-weight:700;">
+          <span style="background:var(--green);color:#fff;padding:4px 9px;border-radius:7px;">XAF</span>
+          <span style="color:var(--mid);padding:4px 9px;">USD</span>
+        </div>
+        <span class="pill-green">✓ 24 Verified Suppliers</span>
+      </div>
+    </header>
+
+    <div class="body-grid">
+      <!-- Left: Filters + Material Catalog -->
+      <div class="catalog-col">
+        <!-- Active Project & Stage Context -->
+        <div class="context-strip">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:28px;height:28px;border-radius:999px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800;">5</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:700;color:var(--ink);">Ordering for: Villa Bonabéri · Stage 5 (Structure &amp; Walls)</div>
+              <div style="font-size:11.5px;color:var(--mid);">Site: Bonabéri, Douala · Showing suppliers delivering directly to your site</div>
+            </div>
+          </div>
+          <span class="btn-outline btn-sm">Switch project ▾</span>
+        </div>
+
+        <!-- City & Category Filter Bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="filter-chip on">All Stage 5 Items</span>
+            <span class="filter-chip">Cement &amp; Aggregates</span>
+            <span class="filter-chip">Rebar &amp; Steel</span>
+            <span class="filter-chip">Hollow Blocks</span>
+            <span class="filter-chip">Roofing &amp; Timber</span>
+            <span class="filter-chip">Tiles &amp; Plumbing</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <span class="filter-chip on" style="padding:5px 10px;font-size:11px;">Douala</span>
+            <span class="filter-chip" style="padding:5px 10px;font-size:11px;">Yaoundé</span>
+            <span class="filter-chip" style="padding:5px 10px;font-size:11px;">Kribi</span>
+          </div>
+        </div>
+
+        <!-- 2x2 Product Grid -->
+        <div class="prod-grid">
+          <!-- Product 1 -->
+          <div class="prod-card in-cart">
+            <div class="mat-thumb mat-cement">
+              <span class="mat-badge">✓ Verified Supplier</span>
+              <span class="mat-stage-tag">Stage 4 &amp; 5</span>
+              <div style="margin-left:auto;text-align:right;">
+                <div style="width:62px;height:74px;background:#fff;border:2px solid #c9b991;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(0,0,0,0.08);">
+                  <div style="font-size:9px;font-weight:900;color:#b45309;letter-spacing:0.4px;">DANGOTE</div>
+                  <div style="font-size:14px;font-weight:900;color:#1f4d36;">42.5R</div>
+                  <div style="font-size:9px;color:#5a5d5a;">50 KG</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="font-size:14px;font-weight:800;line-height:1.25;">Dangote Cement 42.5R (50kg Bag)</div>
+                <span class="pill-green" style="font-size:10px;padding:2px 7px;">In stock</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--mid);margin-top:3px;">Quincaillerie du Littoral · Douala &amp; Yaoundé · Same-day</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid var(--rule);padding-top:10px;">
+              <div>
+                <div class="mono" style="font-size:16px;font-weight:800;">5,100 XAF <span style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--mid);">/ bag</span></div>
+                <div class="mono" style="font-size:11px;color:var(--mid);">≈ $8.50 · 100+ bags: 4,900 XAF</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <span class="btn-outline btn-sm">Chat</span>
+                <span class="btn-primary btn-sm">✓ In order (200)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 2 -->
+          <div class="prod-card in-cart">
+            <div class="mat-thumb mat-rebar">
+              <span class="mat-badge">✓ Verified Supplier</span>
+              <span class="mat-stage-tag">Stage 4 &amp; 5</span>
+              <div style="margin-left:auto;display:flex;flex-direction:column;gap:5px;transform:rotate(-8deg);">
+                <div style="width:94px;height:7px;border-radius:99px;background:repeating-linear-gradient(90deg,#475569 0 6px,#64748b 6px 9px);"></div>
+                <div style="width:94px;height:7px;border-radius:99px;background:repeating-linear-gradient(90deg,#334155 0 6px,#64748b 6px 9px);"></div>
+                <div style="width:94px;height:7px;border-radius:99px;background:repeating-linear-gradient(90deg,#475569 0 6px,#64748b 6px 9px);"></div>
+                <div style="font-size:10px;font-weight:800;color:#334155;text-align:right;margin-top:2px;">Fe500 · 12mm × 12m</div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="font-size:14px;font-weight:800;line-height:1.25;">High-Tensile Rebar Fe500 — 12mm (12m)</div>
+                <span class="pill-green" style="font-size:10px;padding:2px 7px;">In stock</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--mid);margin-top:3px;">Quincaillerie du Littoral · Douala · 24h site drop</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid var(--rule);padding-top:10px;">
+              <div>
+                <div class="mono" style="font-size:16px;font-weight:800;">4,650 XAF <span style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--mid);">/ bar</span></div>
+                <div class="mono" style="font-size:11px;color:var(--mid);">≈ $7.75 · Min order: 20 bars</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <span class="btn-outline btn-sm">Chat</span>
+                <span class="btn-primary btn-sm">✓ In order (60)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 3 -->
+          <div class="prod-card">
+            <div class="mat-thumb mat-blocks">
+              <span class="mat-badge">✓ Verified Supplier</span>
+              <span class="mat-stage-tag">Stage 5</span>
+              <div style="margin-left:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <div style="width:42px;height:24px;background:#b9b6ae;border:1.5px solid #8c8980;border-radius:3px;display:flex;align-items:center;justify-content:space-around;"><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span></div>
+                <div style="width:42px;height:24px;background:#b9b6ae;border:1.5px solid #8c8980;border-radius:3px;display:flex;align-items:center;justify-content:space-around;"><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span></div>
+                <div style="width:42px;height:24px;background:#a8a49c;border:1.5px solid #8c8980;border-radius:3px;grid-column:1 / -1;justify-self:center;display:flex;align-items:center;justify-content:space-around;"><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span><span style="width:10px;height:12px;background:#e1dfd8;border-radius:1px;"></span></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="font-size:14px;font-weight:800;line-height:1.25;">15cm Vibrated Hollow Concrete Blocks</div>
+                <span class="pill-green" style="font-size:10px;padding:2px 7px;">In stock</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--mid);margin-top:3px;">Briqueterie Bastos &amp; Littoral · Douala &amp; Yaoundé</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid var(--rule);padding-top:10px;">
+              <div>
+                <div class="mono" style="font-size:16px;font-weight:800;">375 XAF <span style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--mid);">/ block</span></div>
+                <div class="mono" style="font-size:11px;color:var(--mid);">≈ $0.63 · Pallet of 500 blocks</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <span class="btn-outline btn-sm">Chat</span>
+                <span class="btn-primary btn-sm">+ Add</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 4 -->
+          <div class="prod-card">
+            <div class="mat-thumb mat-sand">
+              <span class="mat-badge">✓ Verified Supplier</span>
+              <span class="mat-stage-tag">Stage 4 &amp; 5</span>
+              <div style="margin-left:auto;text-align:right;">
+                <div style="width:86px;height:52px;background:linear-gradient(180deg,#d6b97b,#b8934b);border-radius:40px 40px 8px 8px;border:1.5px solid #a17d38;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;color:#fff;font-size:10px;font-weight:800;">10T TRUCK</div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="font-size:14px;font-weight:800;line-height:1.25;">Washed Sanaga River Sand (10T Load)</div>
+                <span class="pill-amber" style="font-size:10px;padding:2px 7px;">Quote haulage</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--mid);margin-top:3px;">Matériaux Express CM · Douala ↔ Yaoundé Fleet</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid var(--rule);padding-top:10px;">
+              <div>
+                <div class="mono" style="font-size:16px;font-weight:800;">145,000 XAF <span style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--mid);">/ 10T</span></div>
+                <div class="mono" style="font-size:11px;color:var(--mid);">≈ $242 · Delivered to site gate</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <span class="btn-outline btn-sm">Ask quote</span>
+                <span class="btn-primary btn-sm">+ Add</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Stage Material Order / Requisition Cart -->
+      <aside class="cart-col">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:15px;font-weight:800;">Stage 5 Material Order</div>
+            <div style="font-size:11.5px;color:var(--mid);">Quincaillerie du Littoral · Douala</div>
+          </div>
+          <span class="pill-green">2 items</span>
+        </div>
+
+        <div style="background:var(--canvas);border:1px solid var(--rule);border-radius:11px;padding:10px 12px;font-size:11.5px;">
+          <div style="font-weight:700;color:var(--ink);">Deliver directly to site</div>
+          <div style="color:var(--mid);margin-top:2px;">Villa Bonabéri, Lot 14 · Site contact: Jean-Paul N. (+237 677 14 22 09)</div>
+        </div>
+
+        <div style="flex:1;">
+          <div class="cart-row">
+            <div>
+              <div style="font-size:12.5px;font-weight:700;">Dangote Cement 42.5R</div>
+              <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px;">Bulk tier applied · 4,900 XAF/bag</div>
+              <div style="margin-top:6px;"><span class="qty-pill">− &nbsp; 200 bags &nbsp; +</span></div>
+            </div>
+            <div style="text-align:right;">
+              <div class="mono" style="font-size:13px;font-weight:800;">980,000 XAF</div>
+              <div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $1,633</div>
+            </div>
+          </div>
+          <div class="cart-row">
+            <div>
+              <div style="font-size:12.5px;font-weight:700;">Fe500 12mm Rebar (12m)</div>
+              <div style="font-size:11px;color:var(--mid);margin-top:2px;">4,650 XAF / bar</div>
+              <div style="margin-top:6px;"><span class="qty-pill">− &nbsp; 60 bars &nbsp; +</span></div>
+            </div>
+            <div style="text-align:right;">
+              <div class="mono" style="font-size:13px;font-weight:800;">279,000 XAF</div>
+              <div class="mono" style="font-size:10.5px;color:var(--mid);">≈ $465</div>
+            </div>
+          </div>
+
+          <div style="padding-top:12px;display:flex;flex-direction:column;gap:7px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;color:var(--mid);"><span>Materials subtotal</span><span class="mono">1,259,000 XAF</span></div>
+            <div style="display:flex;justify-content:space-between;color:var(--mid);"><span>Site truck delivery (Douala)</span><span class="mono" style="color:var(--green);font-weight:700;">35,000 XAF</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--rule);padding-top:10px;font-size:14px;font-weight:800;">
+              <span>Total due</span>
+              <span class="mono" style="text-align:right;">1,294,000 XAF<span style="display:block;font-size:11px;font-weight:600;color:var(--mid);">≈ $2,157 USD</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <span class="btn-primary btn-full" style="padding:11px;">Pay Supplier Directly &amp; Upload Receipt →</span>
+          <span class="btn-outline-green btn-full" style="padding:9px;">Send Material List to Homeowner</span>
+          <div style="font-size:10.5px;color:var(--mid);text-align:center;line-height:1.4;">
+            Verified supplier bank/MoMo details shown next · Receipt auto-logs to Stage 5 Costing
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>02 · Supplier Public Storefront & Direct Payment Checkout</title>
+  <link rel="stylesheet" href="supplies.css" />
+  <style>
+    .page-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .store-hero { background: linear-gradient(120deg, #173c2a 0%, #1f4d36 58%, #286144 100%); color: #fff; padding: 22px 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .content-grid { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; padding: 20px 26px; overflow: hidden; }
+    .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .acct-box { background: var(--canvas); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <div class="brand-sq">G</div>
+        <div><div class="brand-name">Groundwork</div><span class="brand-sub">by Jalla</span></div>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;">
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">← Back to Supplies</div>
+      <div class="nav-item active" style="padding:9px 11px;border-radius:10px;font-size:13px;">Storefront</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">Catalog (42)</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">Delivery Zones</div>
+      <div class="nav-item" style="padding:9px 11px;border-radius:10px;font-size:13px;color:var(--mid);">Verified Reviews</div>
+    </nav>
+  </aside>
+
+  <div class="page-wrap">
+    <!-- Supplier Storefront Banner -->
+    <section class="store-hero">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:60px;height:60px;border-radius:16px;background:rgba(255,255,255,0.14);border:1.5px solid rgba(255,255,255,0.3);display:grid;place-items:center;font-size:22px;font-weight:900;">QL</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <h1 style="font-size:21px;font-weight:800;letter-spacing:-0.4px;">Quincaillerie du Littoral SARL</h1>
+            <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.32);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;">✓ Groundwork Verified</span>
+          </div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,0.82);margin-top:4px;">
+            Bonabéri Industrial Yard, Douala · Delivers across Douala, Yaoundé, Kribi &amp; Limbe · RCCM Verified
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:11.5px;color:rgba(255,255,255,0.9);">
+            <span>★ <strong>4.9</strong> (68 site deliveries)</span>
+            <span>⏱ Avg response: <strong>14 mins</strong></span>
+            <span>🚚 Own fleet: <strong>4 × 10T &amp; 20T trucks</strong></span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <span style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.32);color:#fff;padding:9px 14px;border-radius:10px;font-size:12.5px;font-weight:700;">💬 Chat with Supplier</span>
+        <span style="background:#fff;color:var(--green);padding:9px 15px;border-radius:10px;font-size:12.5px;font-weight:800;">Request Bulk Quote</span>
+      </div>
+    </section>
+
+    <div class="content-grid">
+      <!-- Left: Specialties & Storefront Catalog -->
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+        <div class="card" style="padding:16px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:13.5px;font-weight:800;">Specialties &amp; Delivery Coverage</div>
+            <span class="pill-green">Same-day Douala · 24h Yaoundé</span>
+          </div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;">
+            <span class="pill-muted">Cement (Dangote · CIMENCAM)</span>
+            <span class="pill-muted">High-Tensile Rebar (8mm–16mm)</span>
+            <span class="pill-muted">Hollow Concrete Blocks</span>
+            <span class="pill-muted">PVC Plumbing &amp; Electrical</span>
+          </div>
+          <div style="font-size:12px;color:var(--mid);line-height:1.5;">
+            Direct wholesale distributor serving diaspora Homeowners and site contractors since 2016. Every truck dispatch includes weighbridge ticket + timestamped offloading photos uploaded directly to your Groundwork project stage.
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:14.5px;font-weight:800;">Featured Stock (42 products)</div>
+          <div style="display:flex;gap:6px;">
+            <span class="filter-chip on" style="padding:4px 10px;font-size:11px;">All</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Cement</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Steel</span>
+            <span class="filter-chip" style="padding:4px 10px;font-size:11px;">Plumbing</span>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;"><span class="pill-green" style="font-size:10px;">In stock</span><span style="font-size:10.5px;color:var(--mid);">Stage 4 &amp; 5</span></div>
+            <div style="font-size:13.5px;font-weight:800;">Dangote Cement 42.5R (50kg)</div>
+            <div class="mono" style="font-size:15px;font-weight:800;">5,100 XAF <span style="font-size:11px;font-weight:500;color:var(--mid);">≈ $8.50</span></div>
+            <div style="font-size:11px;color:var(--green);font-weight:600;">100+ bags bulk price: 4,900 XAF</div>
+            <span class="btn-primary btn-sm btn-full">+ Add to Stage Order</span>
+          </div>
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;"><span class="pill-green" style="font-size:10px;">In stock</span><span style="font-size:10.5px;color:var(--mid);">Stage 4 &amp; 5</span></div>
+            <div style="font-size:13.5px;font-weight:800;">Fe500 12mm Rebar (12m bar)</div>
+            <div class="mono" style="font-size:15px;font-weight:800;">4,650 XAF <span style="font-size:11px;font-weight:500;color:var(--mid);">≈ $7.75</span></div>
+            <div style="font-size:11px;color:var(--mid);">Certified structural grade · Min 20 bars</div>
+            <span class="btn-primary btn-sm btn-full">+ Add to Stage Order</span>
+          </div>
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;"><span class="pill-green" style="font-size:10px;">In stock</span><span style="font-size:10.5px;color:var(--mid);">Stage 4 &amp; 5</span></div>
+            <div style="font-size:13.5px;font-weight:800;">Fe500 8mm Stirrup Bar (12m)</div>
+            <div class="mono" style="font-size:15px;font-weight:800;">2,350 XAF <span style="font-size:11px;font-weight:500;color:var(--mid);">≈ $3.92</span></div>
+            <div style="font-size:11px;color:var(--mid);">Cut &amp; bundled per 50 bars</div>
+            <span class="btn-primary btn-sm btn-full">+ Add to Stage Order</span>
+          </div>
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;"><span class="pill-green" style="font-size:10px;">In stock</span><span style="font-size:10.5px;color:var(--mid);">Stage 7</span></div>
+            <div style="font-size:13.5px;font-weight:800;">PVC Pressure Pipe 110mm (6m)</div>
+            <div class="mono" style="font-size:15px;font-weight:800;">7,800 XAF <span style="font-size:11px;font-weight:500;color:var(--mid);">≈ $13.00</span></div>
+            <div style="font-size:11px;color:var(--mid);">Drainage &amp; rough-in plumbing kit</div>
+            <span class="btn-primary btn-sm btn-full">+ Add to Stage Order</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Direct Payment to Verified Supplier Account -->
+      <aside class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--green);">Order GW-SUP-4821 · Direct Pay</div>
+            <div style="font-size:16px;font-weight:800;margin-top:2px;">Pay Supplier Directly</div>
+          </div>
+          <span class="pill-green">✓ Account Checked</span>
+        </div>
+
+        <div style="background:var(--green-tint);border:1px solid rgba(31,77,54,0.22);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:11px;color:var(--mid);">Order total (incl. site delivery)</div>
+            <div class="mono" style="font-size:19px;font-weight:800;color:var(--green);">1,294,000 XAF</div>
+          </div>
+          <div class="mono" style="font-size:12px;font-weight:700;color:var(--mid);">≈ $2,157 USD</div>
+        </div>
+
+        <div style="font-size:11.5px;font-weight:700;color:var(--ink);">Verified Supplier Payout Details</div>
+
+        <div class="acct-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;font-weight:800;">Afriland First Bank (Cameroon)</span>
+            <span class="pill-green" style="font-size:10px;padding:1px 7px;">Verified</span>
+          </div>
+          <div style="font-size:11.5px;color:var(--mid);">Account name: <strong style="color:var(--ink);">QUINCAILLERIE DU LITTORAL SARL</strong></div>
+          <div class="mono" style="font-size:12px;font-weight:700;color:var(--ink);">RIB: 10005 · 00001 · 04829104211 · 47</div>
+          <div style="font-size:11px;color:var(--mid);">Reference to include: <strong class="mono" style="color:var(--green);">GW-SUP-4821</strong></div>
+        </div>
+
+        <div class="acct-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;font-weight:800;">MTN MoMo Merchant (Cameroon)</span>
+            <span class="pill-green" style="font-size:10px;padding:1px 7px;">Verified</span>
+          </div>
+          <div class="mono" style="font-size:12px;font-weight:700;color:var(--ink);">+237 677 88 12 40 · Merchant #40912</div>
+        </div>
+
+        <div style="border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:9px;">
+          <div style="font-size:12px;font-weight:800;">Upload transfer receipt to trigger dispatch</div>
+          <div style="border:1.5px dashed var(--green);border-radius:12px;background:var(--green-tint);padding:14px;text-align:center;">
+            <div style="font-size:12px;font-weight:700;color:var(--green);">↑ Choose receipt PDF / screenshot or take photo</div>
+            <div style="font-size:10.5px;color:var(--mid);margin-top:3px;">Supplier confirms funds → Truck dispatches to Bonabéri site</div>
+          </div>
+          <span class="btn-primary btn-full" style="padding:11px;">Submit Receipt &amp; Notify Supplier</span>
+          <div style="font-size:10.5px;color:var(--mid);text-align:center;">Groundwork verifies supplier accounts &amp; records delivery proof. It does not hold your funds.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</body>
+</html>

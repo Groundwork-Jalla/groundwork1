@@ -61,7 +61,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
   return (
     <div className="min-h-screen bg-brand-off-white text-brand-near-black dark:bg-[#141414] dark:text-white">
       <a href="#portal-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3 focus:text-black">{t('nav.skipToContent')}</a>
-      <header className="sticky top-0 z-30 flex h-20 items-center border-b border-brand-border-grey bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <header className="safe-top sticky top-0 z-30 flex min-h-20 items-center border-b border-brand-border-grey bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div className="flex items-center gap-3 px-5 md:w-60 md:shrink-0 md:border-r md:border-brand-border-grey dark:md:border-[#2c2c2c]">
           <button type="button" aria-label={t(open ? 'common.close' : 'nav.mainNavigation')} aria-expanded={open} aria-controls="portal-navigation" onClick={() => setOpen(!open)} className="p-2 md:hidden">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button>
           <span className="dark:hidden"><GroundworkLogo linkTo={home} size="lg" /></span>
@@ -105,7 +105,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
       {/* The phone tab bar. Hidden from md up, where the sidebar is already there. */}
       {tabs?.length ? (
         <nav aria-label={t('nav.mainNavigation')}
-             className="fixed inset-x-0 bottom-0 z-30 flex border-t border-brand-border-grey bg-white px-2 pb-5 pt-2 md:hidden dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+             className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex border-t border-brand-border-grey bg-white px-2 pb-4 pt-2 md:hidden dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           {tabs.map(to => {
             const link = links.find(l => l.to === to);
             if (!link) return null;

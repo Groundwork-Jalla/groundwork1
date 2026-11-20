@@ -103,7 +103,7 @@ describe('the client sees the two ways to send, and picks one', () => {
   it('and it is one conversation shown two ways, not two inboxes', () => {
     // Every message stays on the project's record either way; that is what makes "on
     // their phone AND on Groundwork" true rather than two halves to reconcile.
-    expect(thread).toMatch(/messages\.filter\(m => m\.direction === 'internal' \|\| \(m\.channel \?\? 'jalla'\) === showOnlyChannel\)/);
+    expect(thread).toMatch(/messages\.filter\(m => (?:m\.id === focusMessageId \|\| )?m\.direction === 'internal' \|\| \(m\.channel \?\? 'jalla'\) === showOnlyChannel\)/);
   });
 });
 

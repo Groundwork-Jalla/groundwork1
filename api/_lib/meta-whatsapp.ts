@@ -1,9 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { META_API_VERSION } from '../../shared/whatsapp.js';
+import { CANONICAL_SITE_URL } from '../../src/lib/site-url.js';
 
 export type WhatsAppService = { from: (table:string) => any; rpc: (name:string,args?:any) => any };
 export function whatsappSite(): string {
-  const url=new URL(process.env.PUBLIC_SITE_URL || 'https://www.tryjalla.com');
+  const url=new URL(process.env.PUBLIC_SITE_URL || CANONICAL_SITE_URL);
   if(url.username || url.password || url.search || url.hash || (url.protocol!=='https:' && !(url.protocol==='http:' && ['localhost','127.0.0.1'].includes(url.hostname)))) throw new Error('invalid_site_url');
   // Meta callback delivery must never depend on following the apex's 308 redirect.
   if(url.hostname==='tryjalla.com')url.hostname='www.tryjalla.com';

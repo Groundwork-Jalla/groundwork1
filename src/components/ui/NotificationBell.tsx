@@ -78,10 +78,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       >
         <Bell className="size-4.5 text-brand-mid-grey" />
         {unreadCount > 0 && (
-          /* `--color-state-active` is "the colour of text" and FLIPS with the theme:
-             #0a0a0a in light, #f0f0f0 in dark. Against a fixed `text-white` that made
-             the count white-on-near-white — an unread badge with an invisible number,
-             which is what was reported. The ink flips with its background. */
+          /* Brand Green (`#1f4d36`) stays constant across light and dark themes, so
+             `text-white` remains high-contrast in both (avoiding the old
+             `--color-state-active` white-on-near-white dark-mode bug). */
           <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-brand-green text-[9px] font-bold text-white tabular-nums">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>

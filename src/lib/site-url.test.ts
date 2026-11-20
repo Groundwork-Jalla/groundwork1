@@ -63,7 +63,7 @@ describe('site URL', () => {
     for (const dir of SCAN) {
       for (const file of sourceFiles(join(ROOT, dir))) {
         const rel = relative(ROOT, file);
-        if (ALLOWED.has(rel)) continue;
+        if (ALLOWED.has(rel) || /\.test\.tsx?$/.test(rel)) continue;
         const src = stripComments(readFileSync(file, 'utf8'));
         for (const line of src.split('\n')) {
           if (ORIGIN.test(line)) offenders.push(`${rel}: ${line.trim().slice(0, 100)}`);

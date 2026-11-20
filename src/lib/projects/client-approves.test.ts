@@ -122,7 +122,8 @@ describe('the app marks the client invitation as such', () => {
     expect(work.match(/<ProjectSharing projectId=\{project\.id\} projectName=\{project\.name\} \/>/g) ?? []).toHaveLength(2);
     // Observer sharing keeps the default; only an actual primary contractor may
     // open the initial client invitation in the project Team tab.
-    expect(client).toMatch(/<ProjectSharing projectId=\{project\.id\} projectName=\{project\.name\} \/>/);
+    expect(client).toMatch(/<ProjectSharing projectId=\{project\.id\} projectName=\{project\.name\}[^>]*\/>/);
+    expect(client).not.toMatch(/initialRole=["']client["']|asClient/);
     const sharing = readFileSync('src/components/project/ProjectSharing.tsx', 'utf8');
     expect(sharing).toContain("role === 'client' && <ShareProject");
   });

@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase/client';
 import { createSupportTicket } from '@/lib/supabase/support';
 import { Button } from '@/components/ui/button';
 import { hasPassword, requestEmailChange } from '@/lib/auth/account-security';
+import { authCallbackOrigin } from '@/lib/mobile/runtime';
 import { cn } from '@/lib/utils';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
@@ -364,7 +365,7 @@ export default function ProfilePage() {
     // `flow=recovery` is what tells /auth/callback this is a reset rather than a sign-in;
     // Supabase's PKCE reply carries no `type` of its own. See reset-password.tsx.
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/auth/callback?flow=recovery`,
+      redirectTo: `${authCallbackOrigin()}/auth/callback?flow=recovery`,
     });
     if (error) { setResetError(error.message); return; }
     setResetSent(true);

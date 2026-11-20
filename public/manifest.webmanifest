@@ -1,0 +1,18 @@
+{
+  "name": "Groundwork by Jalla",
+  "short_name": "Groundwork",
+  "description": "Stage-by-stage construction tracking, receipts, and verified site updates.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1f4d36",
+  "icons": [
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

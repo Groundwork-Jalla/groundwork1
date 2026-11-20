@@ -106,9 +106,9 @@ describe('the bell', () => {
 
   it('a message notification opens the messages tab, per role', () => {
     expect(destinationFor({ project_id: PROJECT, conversation_id: 'c' }))
-      .toBe(`/projects/${PROJECT}?tab=messages`);
+      .toBe(`/projects/${PROJECT}?tab=messages&conversation_id=c`);
     expect(destinationFor({ project_id: PROJECT, conversation_id: 'c', role: 'contractor' }))
-      .toBe(`/work/projects/${PROJECT}?tab=messages`);
+      .toBe(`/work/projects/${PROJECT}?tab=messages&conversation_id=c`);
   });
 
   it('and a thread with no project goes to the page that now exists', () => {

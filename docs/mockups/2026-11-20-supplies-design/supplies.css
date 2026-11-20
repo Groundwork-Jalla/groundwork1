@@ -1,0 +1,312 @@
+@import url("../2026-11-20-p2-redesign/common.css");
+
+/* Groundwork Supplies & Supplier Portal Design Extensions (20 Nov 2026) */
+/* Strictly unified Brand Green (#1f4d36) buttons, pills & active nav — zero black CTAs. */
+
+.nav-item.active {
+  background: var(--green) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+.nav-item.active .nav-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* Brand logo stays authentic Groundwork black wordmark (no green square icon). */
+.brand-sq {
+  display: none !important;
+}
+.brand-name {
+  font-weight: 900 !important;
+  font-size: 20px !important;
+  letter-spacing: -0.6px !important;
+  color: #0a0a0a !important;
+  line-height: 1.05 !important;
+}
+.brand-sub {
+  margin-top: 2px;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  color: #5a5a57 !important;
+}
+
+.btn-primary,
+.btn-green {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--green);
+  color: #fff;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  padding: 9px 15px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-outline-green {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--white);
+  color: var(--green);
+  border: 1.5px solid var(--green);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn-sm { padding: 6px 11px; font-size: 11.5px; border-radius: 8px; }
+.btn-full { width: 100%; }
+
+.pill-green {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid rgba(31, 77, 54, 0.2);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pill-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--held-bg);
+  color: var(--held);
+  border: 1px solid var(--held-border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pill-muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--pale);
+  color: var(--mid);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.pill-wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--wa-soft);
+  color: var(--wa-dark);
+  border: 1px solid rgba(18, 140, 74, 0.22);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--white);
+  color: var(--mid);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.filter-chip.on {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow: var(--shadow-xs);
+}
+
+.context-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--green-tint);
+  border: 1px solid rgba(31, 77, 54, 0.22);
+  border-radius: 14px;
+  padding: 11px 16px;
+}
+
+/* Illustrated realistic material thumbnails (pure crisp CSS/SVG so zero broken external images) */
+.mat-thumb {
+  height: 112px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+}
+.mat-cement { background: linear-gradient(135deg, #f3f1ea 0%, #e7e3d4 100%); }
+.mat-rebar  { background: linear-gradient(135deg, #eef1f3 0%, #dce2e6 100%); }
+.mat-blocks { background: linear-gradient(135deg, #f1f0ec 0%, #e1dfd8 100%); }
+.mat-sand   { background: linear-gradient(135deg, #f7f1e3 0%, #ebdec2 100%); }
+.mat-tiles  { background: linear-gradient(135deg, #eef4f1 0%, #dae8e0 100%); }
+.mat-roof   { background: linear-gradient(135deg, #f4efee 0%, #e6dad7 100%); }
+
+.mat-badge {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+}
+.mat-stage-tag {
+  position: absolute;
+  bottom: 9px;
+  left: 9px;
+  background: rgba(31, 77, 54, 0.92);
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.kpi-card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mid);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.kpi-val {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.4px;
+}
+.kpi-sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--mid);
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.tbl th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mid);
+  font-weight: 700;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--rule);
+}
+.tbl td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+.tbl tr.sel td {
+  background: var(--green-tint);
+}
+
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-bottom: 5px;
+}
+.field-input {
+  width: 100%;
+  border: 1px solid var(--rule-strong);
+  border-radius: 9px;
+  background: var(--white);
+  padding: 8px 11px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+/* Mobile phone showcase frame */
+.phone-frame {
+  width: 344px;
+  height: 700px;
+  border-radius: 38px;
+  border: 9px solid #1b1d1c;
+  background: var(--canvas);
+  box-shadow: 0 24px 60px rgba(15, 17, 16, 0.22);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.phone-notch {
+  height: 26px;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.phone-pill {
+  width: 78px;
+  height: 16px;
+  background: #141615;
+  border-radius: 999px;
+}

@@ -189,11 +189,11 @@ describe('the invited client is not offered what the server will refuse', () => 
   });
 
   it('withholds every route to the wizard on that path', () => {
-    // Three of them on the dashboard — the header button, the profile tracker whose
-    // last item is "First project created", and the dashed strip at the bottom — and
-    // two on the list. A client whose contractor owns the build has no project to
-    // create and will never finish a tracker that asks for one.
-    expect((dash.match(/!viewerOnly/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    // Two on the dashboard — the header button and the profile tracker whose last item
+    // is "First project created" (the old dashed strip was removed in the calm dashboard
+    // redesign) — and two on the list. A client whose contractor owns the build has no
+    // project to create and will never finish a tracker that asks for one.
+    expect((dash.match(/!viewerOnly/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect((list.match(/!viewerOnly/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 

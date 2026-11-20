@@ -35,7 +35,7 @@ describe('evidence opens INSIDE Groundwork, never as a download', () => {
      */
     // The chip is a tile now and the viewer lives with it, in EvidenceThumbs.
     const thumbs = read('src/components/project/EvidenceThumbs.tsx');
-    expect(row).toMatch(/<EvidenceThumbs paths=\{urls\} \/>/);
+    expect(row).toMatch(/<EvidenceThumbs paths=\{urls\}[^>]*\/>/);
     expect(thumbs).toMatch(/<EvidenceLightbox items=\{items\}/);
     expect(row).not.toMatch(/window\.open/);
     expect(thumbs).not.toMatch(/window\.open/);
