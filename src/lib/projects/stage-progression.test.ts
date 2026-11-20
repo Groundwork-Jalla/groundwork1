@@ -28,6 +28,11 @@ describe('the current project stage', () => {
     const reviewed = { ...rows[2], status: 'pending_review' as const, review_payment_pending: true };
     expect(stageWorkReady(reviewed, [...rows.slice(0,2),reviewed,rows[3]], payment('expected'), 'contractor')).toBe(false);
     expect(canSubmitStageReceipt(reviewed, [...rows.slice(0,2),reviewed,rows[3]], 'contractor')).toBe(true);
+    // An explicit open contractor payment request unlocks receipt upload on the current
+    // contractor-led stage while keeping future and pre-existing stages locked.
+    expect(canSubmitStageReceipt(rows[2], rows, 'contractor', true)).toBe(true);
+    expect(canSubmitStageReceipt(rows[3], rows, 'contractor', true)).toBe(false);
+    expect(canSubmitStageReceipt(rows[0], rows, 'contractor', true)).toBe(false);
   });
   it('offers the reviewed first stage receipt and keeps later stages blocked until acceptance', () => {
     const rows = [stage(1, 'pending_review', { review_payment_pending: true }), stage(2)];

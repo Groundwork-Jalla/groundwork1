@@ -243,7 +243,8 @@ export default function ContractorProjectDetail() {
   const { project, stages, completedStages, totalStages } = assigned;
   const current = currentProjectStage(stages);
   const place = [project.city, project.country].filter(Boolean).join(', ');
-  const canDecide = (stage: (typeof stages)[number]) => receiptDecisionAllowed(project, stages, stage, teamAccess?.primaryContractor === true);
+  const canDecide = (stage: (typeof stages)[number]) =>
+    receiptDecisionAllowed(project, stages, stage, teamAccess?.primaryContractor === true, stagePayments.get(stage.id));
   const waitingReceiptsCount = receiptsToConfirm(stages, stagePayments, canDecide).length;
   const reviewStage = reviewing ? stages.find(stage => stage.id === reviewing.stageId) : undefined;
   const reviewPayment = reviewStage ? stagePayments.get(reviewStage.id) : undefined;
@@ -362,10 +363,17 @@ export default function ContractorProjectDetail() {
  * panel applies before it offers a review: the primary contractor, on a project that is
  * open (or a stage already complete), and a stage whose receipts can be submitted.
  */
-function receiptDecisionAllowed(project: ProjectRow, stages: AssignedProject['stages'], stage: AssignedProject['stages'][number], primaryContractor: boolean) {
+function receiptDecisionAllowed(
+  project: ProjectRow,
+  stages: AssignedProject['stages'],
+  stage: AssignedProject['stages'][number],
+  primaryContractor: boolean,
+  stagePayment?: StagePayment,
+) {
+  const hasSubmittedReceipt = !!(stagePayment?.receipts?.some(r => !r.replacedBy) || stagePayment?.receiptPath);
   return primaryContractor && !stage.pre_existing && project.status !== 'archived'
     && (project.status === 'active' || stage.status === 'complete')
-    && canSubmitStageReceipt(stage, stages, project.workflow_origin);
+    && canSubmitStageReceipt(stage, stages, project.workflow_origin, hasSubmittedReceipt);
 }
 
 /** The ten stages as one segmented bar: done, current, still to come. */
@@ -1364,7 +1372,7 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
               <StagePaymentGate projectId={project.id} stageId={stage.id} stageNumber={stage.stage_number}
                 payment={tranche}
                 workReviewed={stage.review_payment_pending}
-                canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
+                canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin, !!(contractorPayState?.requests.some(r => r.stage_id === stage.id && r.status === 'open') || tranche?.receipts?.some(r => !r.replacedBy) || tranche?.receiptPath))}
                 scheduledAmount={stage.milestone_amount}
                 blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments}
                 hideVerificationPrompt

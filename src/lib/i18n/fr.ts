@@ -558,7 +558,7 @@ export const fr: Mirror<EnDict> = {
   },
 
   share: {
-    clientAccess: 'Vous rejoignez le chantier comme propriétaire principal. Vous pouvez suivre l’avancement, valider les travaux et inviter des observateurs. Groundwork gère les changements de rôles principaux.',
+    clientAccess: 'Vous rejoignez le chantier comme propriétaire principal. Vous pouvez suivre l’avancement, valider les travaux et inviter des observateurs.',
     title:        '{name} a partag\u00e9 son chantier avec vous',
     body:         'Vous \u00eates invit\u00e9 \u00e0 suivre {project} sur Groundwork \u2014 les \u00e9tapes au fur et \u00e0 mesure, les photos du chantier et ce qui a \u00e9t\u00e9 pay\u00e9.',
     readOnly:     'Suivez l’avancement, consultez les photos, les paiements et les documents, et participez à la conversation du projet.',

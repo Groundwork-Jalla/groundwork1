@@ -662,6 +662,9 @@ export function StageTracker({
     followApproval(result, captured);
   }
 
+  const hasOpenPaymentRequest = (stageId: string) =>
+    (paymentRequests ?? []).some(r => r.stage_id === stageId && r.status === 'open');
+
   const detail = selectedStage ? (
     <StageDetail
                 clientPresentation={clientPresentation}
@@ -682,7 +685,7 @@ export function StageTracker({
                 paymentRequests={paymentRequests}
                 canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
                 workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
-                paymentEnabled={hasPrimaryContractor && !projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
+                paymentEnabled={hasPrimaryContractor && !projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin, hasOpenPaymentRequest(selectedStage.id))}
                 paymentBlockedReason={t(!hasPrimaryContractor ? 'project.contractorConnection.paymentBlocked' : projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
                 isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
@@ -724,7 +727,7 @@ export function StageTracker({
             const railSummary = !isContractor ? summarizeStagePayment(stage, stagePay, code, fxRate) : null;
             const stageCanUpload = !isContractor && canApprove && hasPrimaryContractor && !projectArchived
               && (!projectPaused || stage.status === 'complete')
-              && canSubmitStageReceipt(stage, orderedStages, workflowOrigin)
+              && canSubmitStageReceipt(stage, orderedStages, workflowOrigin, hasOpenPaymentRequest(stage.id))
               && !!railSummary && (!railSummary.settled || (railSummary.balance.remaining ?? 0) > 0);
             return (
               <div key={stage.id} className="min-w-52 shrink-0 xl:min-w-0">

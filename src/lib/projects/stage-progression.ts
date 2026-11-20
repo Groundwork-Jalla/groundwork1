@@ -78,9 +78,14 @@ export function stageWorkReady(stage: ProjectStageRow, stages: ProjectStageRow[]
   return stagePaymentAcknowledged(stage, payment)
     || (stageStartsWithEvidence(stage, stages, origin) && !stage.review_payment_pending && stage.status !== 'complete');
 }
-export function canSubmitStageReceipt(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
-  if(stage.pre_existing)return false;
-  if(stage.status==='complete')return true; // Additional receipts record outstanding money without reopening work.
+export function canSubmitStageReceipt(
+  stage: ProjectStageRow,
+  stages: ProjectStageRow[],
+  origin?: 'client' | 'contractor',
+  hasOpenPaymentRequest = false,
+): boolean {
+  if (stage.pre_existing) return false;
+  if (stage.status === 'complete') return true; // Additional receipts record outstanding money without reopening work.
   return canActOnProjectStage(stage, stages)
-    && (!stageStartsWithEvidence(stage, stages, origin) || stage.review_payment_pending === true);
+    && (!stageStartsWithEvidence(stage, stages, origin) || stage.review_payment_pending === true || hasOpenPaymentRequest);
 }

@@ -557,7 +557,7 @@ export const en = {
   },
 
   share: {
-    clientAccess: 'You are joining as the primary Homeowner. You can follow the build, approve work and invite observers. Groundwork manages changes to primary roles.',
+    clientAccess: 'You are joining as the primary Homeowner. You can follow the build, approve work and invite observers.',
     title:        '{name} shared their build with you',
     body:         'You have been invited to follow {project} on Groundwork \u2014 the stages as they are finished, the photos from site, and what has been paid.',
     readOnly:     'Follow progress, view site photos, review payments and documents, and join the project conversation.',
