@@ -204,7 +204,9 @@ export async function listUnifiedAuditLog(
     };
   }
 
-  if (rpcRes.error && !isMissingRpc(rpcRes.error)) {
+  const errCode = (rpcRes.error as { code?: string } | null)?.code;
+  const schemaDrift = errCode === '42703' || errCode === '42P01' || errCode === '42883';
+  if (rpcRes.error && !isMissingRpc(rpcRes.error) && !schemaDrift) {
     throw rpcRes.error;
   }
 

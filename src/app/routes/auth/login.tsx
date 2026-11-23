@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
@@ -21,9 +23,12 @@ import {
 
 export default function Login() {
   const navigate        = useNavigate();
+  const { syncSession } = useAuth();
   const [searchParams]  = useSearchParams();
   const inviteToken     = searchParams.get("invite") ?? "";
-  const redirectTo      = searchParams.get("redirect");
+  const rawRedirectTo   = searchParams.get("redirect");
+  // Never bounce a freshly signed-in user back onto an auth screen.
+  const redirectTo      = rawRedirectTo && !rawRedirectTo.startsWith("/auth/") ? rawRedirectTo : null;
 
   // Carry the destination, and the invite, into sign-up.
   const invitation = readProjectInvitation(searchParams.toString());
@@ -56,11 +61,14 @@ export default function Login() {
    * the factor is cleared: accepting an invite or reading is_admin() on a half-session
    * would act on an identity that is not yet fully proven.
    */
-  async function finishLogin() {
+  async function finishLogin(signedInSession?: Session | null) {
     // A provisioned account signs in with a password an admin knows. Nothing else —
     // not an invite, not the dashboard — happens until that password is replaced.
-    const { data: { session: current } } = await supabase.auth.getSession();
+    const current = signedInSession ?? (await supabase.auth.getSession()).data.session;
     if (current) {
+      // Prime AuthContext before navigating so protected shells never observe a stale
+      // `session === null` and bounce the user right back to /auth/login.
+      syncSession?.(current);
       try {
         if (await mustChangePassword(current.user.id)) {
           navigate(withProjectInvitation(FORCED_PASSWORD_PATH, invitation), { replace: true });
@@ -86,20 +94,22 @@ export default function Login() {
       }
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const { data: isAdmin } = await supabase.rpc('is_admin');
-    // Resolved together: two independent awaits would serialise the sign-in for no reason.
-    const [isVerifier, isContractor] = await Promise.all([
-      holdsVerifierRole(session?.user?.id),
-      holdsContractorAccess(session?.user?.id),
+    const session = current ?? (await supabase.auth.getSession()).data.session;
+    if (session) syncSession?.(session);
+
+    const [adminRes, isVerifier, isContractor] = await Promise.all([
+      Promise.resolve(supabase.rpc('is_admin')).catch(() => ({ data: false })),
+      holdsVerifierRole(session?.user?.id).catch(() => false),
+      holdsContractorAccess(session?.user?.id).catch(() => false),
     ]);
-    navigate(postAuthPath({
-      isAdmin: isAdmin === true,
+    const destination = postAuthPath({
+      isAdmin: adminRes?.data === true,
       isVerifier,
       isContractor,
       onboardingComplete: !!session?.user?.user_metadata?.onboarding_complete,
       redirect: redirectTo,
-    }), { replace: true });
+    });
+    navigate(destination, { replace: true });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -107,32 +117,39 @@ export default function Login() {
     setError(null);
     setSubmitting(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data.session) {
+        syncSession?.(data.session);
+      }
+
+      // The password created a session, but at aal1. Stop here and ask for the code —
+      // routing now would put a half-authenticated session inside the app.
+      const factor = await requiredFactor();
+      if (factor !== 'none') {
+        setMfaFactor(factor);
+        return;
+      }
+
+      await finishLogin(data.session);
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : t('errors.generic'));
+    } finally {
       setSubmitting(false);
-      setError(error.message);
-      return;
     }
-
-    // The password created a session, but at aal1. Stop here and ask for the code —
-    // routing now would put a half-authenticated session inside the app.
-    const factor = await requiredFactor();
-    if (factor !== 'none') {
-      setSubmitting(false);
-      setMfaFactor(factor);
-      return;
-    }
-
-    setSubmitting(false);
-    await finishLogin();
   }
 
   if (mfaFactor !== 'none') {
     return (
       <MfaChallenge
         factor={mfaFactor}
-        onVerified={finishLogin}
+        onVerified={() => { void finishLogin(); }}
         onCancel={() => { setMfaFactor('none'); setPassword(""); }}
       />
     );

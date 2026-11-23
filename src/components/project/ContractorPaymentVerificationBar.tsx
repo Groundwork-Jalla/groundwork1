@@ -55,6 +55,10 @@ export function ContractorPaymentVerificationBar({
   const [error, setError] = useState<string | null>(null);
   const current = useRef(stageId);
   current.current = stageId;
+  // Store parent callback in a ref so inline arrow callbacks from parents never
+  // retrigger the fetch effect or cause a collapse/expand layout loop.
+  const onVerificationChangeRef = useRef(onVerificationChange);
+  onVerificationChangeRef.current = onVerificationChange;
 
   const load = useCallback(async () => {
     try {
@@ -63,14 +67,14 @@ export function ContractorPaymentVerificationBar({
       setVerification(res.verification);
       setDispute(res.dispute);
       setLoaded(true);
-      onVerificationChange?.(res.verification);
+      onVerificationChangeRef.current?.(res.verification);
     } catch {
       if (current.current === stageId) {
         setLoaded(true);
-        onVerificationChange?.(null);
+        onVerificationChangeRef.current?.(null);
       }
     }
-  }, [stageId, onVerificationChange]);
+  }, [stageId]);
 
   useEffect(() => {
     setVerification(null);
@@ -81,9 +85,16 @@ export function ContractorPaymentVerificationBar({
     setDisputing(false);
     setDisputeReason('');
     setError(null);
-    setAmount(scheduledAmount != null && scheduledAmount > 0 ? String(Math.round(scheduledAmount * 100) / 100) : '');
     void load();
-  }, [load, stageId, scheduledAmount]);
+  }, [load, stageId]);
+
+  // Keep the default pre-filled amount aligned with scheduledAmount when the user
+  // is not actively editing the confirmation form, without collapsing or re-fetching.
+  useEffect(() => {
+    if (answer !== 'yes') {
+      setAmount(scheduledAmount != null && scheduledAmount > 0 ? String(Math.round(scheduledAmount * 100) / 100) : '');
+    }
+  }, [stageId, scheduledAmount, answer]);
 
   const formatAmount = (value: number, iso: string) =>
     `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(iso) }).format(value)} ${iso}`;

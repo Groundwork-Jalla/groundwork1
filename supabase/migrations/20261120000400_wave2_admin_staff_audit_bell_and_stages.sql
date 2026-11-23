@@ -316,28 +316,53 @@ CREATE TRIGGER on_auth_user_password_changed
 -- =========================================================
 DO $$
 DECLARE
-  v_stage4 RECORD;
-  v_proj   RECORD;
-  v_s5     uuid;
-  v_s8     uuid;
-  v_sub    RECORD;
-  v_idx    int;
+  v_stage4   RECORD;
+  v_proj     RECORD;
+  v_s5       uuid;
+  v_s8       uuid;
+  v_sub      RECORD;
+  v_idx      int;
+  v_s4_count int := 0;
+  v_s5_count int := 0;
 BEGIN
   -- (a) Stage 4 Foundation: place backfill immediately after foundationPillarsBeams
-  --     when neither substage has started or collected evidence.
+  --     whenever neither substage is complete and neither has evidence.
+  --     Matches by both canonical substage_key and case-insensitive name, and covers
+  --     locked, pending, and in_progress untouched rows.
   FOR v_stage4 IN
     SELECT DISTINCT s.id AS stage_id
     FROM public.project_stages s
     JOIN public.project_substages b
-      ON b.stage_id = s.id AND b.substage_key = 'backfill'
+      ON b.stage_id = s.id
+     AND (b.substage_key = 'backfill' OR lower(btrim(b.name)) = 'backfill')
     JOIN public.project_substages p
-      ON p.stage_id = s.id AND p.substage_key = 'foundationPillarsBeams'
+      ON p.stage_id = s.id
+     AND (
+       p.substage_key = 'foundationPillarsBeams'
+       OR lower(btrim(p.name)) IN ('foundation pillars and beams', 'foundation columns and beams')
+     )
     WHERE s.stage_number = 4
       AND b.substage_number < p.substage_number
-      AND b.status = 'pending' AND p.status = 'pending'
-      AND coalesce(jsonb_array_length(b.evidence_urls), 0) = 0
-      AND coalesce(jsonb_array_length(p.evidence_urls), 0) = 0
+      AND b.status <> 'complete'
+      AND p.status <> 'complete'
+      AND (CASE WHEN jsonb_typeof(b.evidence_urls) = 'array' THEN jsonb_array_length(b.evidence_urls) ELSE 0 END) = 0
+      AND (CASE WHEN jsonb_typeof(p.evidence_urls) = 'array' THEN jsonb_array_length(p.evidence_urls) ELSE 0 END) = 0
   LOOP
+    -- Backfill missing canonical keys on this stage's substages where unambiguous
+    UPDATE public.project_substages
+    SET substage_key = CASE lower(btrim(name))
+      WHEN 'excavation (pits and trenches)'               THEN 'excavationPitsTrenches'
+      WHEN 'lean concrete'                                THEN 'leanConcrete'
+      WHEN 'reinforced concrete footings'                 THEN 'reinforcedConcreteFootings'
+      WHEN 'foundation pillars and beams'                 THEN 'foundationPillarsBeams'
+      WHEN 'foundation columns and beams'                 THEN 'foundationPillarsBeams'
+      WHEN 'backfill'                                     THEN 'backfill'
+      WHEN 'floor slab'                                   THEN 'foundationFloorSlab'
+      WHEN 'foundation blocks + polystyrene + sand layer' THEN 'foundationBlocksPolystyreneSand'
+      ELSE substage_key
+    END
+    WHERE stage_id = v_stage4.stage_id AND substage_key IS NULL;
+
     -- Renumber all substages in this Stage 4 in canonical order
     v_idx := 0;
     FOR v_sub IN
@@ -345,14 +370,14 @@ BEGIN
       FROM public.project_substages
       WHERE stage_id = v_stage4.stage_id
       ORDER BY
-        CASE substage_key
-          WHEN 'excavationPitsTrenches'          THEN 1
-          WHEN 'leanConcrete'                    THEN 2
-          WHEN 'reinforcedConcreteFootings'      THEN 3
-          WHEN 'foundationPillarsBeams'          THEN 4
-          WHEN 'backfill'                        THEN 5
-          WHEN 'foundationFloorSlab'             THEN 6
-          WHEN 'foundationBlocksPolystyreneSand' THEN 7
+        CASE
+          WHEN substage_key = 'excavationPitsTrenches'          OR lower(btrim(name)) = 'excavation (pits and trenches)'               THEN 1
+          WHEN substage_key = 'leanConcrete'                    OR lower(btrim(name)) = 'lean concrete'                                THEN 2
+          WHEN substage_key = 'reinforcedConcreteFootings'      OR lower(btrim(name)) = 'reinforced concrete footings'                 THEN 3
+          WHEN substage_key = 'foundationPillarsBeams'          OR lower(btrim(name)) IN ('foundation pillars and beams', 'foundation columns and beams') THEN 4
+          WHEN substage_key = 'backfill'                        OR lower(btrim(name)) = 'backfill'                                     THEN 5
+          WHEN substage_key = 'foundationFloorSlab'             OR lower(btrim(name)) = 'floor slab'                                   THEN 6
+          WHEN substage_key = 'foundationBlocksPolystyreneSand' OR lower(btrim(name)) = 'foundation blocks + polystyrene + sand layer' THEN 7
           ELSE 100 + substage_number
         END,
         substage_number
@@ -366,17 +391,32 @@ BEGIN
     UPDATE public.project_substages
     SET substage_number = substage_number - 1000
     WHERE stage_id = v_stage4.stage_id AND substage_number > 1000;
+
+    v_s4_count := v_s4_count + 1;
   END LOOP;
 
-  -- (b) Stage 5 -> Stage 8: move pending untouched plastering & tiles substages
+  -- (b) Stage 5 -> Stage 8: move untouched plastering & tiles substages
+  --     Matches by both substage_key and name, and covers locked/pending/in_progress rows.
   FOR v_proj IN
     SELECT DISTINCT sub.project_id
     FROM public.project_substages sub
     JOIN public.project_stages s ON s.id = sub.stage_id
     WHERE s.stage_number = 5
-      AND sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
-      AND sub.status = 'pending'
-      AND coalesce(jsonb_array_length(sub.evidence_urls), 0) = 0
+      AND (
+        sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
+        OR lower(btrim(sub.name)) IN (
+          'internal and external plastering',
+          'mortar flooring and tiles',
+          'wall tiles and decorative plaster',
+          'internal wall plastering',
+          'external wall plastering',
+          'floor tiling',
+          'wall tiling (kitchen/bath)',
+          'wall tiling'
+        )
+      )
+      AND sub.status <> 'complete'
+      AND (CASE WHEN jsonb_typeof(sub.evidence_urls) = 'array' THEN jsonb_array_length(sub.evidence_urls) ELSE 0 END) = 0
       AND NOT EXISTS (SELECT 1 FROM public.stage_payment_receipts r WHERE r.substage_id = sub.id)
       AND NOT EXISTS (SELECT 1 FROM public.substage_payment_requests req WHERE req.substage_id = sub.id)
   LOOP
@@ -392,20 +432,45 @@ BEGIN
     -- Move any untouched plastering/tiles substage not already in Stage 8
     UPDATE public.project_substages sub
     SET stage_id = v_s8,
-        substage_number = CASE sub.substage_key
-          WHEN 'internalExternalPlastering' THEN 1
-          WHEN 'mortarFlooringTiles'        THEN 2
-          WHEN 'wallTilesDecorativePlaster' THEN 3
+        substage_key = coalesce(
+          sub.substage_key,
+          CASE lower(btrim(sub.name))
+            WHEN 'internal and external plastering'  THEN 'internalExternalPlastering'
+            WHEN 'mortar flooring and tiles'         THEN 'mortarFlooringTiles'
+            WHEN 'wall tiles and decorative plaster' THEN 'wallTilesDecorativePlaster'
+            ELSE NULL
+          END
+        ),
+        substage_number = CASE
+          WHEN sub.substage_key = 'internalExternalPlastering' OR lower(btrim(sub.name)) IN ('internal and external plastering', 'internal wall plastering', 'external wall plastering') THEN 1
+          WHEN sub.substage_key = 'mortarFlooringTiles'        OR lower(btrim(sub.name)) IN ('mortar flooring and tiles', 'floor tiling') THEN 2
+          ELSE 3
         END
     WHERE sub.stage_id = v_s5
-      AND sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
-      AND sub.status = 'pending'
-      AND coalesce(jsonb_array_length(sub.evidence_urls), 0) = 0
+      AND (
+        sub.substage_key IN ('internalExternalPlastering', 'mortarFlooringTiles', 'wallTilesDecorativePlaster')
+        OR lower(btrim(sub.name)) IN (
+          'internal and external plastering',
+          'mortar flooring and tiles',
+          'wall tiles and decorative plaster',
+          'internal wall plastering',
+          'external wall plastering',
+          'floor tiling',
+          'wall tiling (kitchen/bath)',
+          'wall tiling'
+        )
+      )
+      AND sub.status <> 'complete'
+      AND (CASE WHEN jsonb_typeof(sub.evidence_urls) = 'array' THEN jsonb_array_length(sub.evidence_urls) ELSE 0 END) = 0
       AND NOT EXISTS (SELECT 1 FROM public.stage_payment_receipts r WHERE r.substage_id = sub.id)
       AND NOT EXISTS (SELECT 1 FROM public.substage_payment_requests req WHERE req.substage_id = sub.id)
       AND NOT EXISTS (
         SELECT 1 FROM public.project_substages existing
-        WHERE existing.stage_id = v_s8 AND existing.substage_key = sub.substage_key
+        WHERE existing.stage_id = v_s8
+          AND (
+            (sub.substage_key IS NOT NULL AND existing.substage_key = sub.substage_key)
+            OR lower(btrim(existing.name)) = lower(btrim(sub.name))
+          )
       );
 
     -- Renumber Stage 5 cleanly 1..N
@@ -431,7 +496,11 @@ BEGIN
     UPDATE public.project_substages
     SET substage_number = substage_number - 1000
     WHERE stage_id = v_s8 AND substage_number > 1000;
+
+    v_s5_count := v_s5_count + 1;
   END LOOP;
+
+  RAISE NOTICE 'Wave 2 stage repair complete: % Stage 4 projects reordered, % Stage 5->8 projects updated', v_s4_count, v_s5_count;
 END $$;
 
 NOTIFY pgrst, 'reload schema';

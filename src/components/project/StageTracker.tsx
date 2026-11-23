@@ -669,7 +669,7 @@ export function StageTracker({
                 evidenceFirst={stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin)}
                 key={selectedStage.id}
                 stage={selectedStage}
-                substages={substages.filter(sub => sub.stage_id === selectedStage.id)}
+                substages={substages.filter(sub => sub.stage_id === selectedStage.id).sort((a, b) => a.substage_number - b.substage_number)}
                 tier={tier}
                 userId={userId}
                 isContractor={isContractor}

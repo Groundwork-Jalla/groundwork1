@@ -98,6 +98,20 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const [fileQueue,setFileQueue]=useState<{scope:string;files:File[]}>({scope,files:[]});
   const [justUploaded,setJustUploaded]=useState<{scope:string}|null>(null);
   const [contractorVer,setContractorVer]=useState<{scope:string;verification:ContractorStageVerification|null}>({scope,verification:null});
+  const handleContractorVerificationChange = (v: ContractorStageVerification | null) => {
+    setContractorVer(prev => {
+      if (
+        prev.scope === scope
+        && prev.verification?.id === v?.id
+        && prev.verification?.verified_at === v?.verified_at
+        && prev.verification?.amount === v?.amount
+        && prev.verification?.currency === v?.currency
+      ) {
+        return prev;
+      }
+      return { scope, verification: v };
+    });
+  };
   const activeContractorVer = contractorVer.scope === scope ? contractorVer.verification : null;
   const contractorRecordedPaid = contractorPaidUpfront || !!activeContractorVer;
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
@@ -256,7 +270,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
           fxRate={fxRate}
           scheduledAmount={scheduledAmount}
           onChanged={onChanged}
-          onVerificationChange={v => setContractorVer({ scope, verification: v })}
+          onVerificationChange={handleContractorVerificationChange}
         />
       </section>
     );
@@ -294,7 +308,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         fxRate={fxRate}
         scheduledAmount={scheduledAmount}
         onChanged={onChanged}
-        onVerificationChange={v => setContractorVer({ scope, verification: v })}
+        onVerificationChange={handleContractorVerificationChange}
       />
     )}
     {/* Why a receipt cannot be added here yet. On a contractor-created project this is the

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { rememberThisDevice } from '@/lib/supabase/user-devices';
 import type { Session, User } from "@supabase/supabase-js";
 import { useAccountAccess } from '@/hooks/useAccountAccess';
@@ -29,6 +29,8 @@ interface AuthContextValue {
   rolesChecked: boolean;
   accountRole: AccountRole | null;
   refreshRoles: () => Promise<void>;
+  /** Synchronously prime AuthContext with a freshly created session before navigating. */
+  syncSession?: (next: Session | null) => void;
   signOut: () => Promise<void>;
 }
 
@@ -83,12 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void rememberThisDevice(id).catch(() => {});
   }, [session?.user?.id]);
 
+  const syncSession = useCallback((next: Session | null) => {
+    setSession(next);
+    if (next) { rememberAccount(); void recordSignupCountry(); void recordCrmContact(); }
+    setLoading(false);
+  }, []);
+
   async function signOut() {
     await supabase.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, staffRoles, isStaff, adminChecked, isVerifier, isContractor, rolesChecked, accountRole, refreshRoles, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, staffRoles, isStaff, adminChecked, isVerifier, isContractor, rolesChecked, accountRole, refreshRoles, syncSession, signOut }}>
       {children}
     </AuthContext.Provider>
   );
