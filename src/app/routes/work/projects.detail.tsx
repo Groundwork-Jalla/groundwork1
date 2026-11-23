@@ -4,7 +4,7 @@ import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
-import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Search, Send, Upload, UserRound } from 'lucide-react';
+import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Plus, Search, Send, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -42,6 +42,7 @@ import { ProjectSharing } from '@/components/project/ProjectSharing';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { ContractorPaymentVerificationBar } from '@/components/project/ContractorPaymentVerificationBar';
 import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
+import { addProjectSubstage } from '@/lib/supabase/stage-breakdown';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import { fetchStagePaymentPlan } from '@/lib/supabase/stage-payment-plans';
@@ -846,7 +847,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * against the item — `submit_site_update` does that server side. Nothing here
  * completes a stage or approves anything: that is not the contractor's to do.
  */
-function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayments, onSubmitted, hasBoq,
+function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, stagePayments, onSubmitted, hasBoq,
   selectedStageId, onSelectStage, canDecide, onReviewReceipt, onMessage, inviteHomeowner }: {
   hasBoq: boolean;
   assigned: AssignedProject;
@@ -926,7 +927,17 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   }, [project.id, linkedStage, stages]);
 
   const [carriedInByStage, setCarriedInByStage] = useState<{ stageId: string; amount: number }>({ stageId: '', amount: 0 });
+  const [addingSubstage, setAddingSubstage] = useState(false);
+  const [newSubstageName, setNewSubstageName] = useState('');
+  const [addSubstageBusy, setAddSubstageBusy] = useState(false);
+  const [addSubstageError, setAddSubstageError] = useState<string | null>(null);
+  const [openBreakdownAddSignal, setOpenBreakdownAddSignal] = useState(0);
   const selectedIdForPlan = selected?.id ?? '';
+  useEffect(() => {
+    setAddingSubstage(false);
+    setNewSubstageName('');
+    setAddSubstageError(null);
+  }, [selectedIdForPlan]);
   const selectedTrancheRef = selected ? stagePayments.get(selected.id) : undefined;
   useEffect(() => {
     if (!selectedIdForPlan) { setCarriedInByStage({ stageId: '', amount: 0 }); return; }
@@ -1092,11 +1103,49 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
   // The server decides who may propose; the panel hides itself when there is nothing to do.
   const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;
   const breakdown = priceable
-    ? <div data-tour={isOpen ? 'price-by-part' : undefined}>
-        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront} onChanged={onSubmitted}
+    ? <div id="stage-breakdown-section" data-tour={isOpen ? 'price-by-part' : undefined}>
+        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront} openAddPartSignal={openBreakdownAddSignal} onChanged={onSubmitted}
           stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`} />
       </div>
     : null;
+  const canAddSubstage = (canConfirmPayments || isOwner) && !stage.pre_existing && stage.status !== 'complete' && project.status !== 'archived';
+  function handleOpenAddSubstage() {
+    if (split) {
+      setOpenBreakdownAddSignal(n => n + 1);
+      if (typeof document !== 'undefined') {
+        window.setTimeout(() => document.getElementById('stage-breakdown-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 40);
+      }
+      return;
+    }
+    setAddingSubstage(prev => !prev);
+    setAddSubstageError(null);
+  }
+  async function handleSaveNewSubstage(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newSubstageName.trim();
+    if (trimmed.length < 2 || addSubstageBusy) return;
+    setAddSubstageBusy(true);
+    setAddSubstageError(null);
+    try {
+      await addProjectSubstage(stage.id, trimmed);
+      setNewSubstageName('');
+      setAddingSubstage(false);
+      await onSubmitted();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (/stage_split_use_breakdown/.test(msg)) {
+        setAddingSubstage(false);
+        setOpenBreakdownAddSignal(n => n + 1);
+        if (typeof document !== 'undefined') {
+          window.setTimeout(() => document.getElementById('stage-breakdown-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 40);
+        }
+      } else {
+        setAddSubstageError(errorMessage(err, t('common.somethingWrong')));
+      }
+    } finally {
+      setAddSubstageBusy(false);
+    }
+  }
   const pill = waiting.length > 0 ? { tone: 'held', label: t('contractorView.receiptToConfirm') }
     : stage.status === 'complete' ? { tone: 'complete', label: t('contractorStageStatus.complete') }
     : stage.pre_existing ? { tone: 'muted', label: t('contractorView.builtBefore') }
@@ -1179,14 +1228,78 @@ function WorkTab({ assigned, substages, rework, canConfirmPayments, stagePayment
                 <span aria-hidden className={cn('size-1.5 rounded-full', pill.tone === 'held' ? 'bg-state-held' : pill.tone === 'complete' ? 'bg-state-complete' : 'bg-brand-muted-grey')} />{pill.label}
               </span>
             </div>
-            {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
-              <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
-              <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{due.local}</p>
-              {isRowPaidUpfront(stage)
-                ? <p className="mt-0.5 text-[11.5px] text-brand-green dark:text-[#b4d8bf]">{t('project.historyView.stageConfirmed', { amount: due.local })}</p>
-                : balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
-            </div>}
+            {(canAddSubstage || due) && (
+              <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
+                {canAddSubstage && (
+                  <button
+                    type="button"
+                    data-action="add-substage"
+                    onClick={handleOpenAddSubstage}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-green px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-brand-green-hover"
+                  >
+                    <Plus className="size-3.5 shrink-0" aria-hidden />
+                    {t('contractorView.addSubstage')}
+                  </button>
+                )}
+                {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
+                  <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
+                  <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{due.local}</p>
+                  {isRowPaidUpfront(stage)
+                    ? <p className="mt-0.5 text-[11.5px] text-brand-green dark:text-[#b4d8bf]">{t('project.historyView.stageConfirmed', { amount: due.local })}</p>
+                    : balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
+                </div>}
+              </div>
+            )}
           </div>
+
+          {addingSubstage && canAddSubstage && !split && (
+            <form
+              onSubmit={handleSaveNewSubstage}
+              data-add-substage-form
+              className="mt-4 space-y-2.5 rounded-xl border border-brand-green/35 bg-brand-green/[0.04] p-3.5 dark:bg-[#141414]"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-brand-near-black dark:text-white">
+                  {t('contractorView.addSubstageTitle')}
+                </p>
+                <span className="text-[11px] text-brand-mid-grey">
+                  {t('project.stages.stageN', { n: stage.stage_number })} · {stageLabel(stage)}
+                </span>
+              </div>
+              <p className="text-xs text-brand-mid-grey">{t('contractorView.addSubstageHint')}</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={newSubstageName}
+                  onChange={e => { setNewSubstageName(e.target.value); setAddSubstageError(null); }}
+                  placeholder={t('contractorView.addSubstagePlaceholder')}
+                  maxLength={120}
+                  disabled={addSubstageBusy}
+                  autoFocus
+                  className="min-h-10 min-w-0 flex-1 rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={addSubstageBusy || newSubstageName.trim().length < 2}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-green px-4 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-45"
+                  >
+                    {addSubstageBusy && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+                    {t('contractorView.addSubstageSave')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={addSubstageBusy}
+                    onClick={() => { setAddingSubstage(false); setAddSubstageError(null); }}
+                    className="min-h-10 px-2.5 py-2 text-xs font-semibold text-brand-mid-grey underline underline-offset-4"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+              {addSubstageError && <p role="alert" className="text-xs text-state-alert">{addSubstageError}</p>}
+            </form>
+          )}
 
           {blockedText && stage.status !== 'complete' && !stage.pre_existing && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{blockedText}</p>}
 

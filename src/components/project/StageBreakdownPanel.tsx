@@ -15,6 +15,8 @@ interface Props {
   clientPresentation?: boolean;
   isContractor?: boolean;
   hidden?: boolean;
+  /** Increment to open the breakdown editor pre-seeded with a new blank substage row. */
+  openAddPartSignal?: number;
   onChanged: () => void | Promise<void>;
 }
 type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal?: BreakdownProposal; hash: string };
@@ -29,7 +31,7 @@ type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal
  *
  * Quiet by default: a stage nobody has split shows only the contractor's button.
  */
-export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, isContractor = false, hidden = false, onChanged }: Props) {
+export function StageBreakdownPanel({ stageId, stageName, projectName, clientPresentation = false, isContractor = false, hidden = false, openAddPartSignal = 0, onChanged }: Props) {
   const t = useT(); const { lang } = useLanguage(); const { substageLabel } = useStageLabels();
   const [read, setRead] = useState<{ stage: string; context: StageBreakdownContext } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -64,6 +66,24 @@ export function StageBreakdownPanel({ stageId, stageName, projectName, clientPre
   const pending = context?.history.find(item => item.status === 'pending');
   const latest = context?.history.find(item => item.status !== 'pending');
   const preview = editing && context ? breakdownDraft(context.stage_amount, editing.rows) : null;
+  const lastAddSignal = useRef(openAddPartSignal);
+  useEffect(() => {
+    if (openAddPartSignal <= lastAddSignal.current) return;
+    lastAddSignal.current = openAddPartSignal;
+    if (!context || !context.can_propose || pending) return;
+    setDraft(prev => {
+      const baseRows = prev && prev.stage === stageId
+        ? prev.rows
+        : context.substages.map(sub => ({ substageId: sub.id, name: substageLabel({ name: sub.name, substage_key: sub.key ?? null }), amount: sub.amount ?? '' }));
+      const hasBlankNew = baseRows.some(r => !r.substageId && !r.name.trim());
+      return {
+        stage: stageId,
+        note: prev && prev.stage === stageId ? prev.note : '',
+        rows: hasBlankNew ? baseRows : [...baseRows, { name: '', amount: '' }],
+      };
+    });
+    setError(null);
+  }, [openAddPartSignal, context, pending, stageId, substageLabel]);
 
   if (hidden) return null;
   if (failed && !context) return null;

@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groundwork Supplies — Interactive Product Demo (Desktop &amp; Mobile)</title>
+  <style>
+    :root {
+      --ink: #0a0a0a;
+      --ink-60: #5a5a57;
+      --ink-40: #8c8c87;
+      --paper: #ffffff;
+      --bg: #f6f6f3;
+      --border: #e5e4df;
+      --accent: #0f766e;       /* Product Teal Highlight */
+      --accent-hover: #0d5f59;
+      --accent-soft: #e6f4f2;
+      --dark-green: #122d2b;
+      --amber: #9a6700;
+      --amber-soft: #fef6e4;
+      --red: #b42318;
+      --red-soft: #fef3f2;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      background: #e9ebe7;
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── Top Demo Control Bar ───────────────────────────────────── */
+    .demo-bar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: #111312;
+      color: #fff;
+      padding: 10px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .demo-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .demo-pill {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 9px;
+      border-radius: 999px;
+    }
+    .demo-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f4f4f2;
+    }
+    .demo-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .demo-tab {
+      background: rgba(255,255,255,0.08);
+      color: #d6dad8;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .demo-tab:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    .demo-tab.active { background: var(--accent); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .viewport-toggle {
+      display: inline-flex;
+      background: rgba(255,255,255,0.1);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .vp-btn {
+      background: transparent;
+      color: #c8ccc9;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .vp-btn.active { background: #fff; color: #111; }
+
+    /* ── Stage Frame (switches smoothly between Desktop & 390px Mobile) ── */
+    .stage-wrap {
+      padding: 18px;
+      display: flex;
+      justify-content: center;
+    }
+    .app-frame {
+      width: 100%;
+      max-width: 1320px;
+      background: var(--bg);
+      border: 1px solid #d5d7d2;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+      transition: max-width 0.25s ease, border-radius 0.25s ease;
+    }
+    .app-frame.mobile-mode {
+      max-width: 406px;
+      border: 8px solid #161817;
+      border-radius: 36px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.24);
+    }
+
+    /* ── App Shell ─────────────────────────────────────────────── */
+    .shell {
+      display: grid;
+      grid-template-columns: 232px minmax(0, 1fr);
+      min-height: 760px;
+    }
+    .app-frame.mobile-mode .shell {
+      grid-template-columns: 1fr;
+      min-height: 740px;
+    }
+    .sidebar {
+      background: var(--paper);
+      border-right: 1px solid var(--border);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .app-frame.mobile-mode .sidebar { display: none; }
+    .brand-name {
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: -0.6px;
+      color: #0a0a0a;
+      line-height: 1.05;
+    }
+    .brand-sub {
+      font-size: 10.5px;
+      color: var(--ink-60);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+    .role-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 5px 9px;
+      border-radius: 8px;
+    }
+    .nav-group { display: flex; flex-direction: column; gap: 3px; }
+    .nav-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--ink-40);
+      font-weight: 700;
+      padding: 6px 10px 3px;
+    }
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink-60);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 9px 11px;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-btn:hover { background: var(--bg); color: var(--ink); }
+    .nav-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+    .nav-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .nav-btn.active .nav-badge { background: rgba(255,255,255,0.22); color: #fff; }
+    .sidebar-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ── Mobile Header + Bottom Nav ────────────────────────────── */
+    .mobile-header {
+      display: none;
+      background: var(--paper);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .app-frame.mobile-mode .mobile-header { display: flex; }
+    .mobile-bottom-nav {
+      display: none;
+      background: var(--paper);
+      border-top: 1px solid var(--border);
+      padding: 8px 6px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      position: sticky;
+      bottom: 0;
+    }
+    .app-frame.mobile-mode .mobile-bottom-nav { display: grid; }
+    .mob-tab {
+      border: none;
+      background: transparent;
+      color: var(--ink-60);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 6px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .mob-tab.active { background: var(--accent-soft); color: var(--accent); }
+
+    /* ── Main Content Area ─────────────────────────────────────── */
+    .main {
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+    }
+    .app-frame.mobile-mode .main { padding: 14px; gap: 14px; }
+    .screen { display: none; flex-direction: column; gap: 16px; }
+    .screen.active { display: flex; }
+
+    /* ── Common UI Components ──────────────────────────────────── */
+    .page-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .eyebrow {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: -0.4px;
+      color: var(--ink);
+      margin-top: 2px;
+    }
+    .app-frame.mobile-mode h1 { font-size: 18px; }
+    .sub { font-size: 12.5px; color: var(--ink-60); margin-top: 4px; line-height: 1.45; }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: var(--paper); color: var(--ink); border-color: var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-soft { background: var(--accent-soft); color: var(--accent); }
+    .btn-sm { padding: 6px 10px; font-size: 11.5px; border-radius: 8px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .badge-teal { background: var(--accent-soft); color: var(--accent); }
+    .badge-amber { background: var(--amber-soft); color: var(--amber); }
+    .badge-grey { background: #eeeeea; color: var(--ink-60); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+    /* Grids */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .app-frame.mobile-mode .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-label { font-size: 11px; color: var(--ink-60); font-weight: 600; }
+    .kpi-val { font-size: 19px; font-weight: 850; margin-top: 5px; }
+    .kpi-sub { font-size: 11px; color: var(--accent); margin-top: 3px; font-weight: 600; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .app-frame.mobile-mode .grid-3,
+    .app-frame.mobile-mode .grid-2 { grid-template-columns: 1fr; }
+
+    /* Search & chips */
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .search-input {
+      border: 1px solid var(--border);
+      background: var(--paper);
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 12.5px;
+      min-width: 220px;
+      flex: 1;
+      max-width: 360px;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--paper);
+      color: var(--ink-60);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Supplier cards */
+    .sup-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .sup-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .sup-cover {
+      height: 86px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #122d2b 0%, #0f766e 100%);
+      color: #fff;
+    }
+    .sup-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .sup-name { font-size: 15px; font-weight: 800; }
+    .sup-meta { font-size: 11.5px; color: var(--ink-60); }
+    .sup-foot {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* Storefront layout */
+    .store-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 16px;
+      align-items: start;
+    }
+    .app-frame.mobile-mode .store-grid { grid-template-columns: 1fr; }
+    .prod-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .prod-row:first-child { border-top: none; padding-top: 0; }
+    .qty-ctrl {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+    }
+    .qty-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 6px;
+      background: var(--paper);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th {
+      text-align: left;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--ink-40);
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    /* Chat */
+    .chat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .msg {
+      max-width: 82%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .msg-in { background: var(--paper); border: 1px solid var(--border); align-self: flex-start; }
+    .msg-out { background: var(--accent); color: #fff; align-self: flex-end; }
+    .quote-card {
+      background: var(--paper);
+      border: 1.5px solid var(--accent);
+      border-radius: 12px;
+      padding: 13px;
+      max-width: 92%;
+      align-self: flex-start;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      background: #111312;
+      color: #fff;
+      padding: 11px 16px;
+      border-radius: 11px;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+      z-index: 90;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 960px) {
+      .stage-wrap { padding: 8px; }
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .mobile-header { display: flex; }
+      .mobile-bottom-nav { display: grid; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-3, .grid-2, .store-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Demo Presenter Toolbar -->
+  <div class="demo-bar">
+    <div class="demo-bar-left">
+      <span class="demo-pill">Interactive Demo</span>
+      <span class="demo-title">Groundwork Supplies · Buyer &amp; Supplier Portal</span>
+      <div class="demo-tabs" id="demoTabs">
+        <button class="demo-tab active" data-go="marketplace">01 Marketplace</button>
+        <button class="demo-tab" data-go="storefront">02 Storefront &amp; Pay</button>
+        <button class="demo-tab" data-go="orders">03 Supplier Orders</button>
+        <button class="demo-tab" data-go="catalog">04 Catalog Upload</button>
+        <button class="demo-tab" data-go="chat">05 Chat &amp; Quote</button>
+        <button class="demo-tab" data-go="payouts">06 Payouts &amp; Team</button>
+      </div>
+    </div>
+    <div class="viewport-toggle" aria-label="Viewport mode">
+      <button class="vp-btn active" id="vpDesktop">Desktop</button>
+      <button class="vp-btn" id="vpMobile">Mobile (390px)</button>
+    </div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="app-frame" id="appFrame">
+      <!-- Mobile Header -->
+      <div class="mobile-header">
+        <div>
+          <div class="brand-name" style="font-size:17px;">Groundwork</div>
+          <div class="brand-sub" id="mobRoleLabel">Supplies · Homeowner &amp; Contractor</div>
+        </div>
+        <button class="btn btn-soft btn-sm" id="mobSwitchRole">Switch Portal</button>
+      </div>
+
+      <div class="shell">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar">
+          <div>
+            <div class="brand-name">Groundwork</div>
+            <div class="brand-sub">by Jalla · Verified Supplies</div>
+          </div>
+          <div class="role-chip" id="roleChip">Buyer View · Villa Bonapriso</div>
+
+          <div class="nav-group">
+            <div class="nav-label">Homeowner &amp; Contractor</div>
+            <button class="nav-btn active" data-go="marketplace">
+              <span>Supplies Marketplace</span><span class="nav-badge">14</span>
+            </button>
+            <button class="nav-btn" data-go="storefront">
+              <span>Storefront &amp; Checkout</span><span class="nav-badge" id="navCartCount">2</span>
+            </button>
+            <button class="nav-btn" data-go="chat">
+              <span>Supplier Chat &amp; Quote</span><span class="nav-badge">1</span>
+            </button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-label">Verified Supplier Portal</div>
+            <button class="nav-btn" data-go="orders">
+              <span>Incoming Orders</span><span class="nav-badge" id="navOrderCount">3</span>
+            </button>
+            <button class="nav-btn" data-go="catalog">
+              <span>Catalog &amp; Stock</span><span class="nav-badge">28</span>
+            </button>
+            <button class="nav-btn" data-go="payouts">
+              <span>Payouts &amp; Team RBAC</span>
+            </button>
+          </div>
+
+          <div class="sidebar-footer">
+            <div style="font-size:11px;color:var(--ink-60);line-height:1.4;">
+              <strong>Douala &amp; Yaoundé</strong><br />
+              Direct project-linked deliveries with photographic site proof.
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main">
+          <!-- SCREEN 01: MARKETPLACE -->
+          <section class="screen active" id="screen-marketplace">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Groundwork Supplies · Cameroon</div>
+                <h1>Verified Construction Suppliers</h1>
+                <p class="sub">Order verified cement, rebar, blocks, roofing &amp; finishes directly against your project stage budget.</p>
+              </div>
+              <button class="btn btn-primary" data-go="storefront">Open Cart &amp; Checkout (<span id="mktCartBadge">2</span>)</button>
+            </div>
+
+            <div class="filter-row">
+              <input class="search-input" id="supSearch" placeholder="Search Dangote cement, rebar, Amabo tiles, Douala…" />
+              <div class="chips" id="catChips">
+                <button class="chip active" data-cat="all">All Categories</button>
+                <button class="chip" data-cat="cement">Cement &amp; Concrete</button>
+                <button class="chip" data-cat="steel">Steel &amp; Rebar</button>
+                <button class="chip" data-cat="finishing">Tiles &amp; Finishing</button>
+                <button class="chip" data-cat="roofing">Roofing</button>
+              </div>
+            </div>
+
+            <div class="grid-3" id="supplierGrid"></div>
+          </section>
+
+          <!-- SCREEN 02: STOREFRONT & DIRECT PAYMENT -->
+          <section class="screen" id="screen-storefront">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Verified Partner · Douala, Bonabéri</div>
+                <h1>CamBuild Materials SARL</h1>
+                <p class="sub">KYB verified · Same-day flatbed delivery to Bonapriso, Makepe, Logpom &amp; Akwa · 99.2% on-time delivery.</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-outline" data-go="chat">Ask for Bulk Quote</button>
+                <button class="btn btn-soft" data-go="marketplace">← All Suppliers</button>
+              </div>
+            </div>
+
+            <div class="store-grid">
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                  <strong style="font-size:14px;">Live Priced Catalog (XAF)</strong>
+                  <span class="badge badge-teal">Linked to Stage 4 · Foundation</span>
+                </div>
+                <div id="catalogList"></div>
+              </div>
+
+              <div class="card" style="position:sticky;top:70px;">
+                <strong style="font-size:14px;">Stage Delivery Order</strong>
+                <p class="sub" style="margin-bottom:12px;">Project: <strong>Villa Bonapriso (R+1)</strong><br />Site Contact: Vanessa (Primary Contractor)</p>
+                <div id="cartSummary" style="font-size:12px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px;"></div>
+                <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:baseline;">
+                  <span style="font-size:12px;color:var(--ink-60);font-weight:700;">Total Due</span>
+                  <div style="text-align:right;">
+                    <div class="mono" style="font-size:17px;font-weight:850;" id="cartTotalXaf">0 XAF</div>
+                    <div class="mono" style="font-size:11px;color:var(--ink-60);" id="cartTotalUsd">≈ $0.00</div>
+                  </div>
+                </div>
+                <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="placeOrderBtn">Confirm &amp; Pay Supplier Order</button>
+                <p style="font-size:11px;color:var(--ink-60);margin-top:8px;line-height:1.4;">
+                  Funds release upon contractor site delivery photo confirmation inside Groundwork.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 03: SUPPLIER PORTAL ORDERS & DELIVERY PROOF -->
+          <section class="screen" id="screen-orders">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Supplier Portal · CamBuild Materials SARL</div>
+                <h1>Incoming Verified Orders</h1>
+                <p class="sub">Dispatch orders to Groundwork build sites and capture photo delivery proof for instant payout release.</p>
+              </div>
+              <button class="btn btn-primary" data-go="catalog">+ Add New Material</button>
+            </div>
+
+            <div class="kpi-grid">
+              <div class="card">
+                <div class="kpi-label">Active Orders</div>
+                <div class="kpi-val mono" id="kpiActiveOrders">3</div>
+                <div class="kpi-sub">2 ready for dispatch</div>
+              </div>
+              <div class="card">
+                <div class="kpi-label">Month Volume</div>
+                <div class="kpi-val mono">14.8M XAF</div>
+                <div class="kpi-sub">+28% vs last month</div>
+              </div>
+              <div class="card">
+                <div class="kpi-label">On-Time Proof</div>
+                <div class="kpi-val mono">99.2%</div>
+                <div class="kpi-sub">Verified by contractors</div>
+              </div>
+              <div class="card">
+                <div class="kpi-label">Pending Payout</div>
+                <div class="kpi-val mono">2.35M XAF</div>
+                <div class="kpi-sub">Releases on delivery</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th>Project &amp; Site</th>
+                      <th>Materials</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 04: SUPPLIER CATALOG MANAGEMENT -->
+          <section class="screen" id="screen-catalog">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Supplier Portal · Inventory</div>
+                <h1>Construction Catalog &amp; Pricing</h1>
+                <p class="sub">Keep live XAF unit pricing, minimum order quantities, and stock status accurate for buyers.</p>
+              </div>
+              <button class="btn btn-primary" id="toggleAddProd">+ Upload New Product</button>
+            </div>
+
+            <form class="card" id="addProdForm" style="display:none;background:var(--accent-soft);border-color:var(--accent);">
+              <strong style="font-size:13px;">Add New Catalog Item</strong>
+              <div class="grid-3" style="margin-top:10px;">
+                <input class="search-input" style="max-width:none;" id="newProdName" placeholder="Product name (e.g. Dangote 42.5N Cement)" required />
+                <input class="search-input" style="max-width:none;" id="newProdUnit" placeholder="Unit (e.g. 50kg bag, 12m bar)" required />
+                <input class="search-input" style="max-width:none;" id="newProdPrice" type="number" placeholder="Price in XAF (e.g. 5400)" required />
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" type="submit">Publish to Storefront</button>
+                <button class="btn btn-outline btn-sm" type="button" id="cancelAddProd">Cancel</button>
+              </div>
+            </form>
+
+            <div class="card">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU / Material</th>
+                      <th>Category</th>
+                      <th>Unit Price (XAF)</th>
+                      <th>Stock</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="supplierCatalogBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 05: SUPPLIER <-> BUYER CHAT & CUSTOM QUOTE -->
+          <section class="screen" id="screen-chat">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Project Thread · Villa Bonapriso</div>
+                <h1>Supplier Chat &amp; Custom Quote</h1>
+                <p class="sub">Negotiate bulk delivery schedules, issue binding in-chat quotes, and convert straight into a verified stage order.</p>
+              </div>
+              <span class="badge badge-teal">Logged to Project Audit Trail</span>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="chat-box" id="chatBox">
+                <div class="msg msg-out">
+                  Hi CamBuild team — we need 180 bags of Cimencam 42.5R and 45 bars of HA12 rebar delivered to Bonapriso Stage 4 by Thursday 8:00 AM. Can you discount delivery?
+                </div>
+                <div class="msg msg-in">
+                  Hello Vanessa &amp; Homeowner! Yes, we have full stock at our Bonabéri depot and can waive the flatbed crane fee for this volume. Here is your locked quote:
+                </div>
+                <div class="quote-card" id="customQuoteCard">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <strong style="font-size:13px;">Custom Quote #QT-2026-418</strong>
+                    <span class="badge badge-amber" id="quoteStatusBadge">Awaiting Approval</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--ink-60);margin-top:8px;line-height:1.5;">
+                    · 180 × Cimencam 42.5R (50kg) — <span class="mono">936,000 XAF</span><br />
+                    · 45 × Rebar HA12 (12m high-tensile) — <span class="mono">247,500 XAF</span><br />
+                    · Flatbed delivery to Bonapriso — <span class="mono" style="color:var(--accent);font-weight:700;">FREE (Waived)</span>
+                  </div>
+                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+                    <div>
+                      <div class="mono" style="font-size:15px;font-weight:850;">1,183,500 XAF</div>
+                      <div class="mono" style="font-size:11px;color:var(--ink-60);">≈ $1,940 USD · Valid 48h</div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="acceptQuoteBtn">Approve &amp; Convert to Order</button>
+                  </div>
+                </div>
+              </div>
+
+              <form id="chatForm" style="display:flex;gap:8px;">
+                <input class="search-input" style="max-width:none;" id="chatInput" placeholder="Write a message to CamBuild Materials…" />
+                <button class="btn btn-primary" type="submit">Send</button>
+              </form>
+            </div>
+          </section>
+
+          <!-- SCREEN 06: SUPPLIER PAYOUTS & MULTI-STAFF RBAC -->
+          <section class="screen" id="screen-payouts">
+            <div class="page-head">
+              <div>
+                <div class="eyebrow">Supplier Finance &amp; Governance</div>
+                <h1>Payouts &amp; Staff Permissions</h1>
+                <p class="sub">Settlement to Cameroon bank / Mobile Money accounts plus granular multi-staff roles for dispatch &amp; finance.</p>
+              </div>
+              <button class="btn btn-primary" id="withdrawBtn">Request Payout (2,350,000 XAF)</button>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <strong style="font-size:14px;">Recent Settlements</strong>
+                <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;font-size:12px;">
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border);">
+                    <div><strong>ORD-8821 · Villa Akwa</strong><div style="color:var(--ink-60);">Afriland First Bank ·••4019</div></div>
+                    <div style="text-align:right;"><div class="mono" style="font-weight:800;">1,840,000 XAF</div><span class="badge badge-teal">Settled</span></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--border);">
+                    <div><strong>ORD-8814 · Duplex Makepe</strong><div style="color:var(--ink-60);">MTN MoMo Merchant</div></div>
+                    <div style="text-align:right;"><div class="mono" style="font-weight:800;">690,000 XAF</div><span class="badge badge-teal">Settled</span></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <div><strong>ORD-8830 · Villa Bonapriso</strong><div style="color:var(--ink-60);">Awaiting delivery proof</div></div>
+                    <div style="text-align:right;"><div class="mono" style="font-weight:800;">2,350,000 XAF</div><span class="badge badge-amber" id="payoutStatusBadge">Pending Proof</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <strong style="font-size:14px;">Supplier Team &amp; RBAC</strong>
+                <p class="sub" style="margin-bottom:12px;">Click any role badge to toggle dispatch vs finance access.</p>
+                <div id="staffList" style="display:flex;flex-direction:column;gap:10px;"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Mobile Bottom Navigation -->
+      <nav class="mobile-bottom-nav">
+        <button class="mob-tab active" data-go="marketplace"><span>Market</span></button>
+        <button class="mob-tab" data-go="storefront"><span>Store</span></button>
+        <button class="mob-tab" data-go="orders"><span>Orders</span></button>
+        <button class="mob-tab" data-go="payouts"><span>Payouts</span></button>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SUPPLIERS = [
+      { id: 1, name: "CamBuild Materials SARL", city: "Douala · Bonabéri", cat: "cement", tag: "Cement & Rebar", lead: "Same-day flatbed", rating: "4.9 (42 builds)", sample: "Cimencam 42.5R · 5,200 XAF" },
+      { id: 2, name: "Amabo Finishes & Tiles", city: "Douala · Akwa", cat: "finishing", tag: "Tiles & Sanitary", lead: "24h delivery", rating: "4.9 (31 builds)", sample: "60×60 Porcelain · 9,800 XAF/m²" },
+      { id: 3, name: "AcierPlus Cameroon", city: "Douala · Bassa", cat: "steel", tag: "Rebar & Mesh", lead: "Same-day crane", rating: "4.8 (27 builds)", sample: "HA12 Rebar · 5,500 XAF/bar" },
+      { id: 4, name: "AluRoofing Express", city: "Yaoundé & Douala", cat: "roofing", tag: "Aluminium Sheets", lead: "48h cut-to-size", rating: "4.9 (19 builds)", sample: "0.7mm Bac Alu · 7,400 XAF/m" },
+      { id: 5, name: "BatiPro Aggregates", city: "Douala · Yassa", cat: "cement", tag: "Sand, Gravel & Blocks", lead: "4h tipper truck", rating: "4.7 (38 builds)", sample: "20T Sanaga Sand · 215,000 XAF" },
+      { id: 6, name: "KamerPaint & Gypsum", city: "Yaoundé · Bastos", cat: "finishing", tag: "Paints & Ceiling", lead: "Next-day van", rating: "4.8 (24 builds)", sample: "20L Exterior Acrylic · 42,000 XAF" },
+    ];
+
+    const CATALOG = [
+      { id: "p1", sku: "CIM-425", name: "Cimencam 42.5R Portland Cement (50kg)", cat: "Cement", unit: "bag", price: 5200, stock: "1,400 bags", qty: 100 },
+      { id: "p2", sku: "REB-HA12", name: "High-Tensile Rebar HA12 (12m bar)", cat: "Steel", unit: "bar", price: 5500, stock: "620 bars", qty: 40 },
+      { id: "p3", sku: "BLK-15", name: "Vibrating Concrete Hollow Blocks (15cm)", cat: "Blocks", unit: "block", price: 425, stock: "8,500 blocks", qty: 0 },
+      { id: "p4", sku: "GRV-1525", name: "Crushed Granite Gravel 15/25 (20T Truck)", cat: "Aggregates", unit: "truck", price: 295000, stock: "Available", qty: 0 },
+    ];
+
+    const ORDERS = [
+      { id: "ORD-8830", project: "Villa Bonapriso (R+1)", stage: "Stage 4 · Foundation", items: "100× Cement, 40× HA12 Rebar", amount: "740,000 XAF", status: "Paid · Ready to Dispatch", action: "dispatch" },
+      { id: "ORD-8828", project: "Duplex Logpom", stage: "Stage 5 · Structure", items: "1,200× Hollow Blocks 15cm", amount: "510,000 XAF", status: "In Transit", action: "proof" },
+      { id: "ORD-8821", project: "Villa Akwa", stage: "Stage 8 · Finishing", items: "95m² Porcelain Tiles + Adhesive", amount: "1,100,000 XAF", status: "Delivered & Verified", action: "done" },
+    ];
+
+    const STAFF = [
+      { name: "Jean-Marc Ndi", role: "Owner / Finance", email: "jm@cambuild.cm", perms: "Payouts · Catalog · Orders" },
+      { name: "Clarisse Ewane", role: "Dispatch Lead", email: "dispatch@cambuild.cm", perms: "Orders · Delivery Proof" },
+      { name: "Boris Tchoupo", role: "Sales & Quotes", email: "sales@cambuild.cm", perms: "Chat · Custom Quotes" },
+    ];
+
+    const XAF_PER_USD = 610;
+    const fmt = (n) => new Intl.NumberFormat("en-US").format(n);
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function go(screenId) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === `screen-${screenId}`));
+      document.querySelectorAll("[data-go]").forEach(b => {
+        if (b.classList.contains("demo-tab") || b.classList.contains("nav-btn") || b.classList.contains("mob-tab")) {
+          b.classList.toggle("active", b.dataset.go === screenId);
+        }
+      });
+      const isSupplier = ["orders", "catalog", "payouts"].includes(screenId);
+      document.getElementById("roleChip").textContent = isSupplier
+        ? "Supplier Portal · CamBuild SARL"
+        : "Buyer View · Villa Bonapriso";
+      document.getElementById("mobRoleLabel").textContent = isSupplier
+        ? "Supplier Portal · CamBuild SARL"
+        : "Supplies · Homeowner & Contractor";
+    }
+
+    document.addEventListener("click", (e) => {
+      const target = e.target.closest("[data-go]");
+      if (target) go(target.dataset.go);
+    });
+
+    // Viewport switch
+    const appFrame = document.getElementById("appFrame");
+    document.getElementById("vpDesktop").onclick = () => {
+      appFrame.classList.remove("mobile-mode");
+      document.getElementById("vpDesktop").classList.add("active");
+      document.getElementById("vpMobile").classList.remove("active");
+    };
+    document.getElementById("vpMobile").onclick = () => {
+      appFrame.classList.add("mobile-mode");
+      document.getElementById("vpMobile").classList.add("active");
+      document.getElementById("vpDesktop").classList.remove("active");
+    };
+    document.getElementById("mobSwitchRole").onclick = () => {
+      const onSupplier = ["screen-orders", "screen-catalog", "screen-payouts"].some(id => document.getElementById(id).classList.contains("active"));
+      go(onSupplier ? "marketplace" : "orders");
+    };
+
+    // Screen 01: Render Suppliers
+    let activeCat = "all";
+    function renderSuppliers() {
+      const q = document.getElementById("supSearch").value.trim().toLowerCase();
+      const list = SUPPLIERS.filter(s => (activeCat === "all" || s.cat === activeCat) && (!q || `${s.name} ${s.city} ${s.tag} ${s.sample}`.toLowerCase().includes(q)));
+      document.getElementById("supplierGrid").innerHTML = list.map(s => `
+        <article class="sup-card">
+          <div class="sup-cover">
+            <span class="badge" style="background:rgba(255,255,255,0.2);color:#fff;">✓ KYB Verified</span>
+            <span style="font-size:11px;font-weight:700;">★ ${s.rating}</span>
+          </div>
+          <div class="sup-body">
+            <div class="sup-name">${s.name}</div>
+            <div class="sup-meta">${s.city} · ${s.lead}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--accent);">${s.sample}</div>
+            <div class="sup-foot">
+              <span class="badge badge-grey">${s.tag}</span>
+              <button class="btn btn-primary btn-sm" data-go="storefront">View Storefront</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+    document.getElementById("supSearch").oninput = renderSuppliers;
+    document.getElementById("catChips").onclick = (e) => {
+      const btn = e.target.closest("[data-cat]");
+      if (!btn) return;
+      activeCat = btn.dataset.cat;
+      document.querySelectorAll("#catChips .chip").forEach(c => c.classList.toggle("active", c === btn));
+      renderSuppliers();
+    };
+
+    // Screen 02: Storefront & Cart
+    function renderStore() {
+      document.getElementById("catalogList").innerHTML = CATALOG.map(p => `
+        <div class="prod-row">
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:13px;font-weight:750;">${p.name}</div>
+            <div style="font-size:11.5px;color:var(--ink-60);margin-top:2px;">
+              <span class="mono" style="font-weight:700;color:var(--ink);">${fmt(p.price)} XAF</span> / ${p.unit} · Stock: ${p.stock}
+            </div>
+          </div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="adjQty('${p.id}', -10)">−</button>
+            <span class="mono" style="min-width:34px;text-align:center;font-size:12px;font-weight:700;">${p.qty}</span>
+            <button class="qty-btn" onclick="adjQty('${p.id}', 10)">+</button>
+          </div>
+        </div>
+      `).join("");
+
+      const selected = CATALOG.filter(p => p.qty > 0);
+      const total = selected.reduce((s, p) => s + p.qty * p.price, 0);
+      document.getElementById("navCartCount").textContent = selected.length;
+      document.getElementById("mktCartBadge").textContent = selected.length;
+      document.getElementById("cartTotalXaf").textContent = `${fmt(total)} XAF`;
+      document.getElementById("cartTotalUsd").textContent = `≈ $${fmt(Math.round(total / XAF_PER_USD))} USD`;
+      document.getElementById("cartSummary").innerHTML = selected.length
+        ? selected.map(p => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${p.qty}× ${p.name.split("(")[0]}</span><strong class="mono">${fmt(p.qty * p.price)} XAF</strong></div>`).join("")
+        : `<span style="color:var(--ink-60);">Add materials to build a stage order.</span>`;
+    }
+    window.adjQty = (id, delta) => {
+      const item = CATALOG.find(p => p.id === id);
+      if (!item) return;
+      item.qty = Math.max(0, item.qty + delta);
+      renderStore();
+    };
+    document.getElementById("placeOrderBtn").onclick = () => {
+      const selected = CATALOG.filter(p => p.qty > 0);
+      if (!selected.length) return showToast("Add at least one item first.");
+      const total = selected.reduce((s, p) => s + p.qty * p.price, 0);
+      ORDERS.unshift({
+        id: "ORD-" + (8831 + ORDERS.length),
+        project: "Villa Bonapriso (R+1)",
+        stage: "Stage 4 · Foundation",
+        items: selected.map(p => `${p.qty}× ${p.cat}`).join(", "),
+        amount: `${fmt(total)} XAF`,
+        status: "Paid · Ready to Dispatch",
+        action: "dispatch",
+      });
+      renderOrders();
+      showToast("Order paid & routed to CamBuild Supplier Portal!");
+      go("orders");
+    };
+
+    // Screen 03: Orders
+    function renderOrders() {
+      document.getElementById("navOrderCount").textContent = ORDERS.filter(o => o.action !== "done").length;
+      document.getElementById("kpiActiveOrders").textContent = ORDERS.filter(o => o.action !== "done").length;
+      document.getElementById("ordersTableBody").innerHTML = ORDERS.map((o, idx) => `
+        <tr>
+          <td class="mono" style="font-weight:750;">${o.id}</td>
+          <td><strong>${o.project}</strong><div style="font-size:11px;color:var(--ink-60);">${o.stage}</div></td>
+          <td>${o.items}</td>
+          <td class="mono" style="font-weight:750;">${o.amount}</td>
+          <td><span class="badge ${o.action === "done" ? "badge-teal" : "badge-amber"}">${o.status}</span></td>
+          <td>
+            ${o.action === "dispatch" ? `<button class="btn btn-primary btn-sm" onclick="advanceOrder(${idx})">Mark Dispatched</button>`
+              : o.action === "proof" ? `<button class="btn btn-soft btn-sm" onclick="advanceOrder(${idx})">Upload Site Proof</button>`
+              : `<span style="font-size:11px;color:var(--accent);font-weight:700;">✓ Proof Logged</span>`}
+          </td>
+        </tr>
+      `).join("");
+    }
+    window.advanceOrder = (idx) => {
+      const o = ORDERS[idx];
+      if (o.action === "dispatch") {
+        o.action = "proof";
+        o.status = "In Transit";
+        showToast(`${o.id} dispatched — live ETA sent to contractor & homeowner.`);
+      } else if (o.action === "proof") {
+        o.action = "done";
+        o.status = "Delivered & Verified";
+        showToast(`${o.id} delivery photo verified — payout queued for release!`);
+      }
+      renderOrders();
+    };
+
+    // Screen 04: Supplier Catalog
+    function renderSupplierCatalog() {
+      document.getElementById("supplierCatalogBody").innerHTML = CATALOG.map(p => `
+        <tr>
+          <td><strong class="mono" style="color:var(--ink-60);font-size:11px;">${p.sku}</strong><div><strong>${p.name}</strong></div></td>
+          <td>${p.cat}</td>
+          <td class="mono" style="font-weight:750;">${fmt(p.price)} XAF / ${p.unit}</td>
+          <td>${p.stock}</td>
+          <td><span class="badge badge-teal">Live on Marketplace</span></td>
+        </tr>
+      `).join("");
+    }
+    document.getElementById("toggleAddProd").onclick = () => {
+      const f = document.getElementById("addProdForm");
+      f.style.display = f.style.display === "none" ? "block" : "none";
+    };
+    document.getElementById("cancelAddProd").onclick = () => {
+      document.getElementById("addProdForm").style.display = "none";
+    };
+    document.getElementById("addProdForm").onsubmit = (e) => {
+      e.preventDefault();
+      const name = document.getElementById("newProdName").value.trim();
+      const unit = document.getElementById("newProdUnit").value.trim();
+      const price = Number(document.getElementById("newProdPrice").value);
+      if (!name || !unit || !price) return;
+      CATALOG.unshift({ id: "p" + Date.now(), sku: "NEW-" + (CATALOG.length + 1), name, cat: "Materials", unit, price, stock: "In Stock", qty: 0 });
+      e.target.reset();
+      document.getElementById("addProdForm").style.display = "none";
+      renderStore();
+      renderSupplierCatalog();
+      showToast(`"${name}" published live to Groundwork Supplies!`);
+    };
+
+    // Screen 05: Chat & Quote
+    document.getElementById("acceptQuoteBtn").onclick = () => {
+      const badge = document.getElementById("quoteStatusBadge");
+      badge.textContent = "Approved · Order Created";
+      badge.className = "badge badge-teal";
+      document.getElementById("acceptQuoteBtn").disabled = true;
+      document.getElementById("acceptQuoteBtn").textContent = "✓ Converted to ORD-8835";
+      ORDERS.unshift({
+        id: "ORD-8835",
+        project: "Villa Bonapriso (R+1)",
+        stage: "Stage 4 · Custom Quote",
+        items: "180× Cement, 45× HA12 Rebar (Free Flatbed)",
+        amount: "1,183,500 XAF",
+        status: "Paid · Ready to Dispatch",
+        action: "dispatch",
+      });
+      renderOrders();
+      showToast("Custom Quote approved! Converted to verified order ORD-8835.");
+    };
+    document.getElementById("chatForm").onsubmit = (e) => {
+      e.preventDefault();
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text) return;
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = "msg msg-out";
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      input.value = "";
+    };
+
+    // Screen 06: Payouts & Staff
+    function renderStaff() {
+      document.getElementById("staffList").innerHTML = STAFF.map((s, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;">
+          <div>
+            <strong style="font-size:12.5px;">${s.name}</strong>
+            <div style="font-size:11px;color:var(--ink-60);">${s.email} · ${s.perms}</div>
+          </div>
+          <button class="badge badge-teal" style="border:none;cursor:pointer;" onclick="cycleRole(${i})">${s.role}</button>
+        </div>
+      `).join("");
+    }
+    window.cycleRole = (i) => {
+      const roles = [
+        { role: "Owner / Finance", perms: "Payouts · Catalog · Orders" },
+        { role: "Dispatch Lead", perms: "Orders · Delivery Proof" },
+        { role: "Sales & Quotes", perms: "Chat · Custom Quotes" },
+      ];
+      const next = roles[(roles.findIndex(r => r.role === STAFF[i].role) + 1) % roles.length];
+      STAFF[i].role = next.role;
+      STAFF[i].perms = next.perms;
+      renderStaff();
+      showToast(`Updated ${STAFF[i].name} → ${next.role}`);
+    };
+    document.getElementById("withdrawBtn").onclick = () => {
+      document.getElementById("payoutStatusBadge").textContent = "Disbursement Queued";
+      document.getElementById("payoutStatusBadge").className = "badge badge-teal";
+      showToast("Payout request for 2,350,000 XAF submitted to Afriland First Bank.");
+    };
+
+    renderSuppliers();
+    renderStore();
+    renderOrders();
+    renderSupplierCatalog();
+    renderStaff();
+  </script>
+</body>
+</html>

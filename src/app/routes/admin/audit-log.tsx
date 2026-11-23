@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { ExternalLink, Loader2, Search, ShieldCheck } from 'lucide-react';
+import { Download, ExternalLink, Loader2, Search, ShieldCheck } from 'lucide-react';
 import { listUnifiedAuditLog, type AuditCategory, type UnifiedAuditRow } from '@/lib/supabase/activity';
+import { downloadAuditLogCsv, formatAuditLogCsv } from '@/lib/admin/audit-csv';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -34,6 +35,7 @@ export default function AdminAuditLog() {
   const [category, setCategory] = useState<'all' | AuditCategory>('all');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async (before?: string, cat: 'all' | AuditCategory = category) => {
     try {
@@ -78,6 +80,37 @@ export default function AdminAuditLog() {
         });
   };
 
+  const handleExportCsv = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      // Pull up to 500 matching rows across pages so the CSV covers more than just the first screen.
+      const collected: UnifiedAuditRow[] = [];
+      let cursor: string | undefined;
+      for (let pageIndex = 0; pageIndex < 3; pageIndex++) {
+        const res = await listUnifiedAuditLog(200, cursor, category);
+        collected.push(...res.rows);
+        if (!res.hasMore || res.rows.length === 0) break;
+        cursor = res.rows[res.rows.length - 1]?.createdAt;
+        if (!cursor) break;
+      }
+      const q = query.trim().toLowerCase();
+      const toExport = q
+        ? collected.filter(r =>
+            `${r.actorName} ${r.action} ${actionLabel(r.action, t)} ${r.projectName} ${r.personName} ${r.source}`
+              .toLowerCase()
+              .includes(q),
+          )
+        : collected;
+      const csv = formatAuditLogCsv(toExport, t);
+      downloadAuditLogCsv(csv, category);
+    } catch (err) {
+      setError(errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, category, query, t]);
+
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8" data-unified-audit-log>
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -87,15 +120,27 @@ export default function AdminAuditLog() {
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.auditLog.subtitle')}</p>
         </div>
-        {isAdmin && (
-          <Link
-            to="/admin/team"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover"
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-action="export-audit-csv"
+            disabled={loading || exporting || filtered.length === 0}
+            onClick={() => { void handleExportCsv(); }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey bg-white px-4 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-green hover:text-brand-green disabled:opacity-45 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
           >
-            <ShieldCheck className="size-3.5" aria-hidden />
-            {t('admin.auditLog.manageRoles')}
-          </Link>
-        )}
+            {exporting ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Download className="size-3.5" aria-hidden />}
+            {exporting ? t('admin.auditLog.exporting') : t('admin.auditLog.exportCsv')}
+          </button>
+          {isAdmin && (
+            <Link
+              to="/admin/team"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white hover:bg-brand-green-hover"
+            >
+              <ShieldCheck className="size-3.5" aria-hidden />
+              {t('admin.auditLog.manageRoles')}
+            </Link>
+          )}
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

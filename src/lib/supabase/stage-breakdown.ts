@@ -82,3 +82,13 @@ export async function decideStageBreakdown(proposalId: string, decision: 'approv
   const { error } = await supabase.rpc('decide_stage_breakdown', { p_proposal: proposalId, p_decision: decision });
   if (error) throw error;
 }
+
+/** Add a new unpriced substage directly to a non-split stage (23 Nov). */
+export async function addProjectSubstage(stageId: string, name: string) {
+  const { data, error } = await supabase.rpc('add_project_substage', {
+    p_stage: stageId,
+    p_name: name.trim(),
+  });
+  if (error) throw error;
+  return data;
+}
