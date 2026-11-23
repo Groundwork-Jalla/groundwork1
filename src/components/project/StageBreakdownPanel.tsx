@@ -197,12 +197,12 @@ export function StageBreakdownPanel({
   // Nothing to show: no split, nothing proposed, not locked-for-contractor, and this person cannot propose one.
   if (!context.split && !pending && !(isContractor && context.can_propose) && !lockedForContractor && !context.history.length) return null;
 
-  // In inlineRows mode, when the stage is in its resting state (not editing, no pending
-  // proposal, no error, no history, no last decision notice, not locked), stay completely quiet —
-  // the approved prices are already shown on each substage row and the contractor's Set/Edit
-  // prices button sits in the stage header above the list.
+  // In inlineRows mode, the bottom "Split by parts" card is completely hidden at rest —
+  // approved prices live directly on each substage row, and Set/Edit/Locked price controls
+  // live in the stage header above the list. This footer only renders when actively editing,
+  // reviewing a pending proposal, showing a decision/error, or expanding past history.
   const showLastDecision = isContractor && context.can_propose && !pending && latest && latest.status !== 'withdrawn' && !editing;
-  if (inlineRows && !editing && !pending && !lockedForContractor && !showLastDecision && !hasHistory && !error && !review) {
+  if (inlineRows && !editing && !pending && !showLastDecision && !hasHistory && !error && !review) {
     return null;
   }
 
@@ -251,12 +251,10 @@ export function StageBreakdownPanel({
       className="inline-flex items-center rounded-lg border border-brand-green/40 bg-brand-green/5 px-3 py-1.5 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
       {t(context.split ? 'project.breakdown.revise' : 'project.breakdown.propose')}</button>}
 
-    {lockedForContractor && !editing && <div className="space-y-1" data-split-locked>
-      {!inlineRows && (
-        <button type="button" disabled title={t('project.breakdown.lockedAfterWork')}
-          className="inline-flex cursor-not-allowed items-center rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-1.5 font-semibold text-brand-mid-grey opacity-60 dark:border-[#2c2c2c] dark:bg-[#141414]">
-          {t(context.split ? 'project.breakdown.revise' : 'project.breakdown.propose')}</button>
-      )}
+    {!inlineRows && lockedForContractor && !editing && <div className="space-y-1" data-split-locked>
+      <button type="button" disabled title={t('project.breakdown.lockedAfterWork')}
+        className="inline-flex cursor-not-allowed items-center rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-1.5 font-semibold text-brand-mid-grey opacity-60 dark:border-[#2c2c2c] dark:bg-[#141414]">
+        {t(context.split ? 'project.breakdown.revise' : 'project.breakdown.propose')}</button>
       <p className="text-brand-mid-grey">{t('project.breakdown.lockedAfterWork')}</p>
     </div>}
 
