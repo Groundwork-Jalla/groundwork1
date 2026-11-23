@@ -16,7 +16,7 @@ import { stageReceiptBalance, stageReceiptExcess, stageReceiptTotalExcess } from
 import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { currencyFractionDigits } from '@/lib/format';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
-import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
+import { StageBreakdownPanel, type StageBreakdownInlineState } from '@/components/project/StageBreakdownPanel';
 import { partWorkReady, useSubstagePayments } from '@/lib/supabase/substage-payments';
 import type { SubstagePaymentRequest } from '@/lib/supabase/contractor-payments';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
@@ -203,6 +203,9 @@ function StageDetail({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [breakdownCtrl, setBreakdownCtrl] = useState<StageBreakdownInlineState | null>(null);
+  const activeBreakdown = breakdownCtrl?.stageId === stage.id ? breakdownCtrl : null;
+  const pendingProposal = activeBreakdown?.pending ?? null;
   const approvalBusy = useRef(false);
   const scope = `${projectId}:${stage.id}`;
   const liveScope = useRef<string | null>(scope);
@@ -395,12 +398,28 @@ function StageDetail({
           <div className={clientPresentation ? 'space-y-3' : 'divide-y divide-brand-border-grey/60'}>
             {substages.map(sub => {
               const subPart = paidByPart ? parts?.parts?.find(p => p.id === sub.id) : undefined;
+              const pendingLine = pendingProposal?.lines.find(l => l.substage_id === sub.id) ?? null;
               const subRequest = openStageRequests.find(r => r.substage_id === sub.id);
               const subCanUploadReceipt = canUploadReceiptNow && (!paidByPart || !!subPart?.payable);
               const remainingAfterPending = paymentSummary?.balance.remaining != null
                 ? Math.max(0, Math.round((paymentSummary.balance.remaining - (paymentSummary.balance.pending ?? 0)) * 1e6) / 1e6)
                 : null;
               const requestedAmt = subRequest ? formatRequestAmount(subRequest.amount, subRequest.currency) : '';
+              const priceBadge = pendingLine && activeBreakdown
+                ? {
+                    label: pendingLine.before != null && pendingLine.before !== pendingLine.amount
+                      ? `${activeBreakdown.format(pendingLine.before)} → ${activeBreakdown.format(pendingLine.amount)}`
+                      : activeBreakdown.format(pendingLine.amount),
+                    sublabel: t('project.breakdown.proposedTag'),
+                    tone: 'proposed' as const,
+                  }
+                : subPart
+                  ? {
+                      label: formatRequestAmount(Number(subPart.price), parts?.currency ?? code),
+                      sublabel: t(sub.status === 'complete' ? 'project.parts.done' : subPart.paid ? 'project.parts.paid' : Number(subPart.pending) > 0 ? 'project.parts.waiting' : subPart.payable ? 'project.parts.payNext' : 'project.parts.later'),
+                      tone: (sub.status === 'complete' || subPart.paid ? 'paid' : subPart.payable ? 'due' : 'muted') as 'paid' | 'due' | 'muted',
+                    }
+                  : undefined;
               return (
                 <SubstageRow
                   key={sub.id}
@@ -417,6 +436,7 @@ function StageDetail({
                     lastUpdate: approvalsRemaining === 1,
                     description: t(approvalsRemaining === 1 ? evidenceFirst && (stage.payment_milestone_usd ?? 0) > 0 ? 'project.clientUi.reviewedStageNext' : 'project.clientUi.fundedStageNext' : 'project.clientUi.approveUpdateBody'),
                   } : undefined}
+                  priceBadge={priceBadge}
                   receiptAction={subCanUploadReceipt ? {
                     projectId,
                     stageId: stage.id,
@@ -433,6 +453,28 @@ function StageDetail({
                 />
               );
             })}
+            {/* Newly proposed substages shown inline for Homeowner review before approval. */}
+            {pendingProposal && activeBreakdown && pendingProposal.lines.filter(l => !l.substage_id).map((line, idx) => (
+              <div
+                key={`client-pending-new-${idx}`}
+                data-client-pending-new-substage
+                className={cn(
+                  'flex flex-wrap items-center justify-between gap-2 border-state-held/40 bg-state-held/[0.05]',
+                  clientPresentation ? 'rounded-xl border p-4 sm:p-5' : 'rounded-lg border px-3 py-2.5 mt-2',
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="inline-flex rounded-full bg-brand-green/10 px-2 py-0.5 text-[10.5px] font-semibold text-brand-green">
+                    {t('project.breakdown.newPart')}
+                  </span>
+                  <span className="text-sm font-semibold text-brand-near-black">{line.name}</span>
+                </div>
+                <span className="rounded-lg border border-state-held/40 bg-state-held/10 px-2.5 py-1 text-right font-mono text-xs font-semibold tabular-nums text-state-held">
+                  {activeBreakdown.format(line.amount)}
+                  <span className="block font-sans text-[10px] font-semibold">{t('project.breakdown.proposedTag')}</span>
+                </span>
+              </div>
+            ))}
           </div>
 
           {showApproveButton && (
@@ -454,7 +496,8 @@ function StageDetail({
 
       {!stage.pre_existing && hasPrimaryContractor && (stage.payment_milestone_usd ?? 0) > 0 && <StageBreakdownPanel
         stageId={stage.id} stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`}
-        projectName={projectName ?? ''} clientPresentation={clientPresentation} onChanged={onPaymentChanged}
+        projectName={projectName ?? ''} clientPresentation={clientPresentation}
+        inlineRows={stage.status !== 'locked'} onInlineState={setBreakdownCtrl} onChanged={onPaymentChanged}
       />}
 
       {!stage.pre_existing && payment && (hasPrimaryContractor || !!payment.receipts?.length || !!payment.receiptPath) && <StagePaymentGate
@@ -462,7 +505,7 @@ function StageDetail({
         isContractor={!!isContractor} readOnly={!hasPrimaryContractor || (isContractor ? !canConfirmPayments : !canApprove)} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
-        clientPresentation={clientPresentation} parts={parts}
+        clientPresentation={clientPresentation} parts={parts} hideParts={paidByPart && stage.status !== 'locked'}
       />}
 
       {missingPayment && (

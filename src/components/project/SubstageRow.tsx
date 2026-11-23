@@ -82,6 +82,12 @@ interface SubstageReceiptAction {
   onUploaded: () => void | Promise<void>;
 }
 
+interface SubstagePriceBadge {
+  label: string;
+  sublabel?: string | null;
+  tone: 'paid' | 'due' | 'proposed' | 'muted';
+}
+
 interface SubstageRowProps {
   substage: ProjectSubstageRow;
   tier: string;
@@ -91,6 +97,8 @@ interface SubstageRowProps {
   /** Project assignment permission, independent of the client's approval permission. */
   canUploadEvidence?: boolean;
   approvalContext?: { projectName: string; stageName: string; description: string; lastUpdate: boolean };
+  /** Inline per-substage price or pending proposed price (Homeowner view). */
+  priceBadge?: SubstagePriceBadge;
   /** Inline per-substage receipt upload action for Homeowners (mirrors contractor's right-side buttons). */
   receiptAction?: SubstageReceiptAction;
   compactEvidence?: boolean;
@@ -112,6 +120,7 @@ export function SubstageRow({
   stagePaid = true,
   canUploadEvidence = false,
   approvalContext,
+  priceBadge,
   receiptAction,
   compactEvidence = false,
   onMarkComplete,
@@ -181,6 +190,26 @@ export function SubstageRow({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {priceBadge && (
+              <span
+                data-substage-price-badge
+                className={cn(
+                  'inline-flex flex-col items-end rounded-lg border px-2.5 py-1 text-right font-mono text-xs leading-tight',
+                  priceBadge.tone === 'paid'
+                    ? 'border-brand-green/30 bg-brand-green/5 text-brand-green'
+                    : priceBadge.tone === 'proposed'
+                      ? 'border-state-held/40 bg-state-held/10 text-state-held'
+                      : priceBadge.tone === 'due'
+                        ? 'border-brand-near-black/20 bg-brand-off-white text-brand-near-black'
+                        : 'border-brand-border-grey bg-brand-off-white text-brand-mid-grey',
+                )}
+              >
+                <span className="font-semibold tabular-nums">{priceBadge.label}</span>
+                {priceBadge.sublabel && (
+                  <span className="font-sans text-[10px] font-semibold opacity-80">{priceBadge.sublabel}</span>
+                )}
+              </span>
+            )}
             {/* Status chips */}
             {isPendingReview && (
               <span className="shrink-0 inline-flex items-center rounded-full border border-brand-border-grey bg-brand-off-white px-2 py-px text-[9px] font-medium text-brand-near-black whitespace-nowrap">

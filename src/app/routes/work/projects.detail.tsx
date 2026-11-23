@@ -4,7 +4,7 @@ import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
-import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Plus, Search, Send, Upload, UserRound } from 'lucide-react';
+import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Plus, Search, Send, Split, Upload, UserRound, X } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -42,6 +42,7 @@ import { ProjectSharing } from '@/components/project/ProjectSharing';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { ContractorPaymentVerificationBar } from '@/components/project/ContractorPaymentVerificationBar';
 import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
+import type { StageBreakdownInlineState } from '@/components/project/StageBreakdownPanel';
 import { addProjectSubstage } from '@/lib/supabase/stage-breakdown';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
@@ -932,6 +933,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const [addSubstageBusy, setAddSubstageBusy] = useState(false);
   const [addSubstageError, setAddSubstageError] = useState<string | null>(null);
   const [openBreakdownAddSignal, setOpenBreakdownAddSignal] = useState(0);
+  const [breakdownCtrl, setBreakdownCtrl] = useState<StageBreakdownInlineState | null>(null);
   const selectedIdForPlan = selected?.id ?? '';
   useEffect(() => {
     setAddingSubstage(false);
@@ -1098,18 +1100,26 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
       setRequestBusy(false);
     }
   }
-  // Price by part (18 Nov): each part is paid before its work, so the contractor
-  // has to be able to price a stage's parts from here, not only the homeowner's view.
-  // The server decides who may propose; the panel hides itself when there is nothing to do.
+  // Price by part (18 Nov; inline per-substage mode 23 Nov): each part is paid before its work,
+  // so the contractor edits prices right on the single substage checklist instead of a duplicated
+  // table below. The server decides who may propose; the panel stays quiet when nothing is active.
   const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;
   const breakdown = priceable
     ? <div id="stage-breakdown-section" data-tour={isOpen ? 'price-by-part' : undefined}>
-        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront} openAddPartSignal={openBreakdownAddSignal} onChanged={onSubmitted}
+        <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront}
+          inlineRows onInlineState={setBreakdownCtrl} openAddPartSignal={openBreakdownAddSignal} onChanged={onSubmitted}
           stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`} />
       </div>
     : null;
+  const activeBreakdown = breakdownCtrl?.stageId === stage.id && !stagePaidUpfront ? breakdownCtrl : null;
+  const isEditingPrices = !!activeBreakdown?.editing;
+  const pendingProposal = !isEditingPrices ? activeBreakdown?.pending ?? null : null;
   const canAddSubstage = (canConfirmPayments || isOwner) && !stage.pre_existing && stage.status !== 'complete' && project.status !== 'archived';
   function handleOpenAddSubstage() {
+    if (isEditingPrices && activeBreakdown) {
+      activeBreakdown.addRow();
+      return;
+    }
     if (split) {
       setOpenBreakdownAddSignal(n => n + 1);
       if (typeof document !== 'undefined') {
@@ -1119,6 +1129,13 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
     }
     setAddingSubstage(prev => !prev);
     setAddSubstageError(null);
+  }
+  function handleStartPricing() {
+    if (!activeBreakdown?.canPropose || activeBreakdown.pending) return;
+    setUploadFor(null);
+    setRequestPayFor(null);
+    setAddingSubstage(false);
+    activeBreakdown.startEditing(false);
   }
   async function handleSaveNewSubstage(e: React.FormEvent) {
     e.preventDefault();
@@ -1228,18 +1245,44 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 <span aria-hidden className={cn('size-1.5 rounded-full', pill.tone === 'held' ? 'bg-state-held' : pill.tone === 'complete' ? 'bg-state-complete' : 'bg-brand-muted-grey')} />{pill.label}
               </span>
             </div>
-            {(canAddSubstage || due) && (
+            {(canAddSubstage || activeBreakdown?.canPropose || activeBreakdown?.lockedForContractor || due) && (
               <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
-                {canAddSubstage && (
-                  <button
-                    type="button"
-                    data-action="add-substage"
-                    onClick={handleOpenAddSubstage}
-                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-green px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-brand-green-hover"
-                  >
-                    <Plus className="size-3.5 shrink-0" aria-hidden />
-                    {t('contractorView.addSubstage')}
-                  </button>
+                {(canAddSubstage || (activeBreakdown?.canPropose && !activeBreakdown.pending && !isEditingPrices) || (activeBreakdown?.lockedForContractor && !isEditingPrices)) && (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {canAddSubstage && (
+                      <button
+                        type="button"
+                        data-action="add-substage"
+                        onClick={handleOpenAddSubstage}
+                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-green px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-brand-green-hover"
+                      >
+                        <Plus className="size-3.5 shrink-0" aria-hidden />
+                        {t('contractorView.addSubstage')}
+                      </button>
+                    )}
+                    {activeBreakdown?.canPropose && !activeBreakdown.pending && !isEditingPrices && (
+                      <button
+                        type="button"
+                        data-action="split-stage"
+                        onClick={handleStartPricing}
+                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-brand-green/50 bg-white px-3.5 py-2 text-xs font-semibold text-brand-green transition-colors hover:bg-brand-green/5 dark:bg-[#141414] dark:text-[#b4d8bf]"
+                      >
+                        <Split className="size-3.5 shrink-0" aria-hidden />
+                        {t(activeBreakdown.split ? 'project.breakdown.editPrices' : 'project.breakdown.setPrices')}
+                      </button>
+                    )}
+                    {activeBreakdown?.lockedForContractor && !isEditingPrices && (
+                      <button
+                        type="button"
+                        disabled
+                        title={t('project.breakdown.lockedAfterWork')}
+                        className="inline-flex min-h-10 cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey bg-brand-off-white px-3.5 py-2 text-xs font-semibold text-brand-mid-grey opacity-60 dark:border-[#2c2c2c] dark:bg-[#141414]"
+                      >
+                        <Lock className="size-3.5 shrink-0" aria-hidden />
+                        {t(activeBreakdown.split ? 'project.breakdown.editPrices' : 'project.breakdown.setPrices')}
+                      </button>
+                    )}
+                  </div>
                 )}
                 {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
                   <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
@@ -1351,8 +1394,13 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 // payment request, flip the row immediately from "Request payment" to "Review receipt".
                 const rowWaiting = partWaiting ?? (!split && openReq ? waiting[0] : undefined);
                 const rowPaid = !!part?.paid || carriedCovered || stageFullyPaid;
-                const showRequestBtn = canRequestSubstagePayment && !complete && !rowPaid && !rowWaiting;
-                const showUploadBtn = isOpen && !complete && !rowWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
+                const showRequestBtn = !isEditingPrices && canRequestSubstagePayment && !complete && !rowPaid && !rowWaiting;
+                const showUploadBtn = !isEditingPrices && isOpen && !complete && !rowWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
+                const draftRowIndex = isEditingPrices && activeBreakdown
+                  ? activeBreakdown.rows.findIndex(r => r.substageId === item.id)
+                  : -1;
+                const draftRow = draftRowIndex >= 0 && activeBreakdown ? activeBreakdown.rows[draftRowIndex] : null;
+                const pendingLine = pendingProposal?.lines.find(l => l.substage_id === item.id) ?? null;
                 return (
                   <li key={item.id} id={`substage-${item.id}`} className={cn('border-t border-brand-border-grey px-3.5 py-3 first:border-t-0 dark:border-[#2c2c2c]', rowWaiting && 'bg-state-held/[0.05]')}>
                     <div className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 md:grid-cols-[22px_minmax(0,1fr)_auto_auto]">
@@ -1393,12 +1441,40 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                         <EvidenceThumbs paths={item.evidence_urls ?? []} />
                       </span>
                       <span className="col-start-3 row-start-1 flex shrink-0 flex-col items-end gap-2 md:col-start-4">
-                        {part && <span className="text-right font-mono text-xs tabular-nums text-brand-near-black dark:text-white">
-                          {Number(part.price).toLocaleString('en-US', { maximumFractionDigits: currencyFractionDigits(parts?.currency ?? money.code) })}
-                          <span className="block font-sans text-[11px] text-brand-mid-grey">
-                            {t(part.paid || carriedCovered || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
-                        </span>}
-                        {rowWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, rowWaiting.id)} data-action="review-part-receipt"
+                        {isEditingPrices && draftRow && activeBreakdown ? (
+                          <div className="flex items-center gap-1.5" data-inline-substage-price>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              disabled={activeBreakdown.working}
+                              aria-label={t('project.breakdown.amountFor', { part: substageLabel(item), currency: activeBreakdown.currency })}
+                              placeholder="0"
+                              value={draftRow.amount}
+                              onChange={event => {
+                                const raw = event.target.value;
+                                activeBreakdown.editRow(draftRowIndex, {
+                                  amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw,
+                                });
+                              }}
+                              className="min-h-9 w-32 rounded-lg border border-brand-green/50 bg-white px-2.5 py-1.5 text-right font-mono text-xs text-brand-near-black outline-none focus:border-brand-green sm:w-36 dark:border-[#3a3a3a] dark:bg-[#141414] dark:text-white"
+                            />
+                            <span className="font-mono text-[11px] font-semibold text-brand-mid-grey">{activeBreakdown.currency}</span>
+                          </div>
+                        ) : pendingLine && activeBreakdown ? (
+                          <span className="rounded-lg border border-state-held/40 bg-state-held/10 px-2.5 py-1 text-right font-mono text-xs tabular-nums text-state-held" data-inline-pending-price>
+                            {pendingLine.before != null && pendingLine.before !== pendingLine.amount
+                              ? `${activeBreakdown.format(pendingLine.before)} → ${activeBreakdown.format(pendingLine.amount)}`
+                              : activeBreakdown.format(pendingLine.amount)}
+                            <span className="block font-sans text-[10px] font-semibold">{t('project.breakdown.proposedTag')}</span>
+                          </span>
+                        ) : (
+                          part && <span className="text-right font-mono text-xs tabular-nums text-brand-near-black dark:text-white">
+                            {Number(part.price).toLocaleString('en-US', { maximumFractionDigits: currencyFractionDigits(parts?.currency ?? money.code) })}
+                            <span className="block font-sans text-[11px] text-brand-mid-grey">
+                              {t(part.paid || carriedCovered || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
+                          </span>
+                        )}
+                        {!isEditingPrices && rowWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, rowWaiting.id)} data-action="review-part-receipt"
                           className="rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover">{t('contractorView.reviewReceipt')}</button>}
                         {/* Sequential CTA order: primary expected next action always appears FIRST (19 Nov). */}
                         {(showRequestBtn || showUploadBtn) && (
@@ -1499,6 +1575,70 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                   </li>
                 );
               })}
+              {/* New substage draft rows while inline pricing is open. */}
+              {isEditingPrices && activeBreakdown && activeBreakdown.rows.map((row, rowIndex) => {
+                if (row.substageId) return null;
+                return (
+                  <li key={`new-part-${rowIndex}`} className="border-t border-brand-border-grey bg-brand-green/[0.03] px-3.5 py-3 dark:border-[#2c2c2c]" data-inline-new-substage>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full border border-dashed border-brand-green font-mono text-[10px] font-bold text-brand-green">+</span>
+                      <input
+                        type="text"
+                        disabled={activeBreakdown.working}
+                        aria-label={t('project.breakdown.newPartName')}
+                        placeholder={t('project.breakdown.newPartName')}
+                        value={row.name}
+                        maxLength={120}
+                        onChange={event => activeBreakdown.editRow(rowIndex, { name: event.target.value })}
+                        className="min-h-9 min-w-[160px] flex-1 rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          disabled={activeBreakdown.working}
+                          aria-label={t('project.breakdown.amountFor', { part: row.name || t('project.breakdown.newPart'), currency: activeBreakdown.currency })}
+                          placeholder="0"
+                          value={row.amount}
+                          onChange={event => {
+                            const raw = event.target.value;
+                            activeBreakdown.editRow(rowIndex, {
+                              amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw,
+                            });
+                          }}
+                          className="min-h-9 w-32 rounded-lg border border-brand-green/50 bg-white px-2.5 py-1.5 text-right font-mono text-xs text-brand-near-black outline-none focus:border-brand-green sm:w-36 dark:border-[#3a3a3a] dark:bg-[#141414] dark:text-white"
+                        />
+                        <span className="font-mono text-[11px] font-semibold text-brand-mid-grey">{activeBreakdown.currency}</span>
+                        <button
+                          type="button"
+                          disabled={activeBreakdown.working}
+                          aria-label={t('project.breakdown.removePart')}
+                          onClick={() => activeBreakdown.removeRow(rowIndex)}
+                          className="rounded-lg p-1.5 text-brand-mid-grey hover:bg-brand-off-white hover:text-brand-near-black dark:hover:bg-[#242424]"
+                        >
+                          <X className="size-4" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              {/* Newly proposed substages shown inline while waiting for Homeowner approval. */}
+              {pendingProposal && activeBreakdown && pendingProposal.lines.filter(l => !l.substage_id).map((line, idx) => (
+                <li key={`pending-new-${idx}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-brand-border-grey bg-state-held/[0.04] px-3.5 py-3 dark:border-[#2c2c2c]" data-inline-pending-new-substage>
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full border border-dashed border-state-held font-mono text-[10px] font-bold text-state-held">+</span>
+                    <span className="text-[13.5px] font-semibold text-brand-near-black dark:text-white">
+                      {line.name}
+                      <span className="ml-2 rounded-full bg-brand-green/10 px-2 py-0.5 text-[10.5px] font-semibold text-brand-green">{t('project.breakdown.newPart')}</span>
+                    </span>
+                  </div>
+                  <span className="rounded-lg border border-state-held/40 bg-state-held/10 px-2.5 py-1 text-right font-mono text-xs tabular-nums text-state-held">
+                    {activeBreakdown.format(line.amount)}
+                    <span className="block font-sans text-[10px] font-semibold">{t('project.breakdown.proposedTag')}</span>
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
 

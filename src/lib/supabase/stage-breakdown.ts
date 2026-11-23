@@ -70,6 +70,31 @@ export function breakdownDraft(stageAmount: string, rows: BreakdownDraftRow[]) {
   };
 }
 
+/**
+ * Distribute a stage amount evenly across every draft row using exact integer
+ * arithmetic, placing any rounding remainder on the final row so the sum
+ * always equals `stageAmount` with zero remaining.
+ */
+export function splitBreakdownEvenly(stageAmount: string, rows: BreakdownDraftRow[]): BreakdownDraftRow[] {
+  if (rows.length === 0 || !AMOUNT.test(stageAmount.trim())) return rows;
+  const totalUnits = units(stageAmount.trim());
+  const count = BigInt(rows.length);
+  // Pick the cleanest currency quantum that divides stageAmount evenly:
+  // whole units for XAF/NGN-style integers, cents (0.01) for 2-decimal totals, else micro-units.
+  const quantum = totalUnits % 1_000_000n === 0n
+    ? 1_000_000n
+    : totalUnits % 10_000n === 0n
+      ? 10_000n
+      : 1n;
+  const totalQuanta = totalUnits / quantum;
+  const base = totalQuanta / count;
+  const remainder = totalQuanta - base * count;
+  return rows.map((row, idx) => {
+    const share = (idx === rows.length - 1 ? base + remainder : base) * quantum;
+    return { ...row, amount: decimal(share) };
+  });
+}
+
 export async function proposeStageBreakdown(context: StageBreakdownContext, lines: NonNullable<ReturnType<typeof breakdownDraft>['lines']>, note: string) {
   const { data, error } = await supabase.rpc('propose_stage_breakdown', {
     p_stage: context.stage_id, p_lines: lines, p_base_hash: context.base_hash, p_note: note.trim() || null,
