@@ -43,17 +43,17 @@ export function ClientProjectNextAction({ project, stages }: { project: ProjectR
   }, [project, stages, attempt]);
   const current = read.projectId === project.id ? read : null;
   const action = current?.action;
-  if (!action) return <div role="status" className="flex min-h-48 items-center rounded-xl bg-brand-green p-5 text-sm text-white">{t('common.loading')}</div>;
+  if (!action) return <div role="status" className="flex min-h-48 items-center rounded-xl bg-brand-dark p-5 text-sm text-white">{t('common.loading')}</div>;
   if (action.kind === 'connect') return current?.access ? <ProjectContractorConnection key={project.id} projectId={project.id} access={current.access} onRequested={() => setAttempt(value => value + 1)} dashboard /> : null;
   const href = `/projects/${project.id}${action.stageNumber ? `?tab=stages&stage=${action.stageNumber}` : ''}`;
-  return <section className="flex min-w-0 flex-col justify-between gap-5 rounded-xl bg-brand-green p-5 text-white sm:p-6" aria-label={t('dashboard.architecture.nextStep')}>
+  return <section className="flex min-w-0 flex-col justify-between gap-5 rounded-xl bg-brand-dark p-5 text-white sm:p-6" aria-label={t('dashboard.architecture.nextStep')}>
     <div className="min-w-0">
       <p className="text-sm font-semibold text-white/85">{t('dashboard.architecture.nextStep')}</p>
       <h3 className="mt-2 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">{t(`dashboard.architecture.actions.${action.kind}.title`)}</h3>
       <p className="mt-3 text-sm leading-relaxed text-white/85">{t(`dashboard.architecture.actions.${action.kind}.body`)}</p>
       {current.failed && <p role="status" className="mt-3 text-xs leading-relaxed text-white/85">{t('dashboard.architecture.actionUnavailable')}{' '}<button type="button" onClick={() => setAttempt(value => value + 1)} className="font-semibold underline underline-offset-4">{t('common.retry')}</button></p>}
     </div>
-    <Link to={href} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffffff] px-4 py-3 text-center text-sm font-semibold text-brand-green transition-colors hover:bg-[#f2f1ee] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white dark:bg-[#f0f0f0] dark:text-[#122d2b] dark:hover:bg-[#e4e3df]">
+    <Link to={href} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#ffffff] px-4 py-3 text-center text-sm font-semibold text-brand-green transition-colors hover:bg-[#f2f1ee] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white dark:bg-[#f0f0f0] dark:text-[#006b5e] dark:hover:bg-[#e4e3df]">
       {t(`dashboard.architecture.actions.${action.kind}.button`)}<ArrowUpRight className="size-4" aria-hidden />
     </Link>
   </section>;

@@ -17,8 +17,9 @@
   /* ── Foundations v1 · ink and paper ──────────────────────
      Semantic, not decorative. A colour means one thing and only that thing. */
   --color-ink:      #0a0a0a;  /* primary text */
-  --color-brand-green: #122d2b; /* primary buttons, CTAs, active nav & selections */
-  --color-brand-green-hover: #0c201e;
+  --color-brand-green: #006b5e; /* Teal — highlights, key numbers, primary CTAs & active nav */
+  --color-brand-green-hover: #00574d;
+  --color-brand-dark: #122d2b; /* Dark green — headings, dark backgrounds & proposals */
   --color-ink-60:   #5a5a57;  /* supporting lines, column headers, descriptions */
   --color-ink-35:   #9a9a96;  /* timestamps, eyebrows, locked figures */
   --color-paper:    #ffffff;  /* anything holding content or a figure */
@@ -28,7 +29,7 @@
   /* ── Foundations v1 · state ──────────────────────────────
      Five states carry every status in the product. No tinted backgrounds —
      state is a 6px dot plus the figure's own colour, never a pastel pill. */
-  --color-state-complete: #122d2b; /* completed work; payment is recorded separately */
+  --color-state-complete: #006b5e; /* completed work; payment is recorded separately */
   --color-state-active:   #0a0a0a; /* in progress / in transit */
   --color-state-held:     #8a6a2c; /* with the platform, awaiting verification */
   --color-state-locked:   #d6d4ce; /* not yet reachable; pairs with --color-ink-35 */
@@ -147,7 +148,7 @@ html.dark {
   --color-canvas:   #141414;
   --color-rule:     #2c2c2c;
 
-  --color-state-complete: #4e9e78; /* #1f4d36 is unreadable on a dark surface */
+  --color-state-complete: #2ea899; /* lightened teal for contrast on dark surfaces */
   --color-state-active:   #f0f0f0; /* active is "the colour of text", so it flips with ink */
   --color-state-held:     #c9a04e;
   --color-state-locked:   #3a3a38;
