@@ -28,9 +28,9 @@ export function emailShell(lang: Lang, bodyHtml: string): string {
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow:hidden;">
 
         <tr>
-          <td style="background:#1a1a1a;padding:24px 32px;">
+          <td style="background:#122d2b;padding:24px 32px;">
             <p style="margin:0;font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.3px;">${esc(t('email.brand'))}</p>
-            <p style="margin:2px 0 0;font-size:10px;color:rgba(255,255,255,0.45);">${esc(t('email.byJalla'))}</p>
+            <p style="margin:2px 0 0;font-size:10px;color:rgba(255,255,255,0.65);">${esc(t('email.byJalla'))}</p>
           </td>
         </tr>
 
@@ -52,10 +52,10 @@ export function emailShell(lang: Lang, bodyHtml: string): string {
 </html>`.trim();
 }
 
-/** Solid dark call-to-action button. */
+/** Solid Teal brand call-to-action button. */
 export function primaryButton(href: string, label: string): string {
   return `<table cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
-  <tr><td style="background:#1a1a1a;border-radius:8px;">
+  <tr><td style="background:#006b5e;border-radius:8px;">
     <a href="${href}" style="display:inline-block;padding:13px 28px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:-0.1px;">
       ${esc(label)} &rarr;
     </a>

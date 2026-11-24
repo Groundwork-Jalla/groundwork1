@@ -1395,7 +1395,9 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 const rowWaiting = partWaiting ?? (!split && openReq ? waiting[0] : undefined);
                 const rowPaid = !!part?.paid || carriedCovered || stageFullyPaid;
                 const showRequestBtn = !isEditingPrices && canRequestSubstagePayment && !complete && !rowPaid && !rowWaiting;
-                const showUploadBtn = !isEditingPrices && isOpen && !complete && !rowWaiting && (canWork || carriedCovered) && (ready || carriedCovered);
+                // When the contractor marks a split stage as already paid upfront (`stageFullyPaid`),
+                // unlock evidence uploads on every substage immediately so uploads never disappear.
+                const showUploadBtn = !isEditingPrices && isOpen && !complete && !rowWaiting && (canWork || carriedCovered || stageFullyPaid) && (ready || carriedCovered || stageFullyPaid);
                 const draftRowIndex = isEditingPrices && activeBreakdown
                   ? activeBreakdown.rows.findIndex(r => r.substageId === item.id)
                   : -1;
@@ -1415,7 +1417,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                         <span className="block text-xs text-brand-mid-grey">
                           {rowWaiting ? <><span className="font-semibold text-state-held">{t('contractorView.receiptToConfirm')}</span> · {t('contractorView.uploadsOpenAfter')}</>
                             : complete ? t('contractorView.approvedOn')
-                            : part && !part.paid && !ready && !carriedCovered ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
+                            : part && !part.paid && !ready && !carriedCovered && !stageFullyPaid ? t('contractorView.partPaidAfter', { n: Math.max(1, item.substage_number - 1) })
                             : count > 0 ? t('contractorProject.evidenceCount', { count }) : t('contractorProject.noEvidence')}
                         </span>
                         {carriedCovered && !complete && (
@@ -1471,7 +1473,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                           part && <span className="text-right font-mono text-xs tabular-nums text-brand-near-black dark:text-white">
                             {Number(part.price).toLocaleString('en-US', { maximumFractionDigits: currencyFractionDigits(parts?.currency ?? money.code) })}
                             <span className="block font-sans text-[11px] text-brand-mid-grey">
-                              {t(part.paid || carriedCovered || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
+                              {t(part.paid || carriedCovered || stageFullyPaid || complete ? 'contractorView.partPaid' : Number(part.pending) > 0 ? 'contractorView.toConfirm' : 'contractorView.partNotPaid')}</span>
                           </span>
                         )}
                         {!isEditingPrices && rowWaiting && <button type="button" onClick={() => onReviewReceipt(stage.id, rowWaiting.id)} data-action="review-part-receipt"
@@ -1563,7 +1565,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
 
                     {/* Opened against the item it belongs to, so the camera and
                         the file picker are under the thumb that pressed Upload. */}
-                    {uploadFor === item.id && (canWork || carriedCovered) && (ready || carriedCovered) && (
+                    {uploadFor === item.id && (canWork || carriedCovered || stageFullyPaid) && (ready || carriedCovered || stageFullyPaid) && (
                       <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3.5 dark:bg-[#141414]">
                         <SubmitWork projectId={project.id} stage={stage} substages={items}
                                     fixedSubstageId={item.id}

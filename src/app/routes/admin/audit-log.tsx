@@ -34,6 +34,8 @@ export default function AdminAuditLog() {
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<'all' | AuditCategory>('all');
   const [query, setQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -56,15 +58,31 @@ export default function AdminAuditLog() {
     void load(undefined, category);
   }, [category, load]);
 
+  const inDateRange = useCallback((iso: string) => {
+    if (!dateFrom && !dateTo) return true;
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) return false;
+    if (dateFrom) {
+      const startMs = Date.parse(`${dateFrom}T00:00:00.000Z`);
+      if (Number.isFinite(startMs) && ms < startMs) return false;
+    }
+    if (dateTo) {
+      const endMs = Date.parse(`${dateTo}T23:59:59.999Z`);
+      if (Number.isFinite(endMs) && ms > endMs) return false;
+    }
+    return true;
+  }, [dateFrom, dateTo]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(r =>
-      `${r.actorName} ${r.action} ${actionLabel(r.action, t)} ${r.projectName} ${r.personName} ${r.source}`
+    return rows.filter(r => {
+      if (!inDateRange(r.createdAt)) return false;
+      if (!q) return true;
+      return `${r.actorName} ${r.action} ${actionLabel(r.action, t)} ${r.projectName} ${r.personName} ${r.source}`
         .toLowerCase()
-        .includes(q),
-    );
-  }, [rows, query, t]);
+        .includes(q);
+    });
+  }, [rows, query, t, inDateRange]);
 
   const selected = useMemo(
     () => filtered.find(r => r.id === selectedId) ?? filtered[0] ?? null,
@@ -84,32 +102,36 @@ export default function AdminAuditLog() {
     if (exporting) return;
     setExporting(true);
     try {
-      // Pull up to 500 matching rows across pages so the CSV covers more than just the first screen.
+      // Pull up to 1,000 matching rows across pages (stopping early once older than dateFrom)
+      // so full-month statement exports capture every matching event.
       const collected: UnifiedAuditRow[] = [];
-      let cursor: string | undefined;
-      for (let pageIndex = 0; pageIndex < 3; pageIndex++) {
+      let cursor: string | undefined = dateTo ? `${dateTo}T23:59:59.999Z` : undefined;
+      const startMs = dateFrom ? Date.parse(`${dateFrom}T00:00:00.000Z`) : NaN;
+      for (let pageIndex = 0; pageIndex < 5; pageIndex++) {
         const res = await listUnifiedAuditLog(200, cursor, category);
         collected.push(...res.rows);
         if (!res.hasMore || res.rows.length === 0) break;
-        cursor = res.rows[res.rows.length - 1]?.createdAt;
-        if (!cursor) break;
+        const oldest = res.rows[res.rows.length - 1]?.createdAt;
+        if (!oldest) break;
+        if (Number.isFinite(startMs) && Date.parse(oldest) < startMs) break;
+        cursor = oldest;
       }
       const q = query.trim().toLowerCase();
-      const toExport = q
-        ? collected.filter(r =>
-            `${r.actorName} ${r.action} ${actionLabel(r.action, t)} ${r.projectName} ${r.personName} ${r.source}`
-              .toLowerCase()
-              .includes(q),
-          )
-        : collected;
+      const toExport = collected.filter(r => {
+        if (!inDateRange(r.createdAt)) return false;
+        if (!q) return true;
+        return `${r.actorName} ${r.action} ${actionLabel(r.action, t)} ${r.projectName} ${r.personName} ${r.source}`
+          .toLowerCase()
+          .includes(q);
+      });
       const csv = formatAuditLogCsv(toExport, t);
-      downloadAuditLogCsv(csv, category);
+      downloadAuditLogCsv(csv, category, { from: dateFrom || undefined, to: dateTo || undefined });
     } catch (err) {
       setError(errorMessage(err, t('common.somethingWrong')));
     } finally {
       setExporting(false);
     }
-  }, [exporting, category, query, t]);
+  }, [exporting, category, query, dateFrom, dateTo, inDateRange, t]);
 
   return (
     <div className="space-y-4 p-4 sm:p-6 lg:p-8" data-unified-audit-log>
@@ -124,7 +146,7 @@ export default function AdminAuditLog() {
           <button
             type="button"
             data-action="export-audit-csv"
-            disabled={loading || exporting || filtered.length === 0}
+            disabled={loading || exporting || (!dateFrom && !dateTo && filtered.length === 0)}
             onClick={() => { void handleExportCsv(); }}
             className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey bg-white px-4 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-green hover:text-brand-green disabled:opacity-45 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
           >
@@ -164,17 +186,55 @@ export default function AdminAuditLog() {
           ))}
         </div>
 
-        <label className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-muted-grey" />
-          <input
-            type="search"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder={t('admin.auditLog.search')}
-            aria-label={t('admin.auditLog.search')}
-            className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <label className="flex items-center gap-1.5 text-brand-mid-grey">
+              <span className="font-medium">{t('admin.auditLog.dateFrom')}</span>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={e => setDateFrom(e.target.value)}
+                aria-label={t('admin.auditLog.dateFrom')}
+                data-audit-date-from
+                className="rounded-xl border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-brand-mid-grey">
+              <span className="font-medium">{t('admin.auditLog.dateTo')}</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={e => setDateTo(e.target.value)}
+                aria-label={t('admin.auditLog.dateTo')}
+                data-audit-date-to
+                className="rounded-xl border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+              />
+            </label>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
+              >
+                {t('admin.auditLog.clearDates')}
+              </button>
+            )}
+          </div>
+
+          <label className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-muted-grey" />
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={t('admin.auditLog.search')}
+              aria-label={t('admin.auditLog.search')}
+              className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+            />
+          </label>
+        </div>
       </div>
 
       <p className="text-[11px] text-brand-muted-grey">{t('admin.auditLog.mergingNote')}</p>

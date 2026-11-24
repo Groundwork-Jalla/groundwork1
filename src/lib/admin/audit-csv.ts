@@ -55,11 +55,22 @@ export function formatAuditLogCsv(
   return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
 
-export function downloadAuditLogCsv(csv: string, category: string): void {
+export function downloadAuditLogCsv(
+  csv: string,
+  category: string,
+  range?: { from?: string; to?: string },
+): void {
   if (typeof document === 'undefined' || typeof URL === 'undefined') return;
   const date = new Date().toISOString().slice(0, 10);
   const suffix = category && category !== 'all' ? `-${category}` : '';
-  const filename = `groundwork-audit-log${suffix}-${date}.csv`;
+  const rangePart = range?.from && range?.to
+    ? `-${range.from}-to-${range.to}`
+    : range?.from
+      ? `-from-${range.from}`
+      : range?.to
+        ? `-until-${range.to}`
+        : `-${date}`;
+  const filename = `groundwork-audit-log${suffix}${rangePart}.csv`;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

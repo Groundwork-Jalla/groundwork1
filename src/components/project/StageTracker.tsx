@@ -125,6 +125,7 @@ interface StageDetailProps {
   paymentBlockedReason: string;
   isFinalStage: boolean;
   onPaymentChanged: () => void | Promise<void>;
+  onOpenMessages?: () => void;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -179,6 +180,7 @@ function StageDetail({
   canAct, workAllowed, paymentEnabled, paymentBlockedReason,
   isFinalStage,
   onPaymentChanged,
+  onOpenMessages,
   onMarkSubstageComplete,
   onEvidenceUploaded,
   onApproveStage,
@@ -497,7 +499,7 @@ function StageDetail({
       {!stage.pre_existing && hasPrimaryContractor && (stage.payment_milestone_usd ?? 0) > 0 && <StageBreakdownPanel
         stageId={stage.id} stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`}
         projectName={projectName ?? ''} clientPresentation={clientPresentation}
-        inlineRows={stage.status !== 'locked'} onInlineState={setBreakdownCtrl} onChanged={onPaymentChanged}
+        inlineRows={stage.status !== 'locked'} onInlineState={setBreakdownCtrl} onDiscussPrice={onOpenMessages} onChanged={onPaymentChanged}
       />}
 
       {!stage.pre_existing && payment && (hasPrimaryContractor || !!payment.receipts?.length || !!payment.receiptPath) && <StagePaymentGate
@@ -558,6 +560,7 @@ export interface StageTrackerProps {
   /** Open contractor payment requests across stages (19 Nov). */
   paymentRequests?: SubstagePaymentRequest[];
   onPaymentChanged: () => void | Promise<void>;
+  onOpenMessages?: () => void;
   onMarkSubstageComplete: (substageId: string) => Promise<ApproveStageResult | undefined>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<ApproveStageResult | undefined>;
@@ -605,6 +608,7 @@ export function StageTracker({
   payments,
   paymentRequests,
   onPaymentChanged,
+  onOpenMessages,
   projectName,
   projectCountry,
   projectCity,
@@ -729,6 +733,7 @@ export function StageTracker({
                 paymentBlockedReason={t(!hasPrimaryContractor ? 'project.contractorConnection.paymentBlocked' : projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
                 isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
+                onOpenMessages={onOpenMessages}
                 onMarkSubstageComplete={handleSubstageApproval}
                 onEvidenceUploaded={onEvidenceUploaded}
                 onApproveStage={handleStageApproval}

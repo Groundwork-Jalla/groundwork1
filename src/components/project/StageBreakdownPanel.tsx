@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Plus, Split, X } from 'lucide-react';
+import { Loader2, MessageSquare, Plus, Split, X } from 'lucide-react';
 import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
@@ -43,6 +43,8 @@ interface Props {
   onInlineState?: (state: StageBreakdownInlineState | null) => void;
   /** Increment to open the breakdown editor pre-seeded with a new blank substage row. */
   openAddPartSignal?: number;
+  /** Optional shortcut to jump straight into Project Messages to negotiate pricing. */
+  onDiscussPrice?: () => void;
   onChanged: () => void | Promise<void>;
 }
 type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal?: BreakdownProposal; hash: string };
@@ -60,7 +62,7 @@ type Review = { kind: 'submit' | 'approved' | 'declined' | 'withdrawn'; proposal
  */
 export function StageBreakdownPanel({
   stageId, stageName, projectName, clientPresentation = false, isContractor = false, hidden = false,
-  inlineRows = false, onInlineState, openAddPartSignal = 0, onChanged,
+  inlineRows = false, onInlineState, openAddPartSignal = 0, onDiscussPrice, onChanged,
 }: Props) {
   const t = useT(); const { lang } = useLanguage(); const { substageLabel } = useStageLabels();
   const [read, setRead] = useState<{ stage: string; context: StageBreakdownContext } | null>(null);
@@ -312,12 +314,24 @@ export function StageBreakdownPanel({
         : lineList(pending.lines)}
       {pending.note && <p className="whitespace-pre-wrap text-brand-mid-grey">{pending.note}</p>}
       {pending.stale && <p className="text-brand-mid-grey">{t('project.breakdown.stale')}</p>}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {!isContractor && context.can_decide && <>
           <button type="button" disabled={working || pending.stale} onClick={() => setReview({ kind: 'approved', proposal: pending, hash: context.base_hash })}
             className="rounded-lg bg-brand-green px-3.5 py-2 font-semibold text-white hover:bg-brand-green-hover disabled:opacity-40">{t('project.breakdown.approve')}</button>
           <button type="button" disabled={working} onClick={() => setReview({ kind: 'declined', proposal: pending, hash: context.base_hash })}
             className="rounded-lg border border-brand-border-grey bg-white px-3.5 py-2 font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">{t('project.breakdown.keep')}</button>
+          {onDiscussPrice && (
+            <button
+              type="button"
+              data-action="discuss-breakdown-price"
+              onClick={onDiscussPrice}
+              title={t('project.breakdown.discussPrice')}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-brand-green/40 bg-white px-3 py-2 font-semibold text-brand-green transition-colors hover:bg-brand-green/5 dark:bg-[#1e1e1e] dark:text-[#5eead4]"
+            >
+              <MessageSquare className="size-3.5 shrink-0" aria-hidden />
+              {t('project.breakdown.discussPrice')}
+            </button>
+          )}
         </>}
         {isContractor && pending.can_withdraw && <button type="button" disabled={working} onClick={() => setReview({ kind: 'withdrawn', proposal: pending, hash: context.base_hash })}
           className="rounded-lg border border-brand-border-grey bg-white px-3.5 py-2 font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">{t('project.breakdown.withdraw')}</button>}

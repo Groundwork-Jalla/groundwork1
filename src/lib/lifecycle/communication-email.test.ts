@@ -123,14 +123,14 @@ describe('the message looks like every other Groundwork email',()=>{
  it('presents the next step as a button, not a bare link in the text',()=>{
   const payload=composeCommunicationEmail({...input,cta:{label:'Create your first project',path:'/projects/new'}});
   // A table cell with a fill is what a button is in email: Outlook ignores styled anchors.
-  expect(payload.html).toMatch(/<td style="background:#1a1a1a;border-radius:8px;">\s*<a href="https:\/\/groundwork\.test\/projects\/new" style="display:inline-block;padding:13px 28px;/);
+  expect(payload.html).toMatch(/<td style="background:#006b5e;border-radius:8px;">\s*<a href="https:\/\/groundwork\.test\/projects\/new" style="display:inline-block;padding:13px 28px;/);
   expect(payload.html).toContain('Create your first project');
   expect(payload.text).toContain('Create your first project: https://groundwork.test/projects/new');
  });
  it('wears the shared header and card, in the reader\u2019s language',()=>{
   const english=composeCommunicationEmail(input).html;const french=composeCommunicationEmail({...input,lang:'fr'}).html;
   expect(english.startsWith('<!DOCTYPE html>')).toBe(true);expect(english).toContain('<html lang="en">');expect(french).toContain('<html lang="fr">');
-  expect(english).toContain('background:#1a1a1a;padding:24px 32px;');expect(english).toContain('max-width:480px');
+  expect(english).toContain('background:#122d2b;padding:24px 32px;');expect(english).toContain('max-width:480px');
  });
  it('adds no button when the step has no action, and keeps the reminder choices in every message',()=>{
   const payload=composeCommunicationEmail({...input,projectOptOut:true});

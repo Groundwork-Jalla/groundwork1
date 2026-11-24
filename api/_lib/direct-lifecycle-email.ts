@@ -2,6 +2,7 @@ import { sendViaResend } from './resend-send.js';
 import { emphasise } from './communication-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { copyFor, ctaPath, pickLang, type Context, type Person, type Step } from '../../shared/lifecycle-copy.js';
+import { isSeededLifecycleDraft } from '../../shared/whatsapp.js';
 import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
 import { senderFor } from '../../src/lib/email/senders.js';
 import { emailShell, esc, primaryButton } from '../../src/lib/email/shell.js';
@@ -111,9 +112,23 @@ async function fetchStepOne(svc: Svc, sequenceKey: string): Promise<Step | null>
       .eq('sequence_key', sequenceKey)
       .eq('position', 1)
       .maybeSingle();
-    return (data as Step | null) ?? null;
+    const step = (data as Step | null) ?? null;
+    return step && !isSeededLifecycleDraft(step) ? step : null;
   } catch {
     return null;
+  }
+}
+
+async function contractorAlreadyOnboarded(svc: Svc, userId: string): Promise<boolean> {
+  try {
+    const { data } = await svc
+      .from('contractor_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+    return (data?.length ?? 0) > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -186,8 +201,12 @@ export async function sendDirectWelcomeEmail(
   }
 
   const lang = pickLang(opts.lang);
-  const sequenceKey = opts.role === 'contractor' ? 'cs_signup' : 'cl_signup';
-  const stepCode = opts.role === 'contractor' ? 'CS01' : 'CL01';
+  // If a contractor already finished onboarding during signup, welcome them directly
+  // into their contractor workspace (`cs_onboarded` -> /work) instead of sending them
+  // back to onboarding (`cs_signup` -> /work/onboarding).
+  const contractorOnboarded = opts.role === 'contractor' ? await contractorAlreadyOnboarded(svc, opts.userId) : false;
+  const sequenceKey = opts.role === 'contractor' ? (contractorOnboarded ? 'cs_onboarded' : 'cs_signup') : 'cl_signup';
+  const stepCode = opts.role === 'contractor' ? (contractorOnboarded ? 'CS05' : 'CS01') : 'CL01';
   const person: Person = { email, fullName: opts.fullName ?? null, lang };
   const context: Context = { entry_source: 'independent_signup', recipient_role: opts.role };
   const base = siteUrl();
@@ -212,15 +231,24 @@ export async function sendDirectWelcomeEmail(
       hasProject = false;
     }
     subject = opts.role === 'contractor'
-      ? (lang === 'fr' ? 'Bienvenue sur Groundwork — terminez votre profil' : 'Welcome to Groundwork — finish setting up your profile')
+      ? (contractorOnboarded
+        ? (lang === 'fr' ? 'Bienvenue sur Groundwork — créez votre premier projet' : 'Welcome to Groundwork — open your contractor dashboard')
+        : (lang === 'fr' ? 'Bienvenue sur Groundwork — terminez votre profil' : 'Welcome to Groundwork — finish setting up your profile'))
       : userWelcomeSubject(lang, hasProject);
     if (opts.role === 'contractor') {
       const first = (opts.fullName ?? '').trim().split(/\s+/)[0];
-      const body = lang === 'fr'
-        ? `Bonjour${first ? ` ${first}` : ''},\n\nBienvenue sur Groundwork. Complétez votre profil entrepreneur pour créer des projets et recevoir des invitations clients.`
-        : `Hi${first ? ` ${first}` : ''},\n\nWelcome to Groundwork. Complete your contractor onboarding to start managing projects and connecting with Homeowners.`;
-      const ctaLabel = lang === 'fr' ? 'Terminer mon profil' : 'Complete onboarding';
-      ({ html, text } = renderStepHtml(lang, body, ctaLabel, `${base}/work/onboarding`));
+      const body = contractorOnboarded
+        ? (lang === 'fr'
+          ? `Bonjour${first ? ` ${first}` : ''},\n\nBienvenue sur Groundwork par Jalla. Votre compte entrepreneur est prêt — ouvrez votre tableau de bord pour créer votre premier projet et inviter le propriétaire.`
+          : `Hi${first ? ` ${first}` : ''},\n\nWelcome to Groundwork by Jalla. Your contractor account is ready — open your dashboard to create your first project and invite the Homeowner.`)
+        : (lang === 'fr'
+          ? `Bonjour${first ? ` ${first}` : ''},\n\nBienvenue sur Groundwork. Complétez votre profil entrepreneur pour créer des projets et recevoir des invitations clients.`
+          : `Hi${first ? ` ${first}` : ''},\n\nWelcome to Groundwork. Complete your contractor onboarding to start managing projects and connecting with Homeowners.`);
+      const ctaLabel = contractorOnboarded
+        ? (lang === 'fr' ? 'Ouvrir mon tableau de bord' : 'Open contractor dashboard')
+        : (lang === 'fr' ? 'Terminer mon profil' : 'Complete onboarding');
+      const ctaHref = contractorOnboarded ? `${base}/work` : `${base}/work/onboarding`;
+      ({ html, text } = renderStepHtml(lang, body, ctaLabel, ctaHref));
     } else {
       html = buildUserWelcomeHtml(lang, { name: opts.fullName, site: base, hasProject });
     }

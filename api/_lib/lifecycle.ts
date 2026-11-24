@@ -2,6 +2,7 @@ import { communicationSettings, composeCommunicationEmail, sendCommunicationEmai
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { groundworkOwnsCommunication } from './communication-ownership.js';
 import { pickLang, copyFor, ctaPath, stepTimeline, type Person, type Step, type Context } from '../../shared/lifecycle-copy.js';
+import { isSeededLifecycleDraft } from '../../shared/whatsapp.js';
 export { pickLang, render, copyFor, ctaPath } from '../../shared/lifecycle-copy.js';
 export type { Person, Step, Context } from '../../shared/lifecycle-copy.js';
 
@@ -21,7 +22,7 @@ export function emailHtml(body: string, cta: string, url: string | null): string
   const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const paras = body.split(/\n{2,}/).map(t => `<p style="margin:0 0 16px">${esc(t).replace(/\n/g, '<br>')}</p>`).join('');
   const button = cta && url
-    ? `<p style="margin:24px 0"><a href="${esc(url)}" style="background:#1f4d3a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(cta)}</a></p>`
+    ? `<p style="margin:24px 0"><a href="${esc(url)}" style="background:#006b5e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(cta)}</a></p>`
     : '';
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:560px">${paras}${button}<p style="margin:24px 0 0;color:#777;font-size:12px">Groundwork by Jalla</p></div>`;
 }
@@ -149,7 +150,8 @@ export async function enrollForEvent(
       const { data: reminderSteps, error: stepError } = await svc.from('lifecycle_sequence_steps')
         .select('*').eq('sequence_key', s.key).order('position');
       if (stepError) throw stepError;
-      const first = (reminderSteps ?? []).slice(0, 1) as Step[];
+      const realSteps = ((reminderSteps ?? []) as Step[]).filter(step => !isSeededLifecycleDraft(step));
+      const first = realSteps.slice(0, 1);
       if (!first.length) continue;
 
       const contactName = person.fullName || person.email;
@@ -252,9 +254,10 @@ export async function previewDue(svc: Svc, now = new Date(), limit = 50) {
     const state = await rpc(svc, 'lifecycle_enrollment_state', { p_enrollment: enrollment.id });
     const { data: steps, error } = await svc.from('lifecycle_sequence_steps').select('*').eq('sequence_key', enrollment.sequence_key).order('position');
     if (error) throw error;
-    const step = dueStep(steps ?? [], enrollment.next_position, new Date(enrollment.enrolled_at), now);
+    const realSteps = ((steps ?? []) as Step[]).filter(item => !isSeededLifecycleDraft(item));
+    const step = dueStep(realSteps, enrollment.next_position, new Date(enrollment.enrolled_at), now);
     const copy = step ? copyFor(step, enrollment.lang, { email: enrollment.email, fullName: enrollment.full_name }, enrollment.context ?? {}) : null;
-    const futureStep = !step && (steps ?? []).some((item: Step) => item.position >= enrollment.next_position);
+    const futureStep = !step && realSteps.some((item: Step) => item.position >= enrollment.next_position);
     rows.push({ enrollmentId: enrollment.id, sequence: enrollment.sequence_key, recipient: enrollment.email,
       state: futureStep && state?.kind === 'ready' ? 'hold' : state?.kind ?? 'unavailable',
       reason: futureStep && state?.kind === 'ready' ? 'next_reminder_not_due' : state?.reason ?? 'state_unavailable',
@@ -280,7 +283,7 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50, budgetMs = 
       const { data: stepRows, error: stepError } = await svc.from('lifecycle_sequence_steps')
         .select('*').eq('sequence_key', enrollment.sequence_key).order('position');
       if (stepError) throw stepError;
-      const steps = (stepRows ?? []) as Step[];
+      const steps = ((stepRows ?? []) as Step[]).filter(item => !isSeededLifecycleDraft(item));
       const { data: prior, error: priorError } = await svc.from('lifecycle_deliveries').select('position,status')
         .eq('enrollment_id', enrollment.id).gte('position', enrollment.next_position).in('status', ['prepared', 'failed', 'blocked']).order('position').limit(1);
       if (priorError) throw priorError;

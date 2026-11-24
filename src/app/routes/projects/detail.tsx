@@ -642,6 +642,7 @@ export default function ProjectDetail() {
                 payments={payments}
                 paymentRequests={paymentRequests}
                 onPaymentChanged={loadAll}
+                onOpenMessages={() => setActiveTab('messages')}
                 projectName={project.name}
                 projectCountry={project.country}
                 projectCity={project.city ?? null}
