@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { claimContractorAccount, takeRememberedClaim, registerContractorAccount, takeRememberedContractorRegistration } from "@/lib/supabase/contractor-claim";
 import { claimVerifierAccount, takeRememberedVerifierClaim, registerVerifierAccount, takeRememberedVerifierRegistration } from "@/lib/supabase/verifier-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
@@ -86,6 +87,7 @@ function otpType(raw: string | null): EmailOtpType | null {
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { syncSession } = useAuth();
   const t = useT();
   const [unavailableInvitation, setUnavailableInvitation] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +150,7 @@ export default function AuthCallback() {
       const tokenHash = params.get("token_hash");
       const type = otpType(params.get("type"));
       const hasCode = !!params.get("code");
+      const hasHashToken = hash.has("access_token") || hash.has("refresh_token");
 
       // Whether this is a password reset is decided in continueAfterAuth, from three
       // sources — `type=recovery` on the token_hash link, our own `flow=recovery` marker
@@ -170,10 +173,13 @@ export default function AuthCallback() {
           return;
         }
         session = data.session;
-      } else if (hasCode) {
+      } else if (hasCode || hasHashToken) {
         session = await waitForSession();
       } else {
-        session = (await supabase.auth.getSession()).data.session;
+        // detectSessionInUrl can strip ?code= from the URL before this effect runs
+        // while the PKCE exchange is still in flight; wait briefly instead of bouncing
+        // straight back to /auth/login on an immediate null getSession().
+        session = await waitForSession(3000);
       }
 
       if (!session) {
@@ -186,6 +192,8 @@ export default function AuthCallback() {
         navigate(withProjectInvitation('/auth/login', invitation), { replace: true });
         return;
       }
+
+      syncSession?.(session);
 
       // A recovery link proves control of the mailbox, not knowledge of the password —
       // so it must end at "set a new one", never at the dashboard. Routing it like a
@@ -389,6 +397,7 @@ export default function AuthCallback() {
       }
     }
 
+    syncSession?.(session);
     navigate(postAuthPath({ isAdmin: isAdmin === true, isVerifier, isContractor, onboardingComplete, redirect: wanted }), { replace: true });
   }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import type { Session } from "@supabase/supabase-js";
@@ -23,7 +23,7 @@ import {
 
 export default function Login() {
   const navigate        = useNavigate();
-  const { syncSession } = useAuth();
+  const { session: authSession, loading: authLoading, syncSession } = useAuth();
   const [searchParams]  = useSearchParams();
   const inviteToken     = searchParams.get("invite") ?? "";
   const rawRedirectTo   = searchParams.get("redirect");
@@ -45,6 +45,35 @@ export default function Login() {
   // Supabase factor at all, so asking "is a challenge required?" answered no and
   // routed them straight in — 2FA that looked on and did nothing.
   const [mfaFactor, setMfaFactor] = useState<RequiredFactor>('none');
+  const submittingRef = useRef(false);
+  const autoRedirectedRef = useRef(false);
+
+  // If the user already holds a live session (e.g. returning after OAuth/callback
+  // or visiting /auth/login while signed in), route them straight into the app
+  // after verifying MFA and forced-password requirements.
+  useEffect(() => {
+    if (!authSession) {
+      autoRedirectedRef.current = false;
+      return;
+    }
+    if (authLoading || submittingRef.current || mfaFactor !== 'none' || autoRedirectedRef.current) return;
+    autoRedirectedRef.current = true;
+    let alive = true;
+    void (async () => {
+      try {
+        const factor = await requiredFactor();
+        if (!alive) return;
+        if (factor !== 'none') {
+          setMfaFactor(factor);
+          return;
+        }
+        await finishLogin(authSession);
+      } catch {
+        if (alive) autoRedirectedRef.current = false;
+      }
+    })();
+    return () => { alive = false; };
+  }, [authLoading, authSession, mfaFactor]);
 
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
@@ -115,6 +144,7 @@ export default function Login() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    submittingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -141,6 +171,7 @@ export default function Login() {
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : t('errors.generic'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
