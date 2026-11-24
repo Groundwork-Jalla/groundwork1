@@ -18,6 +18,8 @@ import { currencyFractionDigits } from '@/lib/format';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { StageBreakdownPanel, type StageBreakdownInlineState } from '@/components/project/StageBreakdownPanel';
 import { partWorkReady, useSubstagePayments } from '@/lib/supabase/substage-payments';
+import { updateProjectStartingStage } from '@/lib/supabase/tracking';
+import { errorMessage } from '@/lib/errors';
 import type { SubstagePaymentRequest } from '@/lib/supabase/contractor-payments';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -653,6 +655,14 @@ export function StageTracker({
     if (handoff?.projectId === projectId && projectReflectsApproval(stages, handoff)) setHandoff(null);
   }, [handoff, stages, projectId]);
   const [certificate, setCertificate] = useState<{ projectId: string; name: string; url: string } | null>(null);
+  const [editingStartStage, setEditingStartStage] = useState(false);
+  const [nextStartStage, setNextStartStage] = useState(1);
+  const [savingStartStage, setSavingStartStage] = useState(false);
+  const [startStageError, setStartStageError] = useState<string | null>(null);
+  useEffect(() => {
+    setEditingStartStage(false);
+    setStartStageError(null);
+  }, [projectId]);
 
   // The approval response is authoritative even if the refresh is still arriving.
   // Release this local handoff as soon as the saved completed row reaches the page.
@@ -709,6 +719,90 @@ export function StageTracker({
   const hasOpenPaymentRequest = (stageId: string) =>
     (paymentRequests ?? []).some(r => r.stage_id === stageId && r.status === 'open');
 
+  const currentStartStageNum = orderedStages.find(row => !row.pre_existing)?.stage_number ?? 1;
+  const hasRecordedReceipts = [...(payments?.values() ?? [])].some(
+    p => (p.receipts ?? []).some(r => !r.replacedBy) || !!p.receiptPath || (p.state && p.state !== 'expected'),
+  );
+  const hasRecordedEvidence = substages.some(
+    sub => (sub.evidence_urls?.length ?? 0) > 0 || !!sub.approved_at,
+  );
+  const hasRecordedStageWork = orderedStages.some(
+    row => !row.pre_existing && (row.status === 'complete' || row.status === 'pending_review' || row.payment_status === 'paid'),
+  );
+  const canChangeStartingStage = canApprove
+    && !isContractor
+    && !projectArchived
+    && orderedStages.length > 1
+    && !hasRecordedReceipts
+    && !hasRecordedEvidence
+    && !hasRecordedStageWork;
+
+  async function handleSaveStartingStage(e: React.FormEvent) {
+    e.preventDefault();
+    if (savingStartStage) return;
+    if (nextStartStage === currentStartStageNum) {
+      setEditingStartStage(false);
+      return;
+    }
+    setSavingStartStage(true);
+    setStartStageError(null);
+    try {
+      await updateProjectStartingStage(projectId, nextStartStage);
+      const targetRow = orderedStages.find(row => row.stage_number === nextStartStage);
+      navigation.current.version++;
+      observedStage.current = { projectId, id: targetRow?.id ?? null };
+      setNextAction(null);
+      setSelection({ projectId, stageId: targetRow?.id ?? null, follow: true });
+      setEditingStartStage(false);
+      await onPaymentChanged();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      setStartStageError(/starting_stage_locked/.test(msg)
+        ? t('wizard.joined.changeStartStageLocked')
+        : errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setSavingStartStage(false);
+    }
+  }
+
+  const startStageForm = canChangeStartingStage && editingStartStage ? (
+    <form onSubmit={handleSaveStartingStage} className="mt-3 space-y-2 rounded-xl border border-brand-border-grey bg-brand-off-white/60 p-3" data-change-starting-stage-form>
+      <label className="block">
+        <span className="block text-xs font-semibold text-brand-near-black">{t('wizard.joined.stageLabel')}</span>
+        <select
+          value={nextStartStage}
+          onChange={e => setNextStartStage(Number(e.target.value))}
+          disabled={savingStartStage}
+          className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black focus:border-brand-green focus:outline-none"
+        >
+          {orderedStages.slice(0, -1).map(row => (
+            <option key={row.id} value={row.stage_number}>{row.stage_number}. {stageLabel(row)}</option>
+          ))}
+        </select>
+      </label>
+      <p className="text-[11px] leading-relaxed text-brand-mid-grey">{t('wizard.joined.changeStartStageHint')}</p>
+      {startStageError && <p role="alert" className="text-[11px] font-medium text-state-blocked">{startStageError}</p>}
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <button
+          type="submit"
+          disabled={savingStartStage}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-50"
+        >
+          {savingStartStage && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          {t('wizard.joined.changeStartStageSave')}
+        </button>
+        <button
+          type="button"
+          disabled={savingStartStage}
+          onClick={() => { setEditingStartStage(false); setStartStageError(null); }}
+          className="rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black"
+        >
+          {t('common.cancel')}
+        </button>
+      </div>
+    </form>
+  ) : null;
+
   const detail = selectedStage ? (
     <StageDetail
                 clientPresentation={clientPresentation}
@@ -756,6 +850,21 @@ export function StageTracker({
         <div className="border-b border-brand-border-grey px-4 py-4">
           <h2 className="text-sm font-bold text-brand-near-black">{t('project.clientUi.stagesTitle')}</h2>
           <p className="mt-1 text-xs text-brand-mid-grey">{t('project.stages.completeCount', { done: completedCount, total: stages.length })}</p>
+          {canChangeStartingStage && (
+            <button
+              type="button"
+              data-action="change-starting-stage"
+              onClick={() => {
+                setNextStartStage(currentStartStageNum);
+                setStartStageError(null);
+                setEditingStartStage(prev => !prev);
+              }}
+              className="mt-2.5 inline-flex items-center rounded-lg border border-brand-border-grey px-2.5 py-1 text-[11px] font-semibold text-brand-green hover:bg-brand-green/5"
+            >
+              {t('wizard.joined.changeStartStage')}
+            </button>
+          )}
+          {startStageForm}
         </div>
         <nav ref={clientStageNav} aria-label={t('project.clientUi.stagesTitle')} className="flex gap-1 overflow-x-auto p-2 xl:block xl:space-y-1 xl:overflow-visible">
           {orderedStages.map(stage => {
@@ -819,13 +928,32 @@ export function StageTracker({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-brand-near-black">{t('project.stages.pipeline')}</p>
-        {stages.length > 0 && (
-          <span className="text-xs text-brand-mid-grey tabular-nums">
-            {t('project.stages.completeCount', { done: completedCount, total: stages.length })}
-          </span>
-        )}
+      <div className="mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-brand-near-black">{t('project.stages.pipeline')}</p>
+          <div className="flex items-center gap-3">
+            {canChangeStartingStage && (
+              <button
+                type="button"
+                data-action="change-starting-stage"
+                onClick={() => {
+                  setNextStartStage(currentStartStageNum);
+                  setStartStageError(null);
+                  setEditingStartStage(prev => !prev);
+                }}
+                className="rounded-lg border border-brand-border-grey px-2.5 py-1 text-[11px] font-semibold text-brand-green hover:bg-brand-green/5"
+              >
+                {t('wizard.joined.changeStartStage')}
+              </button>
+            )}
+            {stages.length > 0 && (
+              <span className="text-xs text-brand-mid-grey tabular-nums">
+                {t('project.stages.completeCount', { done: completedCount, total: stages.length })}
+              </span>
+            )}
+          </div>
+        </div>
+        {startStageForm}
       </div>
 
       <div className="rounded-xl border border-brand-border-grey overflow-hidden">

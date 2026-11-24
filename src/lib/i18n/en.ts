@@ -2163,6 +2163,7 @@ export const en = {
         project_client_set:             'changed the primary Homeowner',
         // 103 — a build that was already under way when it joined.
         project_joined_in_progress:     'set this project up from a later stage',
+        project_starting_stage_updated: 'updated the project starting stage',
         // 091 — conversations, decisions, support links.
         conversation_created:       'opened a conversation',
         conversation_assigned:      'assigned a conversation',
@@ -6219,6 +6220,12 @@ export const en = {
       stageLabel:  'Select current project stage',
       stagePlaceholder: 'Current project stage',
       effect:      '{n} earlier stage(s) will be marked as already built \u2014 no payment, no verification, no certificate. This Homeowner will be asked for {amount}, not the full build cost of {full}.',
+      previewFromStart: 'Starting from Stage 1 ({name}). All stages will be tracked and billed in order. You can still change this before payments or site updates begin.',
+      previewMidBuild:  'Starting from Stage {n} ({name}). {prev} earlier stage(s) will be marked as already built \u2014 no payment and no verification. You can still change this before payments or site updates begin.',
+      changeStartStage: 'Change starting stage',
+      changeStartStageHint: 'Move the starting stage if you picked the wrong one. Stages before it are marked as already built (no payment or verification). This locks once payments or site updates begin.',
+      changeStartStageSave: 'Update starting stage',
+      changeStartStageLocked: 'The starting stage can no longer be changed because payments, verifications, or site updates have already been recorded.',
     },
     initialPayments: {
       question: 'Has the Homeowner already paid you for any of this build?',

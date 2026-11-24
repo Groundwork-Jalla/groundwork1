@@ -44,6 +44,7 @@ import { ContractorPaymentVerificationBar } from '@/components/project/Contracto
 import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
 import type { StageBreakdownInlineState } from '@/components/project/StageBreakdownPanel';
 import { addProjectSubstage } from '@/lib/supabase/stage-breakdown';
+import { updateProjectStartingStage } from '@/lib/supabase/tracking';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import { fetchStagePaymentPlan } from '@/lib/supabase/stage-payment-plans';
@@ -934,6 +935,14 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const [addSubstageError, setAddSubstageError] = useState<string | null>(null);
   const [openBreakdownAddSignal, setOpenBreakdownAddSignal] = useState(0);
   const [breakdownCtrl, setBreakdownCtrl] = useState<StageBreakdownInlineState | null>(null);
+  const [editingStartStage, setEditingStartStage] = useState(false);
+  const [nextStartStage, setNextStartStage] = useState(1);
+  const [savingStartStage, setSavingStartStage] = useState(false);
+  const [startStageError, setStartStageError] = useState<string | null>(null);
+  useEffect(() => {
+    setEditingStartStage(false);
+    setStartStageError(null);
+  }, [project.id]);
   const selectedIdForPlan = selected?.id ?? '';
   useEffect(() => {
     setAddingSubstage(false);
@@ -1175,6 +1184,50 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
     : row.status === 'active' || row.status === 'pending_review' ? t(`contractorStageStatus.${row.status}` as TKey)
     : t('contractorView.afterStage', { n: Math.max(1, row.stage_number - 1) });
 
+  const currentStartStageNum = ordered.find(row => !row.pre_existing)?.stage_number ?? 1;
+  const hasRecordedReceipts = [...stagePayments.values()].some(
+    p => (p.receipts ?? []).some(r => !r.replacedBy) || !!p.receiptPath || (p.state && p.state !== 'expected'),
+  );
+  const hasRecordedEvidence = substages.some(
+    sub => (sub.evidence_urls?.length ?? 0) > 0 || !!sub.approved_at,
+  );
+  const hasRecordedStageWork = ordered.some(
+    row => (!row.pre_existing && (row.status === 'complete' || row.status === 'pending_review' || row.payment_status === 'paid'))
+      || isRowPaidUpfront(row),
+  );
+  const canChangeStartingStage = (canConfirmPayments || isOwner)
+    && project.status !== 'archived'
+    && ordered.length > 1
+    && !contractorPayState?.initialPayment
+    && !hasRecordedReceipts
+    && !hasRecordedEvidence
+    && !hasRecordedStageWork;
+
+  async function handleSaveStartingStage(e: React.FormEvent) {
+    e.preventDefault();
+    if (savingStartStage) return;
+    if (nextStartStage === currentStartStageNum) {
+      setEditingStartStage(false);
+      return;
+    }
+    setSavingStartStage(true);
+    setStartStageError(null);
+    try {
+      await updateProjectStartingStage(project.id, nextStartStage);
+      setEditingStartStage(false);
+      const targetRow = ordered.find(row => row.stage_number === nextStartStage);
+      await onSubmitted();
+      if (targetRow) onSelectStage(targetRow.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      setStartStageError(/starting_stage_locked/.test(msg)
+        ? t('wizard.joined.changeStartStageLocked')
+        : errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setSavingStartStage(false);
+    }
+  }
+
   const card = 'rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]';
   return (
     <div className="flex flex-col gap-4">
@@ -1184,8 +1237,63 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
         <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-1">
           <section className={cn(card, 'overflow-hidden')} aria-labelledby="work-stages-title">
             <div className="px-4 pb-2.5 pt-4">
-              <h2 id="work-stages-title" className="text-sm font-bold text-brand-near-black dark:text-white">{t('contractorWork.stages')}</h2>
-              <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorView.stagesDone', { done: assigned.completedStages, total: assigned.totalStages })}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 id="work-stages-title" className="text-sm font-bold text-brand-near-black dark:text-white">{t('contractorWork.stages')}</h2>
+                  <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorView.stagesDone', { done: assigned.completedStages, total: assigned.totalStages })}</p>
+                </div>
+                {canChangeStartingStage && (
+                  <button
+                    type="button"
+                    data-action="change-starting-stage"
+                    onClick={() => {
+                      setNextStartStage(currentStartStageNum);
+                      setStartStageError(null);
+                      setEditingStartStage(prev => !prev);
+                    }}
+                    className="shrink-0 rounded-lg border border-brand-border-grey px-2 py-1 text-[11px] font-semibold text-brand-green hover:bg-brand-green/5 dark:border-[#3a3a3a] dark:text-[#86efac]"
+                  >
+                    {t('wizard.joined.changeStartStage')}
+                  </button>
+                )}
+              </div>
+              {canChangeStartingStage && editingStartStage && (
+                <form onSubmit={handleSaveStartingStage} className="mt-3 space-y-2 rounded-xl border border-brand-border-grey bg-brand-off-white/60 p-3 dark:border-[#2c2c2c] dark:bg-[#141414]" data-change-starting-stage-form>
+                  <label className="block">
+                    <span className="block text-xs font-semibold text-brand-near-black dark:text-white">{t('wizard.joined.stageLabel')}</span>
+                    <select
+                      value={nextStartStage}
+                      onChange={e => setNextStartStage(Number(e.target.value))}
+                      disabled={savingStartStage}
+                      className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black focus:border-brand-green focus:outline-none dark:border-[#3a3a3a] dark:bg-[#1e1e1e] dark:text-white"
+                    >
+                      {ordered.slice(0, -1).map(row => (
+                        <option key={row.id} value={row.stage_number}>{row.stage_number} · {stageLabel(row)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="text-[11px] leading-relaxed text-brand-mid-grey">{t('wizard.joined.changeStartStageHint')}</p>
+                  {startStageError && <p role="alert" className="text-[11px] font-medium text-state-blocked">{startStageError}</p>}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button
+                      type="submit"
+                      disabled={savingStartStage}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-50"
+                    >
+                      {savingStartStage && <Loader2 className="size-3 animate-spin" aria-hidden />}
+                      {t('wizard.joined.changeStartStageSave')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingStartStage}
+                      onClick={() => { setEditingStartStage(false); setStartStageError(null); }}
+                      className="rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:border-[#3a3a3a]"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
             <ul>
               {ordered.map(row => {

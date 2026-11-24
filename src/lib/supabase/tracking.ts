@@ -156,3 +156,23 @@ export async function adminStartProjectAtStage(
     preExistingStages: Number(result.pre_existing_stages ?? joined.skipped.length),
   };
 }
+
+/**
+ * Adjust the starting stage of a newly created project before any payments,
+ * receipts, verifications, or site evidence have been recorded.
+ */
+export async function updateProjectStartingStage(
+  projectId: string,
+  startStage: number,
+): Promise<{ startStage: number; preExistingStages: number }> {
+  const { data, error } = await supabase.rpc('update_project_starting_stage', {
+    p_project_id: projectId,
+    p_start_stage: startStage,
+  });
+  if (error) throw error;
+  const result = (data ?? {}) as Record<string, unknown>;
+  return {
+    startStage: Number(result.start_stage ?? startStage),
+    preExistingStages: Number(result.pre_existing_stages ?? Math.max(0, startStage - 1)),
+  };
+}

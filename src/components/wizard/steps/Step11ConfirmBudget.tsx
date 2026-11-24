@@ -519,6 +519,11 @@ export default function Step11ConfirmBudget() {
                 ))}
               </select>
             </label>
+            <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey" data-start-stage-preview>
+              {startStage === 1
+                ? t('wizard.joined.previewFromStart', { name: stageLabel(1) })
+                : t('wizard.joined.previewMidBuild', { n: startStage, name: stageLabel(startStage), prev: startStage - 1 })}
+            </p>
           </div>
 
           {contractorCreating && (

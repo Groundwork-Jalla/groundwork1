@@ -2151,6 +2151,7 @@ export const fr: Mirror<EnDict> = {
         contractor_invitation_cancelled:'a retiré une invitation de prestataire',
         project_client_set:             'a changé le propriétaire principal',
         project_joined_in_progress:     'a configuré ce projet à partir d’une étape ultérieure',
+        project_starting_stage_updated: 'a modifié l’étape de départ du projet',
         // 091 — conversations, d\u00e9cisions, liens support.
         conversation_created:       'a ouvert une conversation',
         conversation_assigned:      'a attribu\u00e9 une conversation',
@@ -6091,6 +6092,12 @@ export const fr: Mirror<EnDict> = {
       stageLabel:  'Commencer le suivi \u00e0',
       stagePlaceholder: 'Choisissez l\u2019\u00e9tape',
       effect:      '{n} \u00e9tape(s) ant\u00e9rieure(s) seront marqu\u00e9es comme d\u00e9j\u00e0 construites \u2014 sans paiement, sans v\u00e9rification, sans certificat. Ce propriétaire devra {amount}, et non le co\u00fbt total du chantier de {full}.',
+      previewFromStart: 'D\u00e9marrage \u00e0 l\u2019\u00e9tape 1 ({name}). Toutes les \u00e9tapes seront suivies et factur\u00e9es dans l\u2019ordre. Vous pourrez encore modifier ce choix avant le d\u00e9but des paiements ou des mises \u00e0 jour du chantier.',
+      previewMidBuild:  'D\u00e9marrage \u00e0 l\u2019\u00e9tape {n} ({name}). {prev} \u00e9tape(s) ant\u00e9rieure(s) seront marqu\u00e9es comme d\u00e9j\u00e0 construites \u2014 sans paiement ni v\u00e9rification. Vous pourrez encore modifier ce choix avant le d\u00e9but des paiements ou des mises \u00e0 jour du chantier.',
+      changeStartStage: 'Modifier l\u2019\u00e9tape de d\u00e9part',
+      changeStartStageHint: 'Changez l\u2019\u00e9tape de d\u00e9part si vous avez fait une erreur. Les \u00e9tapes pr\u00e9c\u00e9dentes sont marqu\u00e9es comme d\u00e9j\u00e0 construites (sans paiement ni v\u00e9rification). Ce choix est verrouill\u00e9 d\u00e8s qu\u2019un paiement ou une mise \u00e0 jour est enregistr\u00e9.',
+      changeStartStageSave: 'Enregistrer l\u2019\u00e9tape',
+      changeStartStageLocked: 'L\u2019\u00e9tape de d\u00e9part ne peut plus \u00eatre modifi\u00e9e car des paiements, des v\u00e9rifications ou des mises \u00e0 jour ont d\u00e9j\u00e0 \u00e9t\u00e9 enregistr\u00e9s.',
     },
     initialPayments: {
       question: 'Le propriétaire vous a-t-il déjà payé une partie de ce chantier ?',
