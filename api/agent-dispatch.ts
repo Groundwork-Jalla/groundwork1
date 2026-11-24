@@ -153,13 +153,13 @@ async function notify(r: Record<string, any>, id: string) {
   const fmt = FORMAT_LABEL[String(r.output_format ?? 'mp4')] ?? 'video';
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;">
-      <tr><td style="background:#0a0a0a;padding:20px 28px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">
+      <tr><td style="background:#122d2b;padding:20px 28px;">
         <p style="margin:0;font-size:16px;font-weight:700;color:#fff;">New agent request</p>
-        <p style="margin:2px 0 0;font-size:11px;color:rgba(255,255,255,0.5);">${esc(r.agent ?? 'video-producer')}</p>
+        <p style="margin:2px 0 0;font-size:11px;color:rgba(255,255,255,0.65);">${esc(r.agent ?? 'video-producer')}</p>
       </td></tr>
       <tr><td style="padding:24px 28px;">
-        <p style="margin:0 0 14px;font-size:17px;font-weight:700;color:#0a0a0a;">${esc(r.title ?? 'Untitled')}</p>
+        <p style="margin:0 0 14px;font-size:17px;font-weight:700;color:#122d2b;">${esc(r.title ?? 'Untitled')}</p>
         <table cellpadding="0" cellspacing="0">
           ${row('Who it is for', r.audience)}
           ${row('So they can', r.goal)}
@@ -170,7 +170,7 @@ async function notify(r: Record<string, any>, id: string) {
           ${row('Notes', r.notes)}
         </table>
         <p style="margin:22px 0 0;">
-          <a href="${link}" style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Open the queue</a>
+          <a href="${link}" style="display:inline-block;background:#006b5e;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-size:13px;font-weight:600;">Open the queue &rarr;</a>
         </p>
         <p style="margin:16px 0 0;font-size:11px;line-height:1.6;color:#8a8a87;">
           Pick it up with <code style="background:#f4f4f4;padding:1px 5px;border-radius:4px;">npm run agent:queue -- brief ${esc(String(id).slice(0, 8))}</code>,

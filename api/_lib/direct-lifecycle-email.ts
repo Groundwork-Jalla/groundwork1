@@ -122,11 +122,12 @@ async function fetchStepOne(svc: Svc, sequenceKey: string): Promise<Step | null>
 async function contractorAlreadyOnboarded(svc: Svc, userId: string): Promise<boolean> {
   try {
     const { data } = await svc
-      .from('contractor_profiles')
-      .select('id')
+      .from('contractor_onboarding')
+      .select('user_id, client_intent')
       .eq('user_id', userId)
       .limit(1);
-    return (data?.length ?? 0) > 0;
+    const row = (data ?? [])[0];
+    return Boolean(row && row.client_intent != null);
   } catch {
     return false;
   }

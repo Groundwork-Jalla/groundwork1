@@ -1,4 +1,5 @@
 import { communicationBase, communicationSettings, sendCommunicationEmail, type CommunicationPayload } from './communication-email.js';
+import { emailShell, primaryButton } from '../../src/lib/email/shell.js';
 
 type Service = { from:(table:string)=>any; rpc:(name:string,args:Record<string,unknown>)=>any };
 type Role = 'client'|'contractor'|'verifier'|'admin';
@@ -28,9 +29,10 @@ export function composeAccountRoleNotification(input:{
   const body=fr?`${greeting}\n\nVotre compte Groundwork a été mis à jour avec le rôle ${label}.\n\n${setup?'Terminez votre inscription comme entrepreneur pour accéder à votre espace. Vos projets existants restent liés à votre compte.':'Ouvrez Groundwork pour continuer avec votre rôle actuel.'}\n\nRépondez à cet e-mail si vous souhaitez de l’aide.`
     :`${greeting}\n\nYour Groundwork account has been updated to ${input.role==='admin'?'an':'a'} ${label} account.\n\n${setup?'Complete your contractor onboarding to access your workspace. Your existing projects remain linked to your account.':'Open Groundwork to continue with your current role.'}\n\nReply to this email if you would like help.`;
   const cta=setup?(fr?'Terminer mon inscription':'Complete contractor onboarding'):(fr?'Ouvrir mon compte':'Open my account');
+  const bodyHtml = body.split('\n\n').map(p => `<p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6;">${escape(p).replace(/\n/g, '<br>')}</p>`).join('');
   return {from:`${oneLine(input.senderName)} <${input.senderEmail}>`,to:input.email,subject,reply_to:input.replyEmail,
     text:`${body}\n\n${cta}: ${url}\n\nGroundwork by Jalla`,
-    html:`<div style="font-family:Arial,sans-serif;line-height:1.55;max-width:560px">${body.split('\n\n').map(p=>`<p>${escape(p).replace(/\n/g,'<br>')}</p>`).join('')}<p><a href="${escape(url)}">${escape(cta)}</a></p><p>Groundwork by Jalla</p></div>`,headers:{}};
+    html:emailShell(fr ? 'fr' : 'en', `${bodyHtml}<div style="margin:8px 0 0;">${primaryButton(escape(url), cta)}</div>`),headers:{}};
 }
 
 /** The existing five-minute worker retries a frozen payload with one provider key. */

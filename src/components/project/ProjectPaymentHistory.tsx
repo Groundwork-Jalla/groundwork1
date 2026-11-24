@@ -134,9 +134,10 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
 
     {rows.length === 0
       ? <p className={`rounded-2xl border border-dashed border-brand-border-grey px-4 py-8 text-center text-xs text-brand-mid-grey dark:border-[#2c2c2c] ${full ? 'mx-4 mb-4 sm:mx-5' : ''}`}>{t('contractorMoney.paymentHistoryEmpty')}</p>
-      : <div className={full ? '' : card}>
+      : <div className={`${full ? '' : card} overflow-x-auto`}>
+          <div className="md:min-w-[540px]">
           {/* Column headings for the table layout; on a phone each receipt is a card. */}
-          <div aria-hidden className={`hidden grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_6.5rem_minmax(10rem,1.3fr)_auto] gap-4 border-b border-brand-border-grey bg-brand-off-white px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-brand-muted-grey md:grid dark:border-[#2c2c2c] ${full ? 'border-t' : 'rounded-t-2xl'}`}>
+          <div aria-hidden className={`hidden grid-cols-[minmax(8.5rem,1.2fr)_minmax(0,1.35fr)_6.25rem_minmax(7.5rem,1fr)_auto] gap-4 border-b border-brand-border-grey bg-brand-off-white px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-brand-muted-grey md:grid dark:border-[#2c2c2c] ${full ? 'border-t' : 'rounded-t-2xl'}`}>
             <span>{t('project.historyView.amount')}</span><span>{t('project.historyView.stage')}</span><span>{t('project.historyView.uploaded')}</span>
             <span>{t('project.historyView.status')}</span><span className="text-right">{t('project.historyView.proof')}</span>
           </div>
@@ -157,14 +158,14 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
                   : null;
                 return <li key={row.id} data-status={row.status} className="px-4 py-3 text-xs sm:px-5">
                   {/* Phone: the receipt's preview on the left, its details beside it. Desktop: the preview is the Proof column. */}
-                  <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-x-3 gap-y-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_6.5rem_minmax(10rem,1.3fr)_auto] md:items-start md:gap-4">
+                  <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-x-3 gap-y-1 md:grid-cols-[minmax(8.5rem,1.2fr)_minmax(0,1.35fr)_6.25rem_minmax(7.5rem,1fr)_auto] md:items-start md:gap-4">
                     <div className="col-start-1 row-span-2 row-start-1 md:col-start-5 md:row-span-1 md:justify-self-end">
                       {row.path && <ReceiptThumb path={row.path} label={t('project.stages.confirmView')} muted={replaced} onOpen={() => void open(row.path!)} />}
                     </div>
                     <div className="col-start-2 row-start-1 min-w-0 md:col-start-1">
                       <p className={`whitespace-nowrap font-mono text-sm font-semibold tabular-nums ${replaced ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white'}`}>{money(row.amount, row.currency)}</p>
                       {row.projectAmount != null && row.projectCurrency && row.projectCurrency !== row.currency
-                        && <p className="mt-0.5 font-mono text-[11px] text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: money(row.projectAmount, row.projectCurrency) })}</p>}
+                        && <p className="mt-0.5 break-words font-mono text-[11px] text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: money(row.projectAmount, row.projectCurrency) })}</p>}
                     </div>
                     <div className="col-start-3 row-start-1 max-w-[7.5rem] justify-self-end sm:max-w-[10rem] text-right md:col-start-4 md:max-w-none md:justify-self-start md:text-left">
                       <Pill status={row.status} label={statusLabel(row.status)} />
@@ -172,7 +173,7 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
                       {reviewButton && <div className="mt-2 hidden md:block">{reviewButton}</div>}
                     </div>
                     <div className="col-span-2 col-start-2 row-start-2 min-w-0 text-brand-mid-grey md:col-span-1 md:col-start-2 md:row-start-1">
-                      <p className={`md:text-[13px] ${replaced ? '' : 'md:font-semibold md:text-brand-near-black md:dark:text-white'}`}>
+                      <p className={`break-words md:text-[13px] ${replaced ? '' : 'md:font-semibold md:text-brand-near-black md:dark:text-white'}`}>
                         {stageTitle(row.stageId)}<span className="md:hidden">{detail ? ` · ${detail}` : ''} · {date(row.submittedAt)}</span>
                       </p>
                       {detail && <p className="mt-0.5 hidden md:block">{detail}</p>}
@@ -188,6 +189,7 @@ export function ProjectPaymentHistory({ stagePayments, stageName, projectCurrenc
                 </li>;
               })}
             </ol>}
+          </div>
         </div>}
   </section>;
 

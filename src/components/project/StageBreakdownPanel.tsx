@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, MessageSquare, Plus, Split, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { supabase } from '@/lib/supabase/client';
+import { sendMessage } from '@/lib/supabase/messages';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import {
   breakdownDraft, decideStageBreakdown, fetchStageBreakdown, proposeStageBreakdown, splitBreakdownEvenly,
@@ -22,6 +24,7 @@ export interface StageBreakdownInlineState {
   working: boolean;
   rows: BreakdownDraftRow[];
   pending: BreakdownProposal | null;
+  lastDeclined: BreakdownProposal | null;
   format: (amount: string | null | undefined) => string;
   startEditing: (addBlankPart?: boolean) => void;
   editRow: (index: number, patch: Partial<BreakdownDraftRow>) => void;
@@ -64,11 +67,13 @@ export function StageBreakdownPanel({
   stageId, stageName, projectName, clientPresentation = false, isContractor = false, hidden = false,
   inlineRows = false, onInlineState, openAddPartSignal = 0, onDiscussPrice, onChanged,
 }: Props) {
+  const { user } = useAuth();
   const t = useT(); const { lang } = useLanguage(); const { substageLabel } = useStageLabels();
   const [read, setRead] = useState<{ stage: string; context: StageBreakdownContext } | null>(null);
   const [failed, setFailed] = useState(false);
   const [draft, setDraft] = useState<{ stage: string; rows: BreakdownDraftRow[]; note: string } | null>(null);
   const [review, setReview] = useState<Review | null>(null);
+  const [declineReason, setDeclineReason] = useState('');
   const [working, setWorking] = useState(false); const [error, setError] = useState<string | null>(null);
   const current = useRef(stageId); current.current = stageId;
   const turn = useRef(0); const busy = useRef(false);
@@ -99,6 +104,7 @@ export function StageBreakdownPanel({
   const label = useCallback((row: { name: string; key?: string | null }) => substageLabel({ name: row.name, substage_key: row.key ?? null }), [substageLabel]);
   const pending = context?.history.find(item => item.status === 'pending') ?? null;
   const latest = context?.history.find(item => item.status !== 'pending') ?? null;
+  const lastDeclined = !pending && latest?.status === 'declined' ? latest : null;
   const preview = editing && context ? breakdownDraft(context.stage_amount, editing.rows) : null;
   const lockedForContractor = !!context && isContractor && !context.editable && !context.can_propose && !pending;
 
@@ -173,6 +179,7 @@ export function StageBreakdownPanel({
       working,
       rows: editing ? editing.rows : [],
       pending,
+      lastDeclined,
       format,
       startEditing,
       editRow,
@@ -182,7 +189,7 @@ export function StageBreakdownPanel({
       cancelEditing,
     };
   }, [
-    hidden, context, stageId, isContractor, lockedForContractor, editing, working, pending,
+    hidden, context, stageId, isContractor, lockedForContractor, editing, working, pending, lastDeclined,
     format, startEditing, editRow, addRow, removeRow, splitEvenly, cancelEditing,
   ]);
 
@@ -203,7 +210,7 @@ export function StageBreakdownPanel({
   // approved prices live directly on each substage row, and Set/Edit/Locked price controls
   // live in the stage header above the list. This footer only renders when actively editing,
   // reviewing a pending proposal, showing a decision/error, or expanding past history.
-  const showLastDecision = isContractor && context.can_propose && !pending && latest && latest.status !== 'withdrawn' && !editing;
+  const showLastDecision = isContractor && context.can_propose && !pending && latest && latest.status !== 'withdrawn' && !editing && !(inlineRows && latest.status === 'declined');
   if (inlineRows && !editing && !pending && !showLastDecision && !hasHistory && !error && !review) {
     return null;
   }
@@ -211,14 +218,23 @@ export function StageBreakdownPanel({
   async function commit() {
     if (!review || !context || busy.current) return;
     if (review.hash !== context.base_hash) { setError(t('project.breakdown.stale')); return; }
+    if (review.kind === 'submit' && (!preview?.lines || !editing || !editing.note.trim())) return;
+    if (review.kind === 'declined' && !declineReason.trim()) return;
     busy.current = true; setWorking(true); setError(null);
     try {
       if (review.kind === 'submit') {
-        if (!preview?.lines || !editing) return;
-        await proposeStageBreakdown(context, preview.lines, editing.note);
-      } else await decideStageBreakdown(review.proposal!.id, review.kind);
+        await proposeStageBreakdown(context, preview!.lines!, editing!.note);
+      } else {
+        await decideStageBreakdown(review.proposal!.id, review.kind);
+        if (review.kind === 'declined' && user?.id) {
+          const reasonText = declineReason.trim();
+          const senderName = (user.user_metadata?.full_name as string | undefined)?.trim() || user.email || 'Homeowner';
+          const chatMessage = `${t('project.breakdown.declineMessagePrefix', { stage: stageName })}\n${reasonText}`;
+          await sendMessage(context.project_id, user.id, senderName, chatMessage).catch(() => {});
+        }
+      }
       if (current.current !== stageId) return;
-      setReview(null); setDraft(null);
+      setReview(null); setDraft(null); setDeclineReason('');
       await load(); await onChanged();
     } catch (failure) {
       if (current.current !== stageId) return;
@@ -261,48 +277,65 @@ export function StageBreakdownPanel({
     </div>}
 
     {/* Contractor's draft controls — strictly contractor-only. */}
-    {isContractor && editing && preview && <form className="space-y-3" data-breakdown-form onSubmit={event => { event.preventDefault(); if (preview.ready) setReview({ kind: 'submit', hash: context.base_hash }); }}>
-      <fieldset disabled={working} className="space-y-2.5">
-        {inlineRows ? (
-          <p className="text-brand-mid-grey">{t('project.breakdown.inlineEditingHint', { total: format(context.stage_amount) })}</p>
-        ) : (
-          editing.rows.map((row, index) => <div key={row.substageId ?? `new-${index}`} className="flex flex-wrap items-center gap-2">
-            {row.substageId
-              ? <span className="min-w-0 flex-1 break-words">{row.name}</span>
-              : <input aria-label={t('project.breakdown.newPartName')} placeholder={t('project.breakdown.newPartName')} value={row.name} maxLength={120}
-                  onChange={event => editRow(index, { name: event.target.value })} className="min-w-0 flex-1 rounded-lg border border-brand-border-grey bg-white p-2 dark:bg-[#141414]" />}
-            <input inputMode="decimal" aria-label={t('project.breakdown.amountFor', { part: row.name || t('project.breakdown.newPart'), currency: context.currency })} value={row.amount}
-              onChange={event => { const raw = event.target.value; editRow(index, { amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); }}
-              className="w-36 rounded-lg border border-brand-border-grey bg-white p-2 font-mono dark:bg-[#141414]" />
-            {!row.substageId && <button type="button" aria-label={t('project.breakdown.removePart')} onClick={() => removeRow(index)} className="p-1 text-brand-mid-grey"><X className="size-4" aria-hidden /></button>}
-          </div>)
-        )}
+    {isContractor && editing && preview && (() => {
+      const missingPrice = editing.rows.some(r => !r.amount.trim());
+      const noteReady = editing.note.trim().length > 0;
+      const canSubmit = preview.ready && noteReady;
+      return <form className="space-y-3" data-breakdown-form onSubmit={event => { event.preventDefault(); if (canSubmit) setReview({ kind: 'submit', hash: context.base_hash }); }}>
+        <fieldset disabled={working} className="space-y-2.5">
+          {inlineRows ? (
+            <p className="text-brand-mid-grey">{t('project.breakdown.inlineEditingHint', { total: format(context.stage_amount) })}</p>
+          ) : (
+            editing.rows.map((row, index) => <div key={row.substageId ?? `new-${index}`} className="flex flex-wrap items-center gap-2">
+              {row.substageId
+                ? <span className="min-w-0 flex-1 break-words">{row.name}</span>
+                : <input required aria-label={t('project.breakdown.newPartName')} placeholder={t('project.breakdown.newPartName')} value={row.name} maxLength={120}
+                    onChange={event => editRow(index, { name: event.target.value })} className="min-w-0 flex-1 rounded-lg border border-brand-border-grey bg-white p-2 dark:bg-[#141414]" />}
+              <input required inputMode="decimal" placeholder={t('project.breakdown.amountPlaceholder')} aria-label={t('project.breakdown.amountFor', { part: row.name || t('project.breakdown.newPart'), currency: context.currency })} value={row.amount}
+                onChange={event => { const raw = event.target.value; editRow(index, { amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); }}
+                className="w-36 rounded-lg border border-brand-border-grey bg-white p-2 font-mono dark:bg-[#141414]" />
+              {!row.substageId && <button type="button" aria-label={t('project.breakdown.removePart')} onClick={() => removeRow(index)} className="p-1 text-brand-mid-grey"><X className="size-4" aria-hidden /></button>}
+            </div>)
+          )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={addRow} data-action="breakdown-add-part"
-              className="inline-flex items-center gap-1 font-semibold text-brand-green hover:underline dark:text-[#b4d8bf]">
-              <Plus className="size-3.5" aria-hidden />{t('project.breakdown.addPart')}
-            </button>
-            <button type="button" onClick={splitEvenly} data-action="breakdown-split-evenly"
-              className="inline-flex items-center gap-1 rounded-lg border border-brand-green/40 bg-brand-green/5 px-2.5 py-1 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
-              <Split className="size-3.5" aria-hidden />{t('project.breakdown.splitEvenly')}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={addRow} data-action="breakdown-add-part"
+                className="inline-flex items-center gap-1 font-semibold text-brand-green hover:underline dark:text-[#b4d8bf]">
+                <Plus className="size-3.5" aria-hidden />{t('project.breakdown.addPart')}
+              </button>
+              <button type="button" onClick={splitEvenly} data-action="breakdown-split-evenly"
+                className="inline-flex items-center gap-1 rounded-lg border border-brand-green/40 bg-brand-green/5 px-2.5 py-1 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
+                <Split className="size-3.5" aria-hidden />{t('project.breakdown.splitEvenly')}
+              </button>
+            </div>
+            <p role="status" className={Number(preview.remaining) === 0 && !missingPrice ? 'font-semibold text-brand-green' : 'font-medium text-brand-near-black dark:text-white'}>
+              {t('project.breakdown.allocated', { allocated: format(preview.allocated), total: format(context.stage_amount) })}{' '}
+              {Number(preview.remaining) !== 0 && t(Number(preview.remaining) > 0 ? 'project.breakdown.left' : 'project.breakdown.over', { amount: format(preview.remaining.replace('-', '')) })}
+            </p>
           </div>
-          <p role="status" className={Number(preview.remaining) === 0 ? 'font-semibold text-brand-green' : 'font-medium text-brand-near-black dark:text-white'}>
-            {t('project.breakdown.allocated', { allocated: format(preview.allocated), total: format(context.stage_amount) })}{' '}
-            {Number(preview.remaining) !== 0 && t(Number(preview.remaining) > 0 ? 'project.breakdown.left' : 'project.breakdown.over', { amount: format(preview.remaining.replace('-', '')) })}
-          </p>
-        </div>
+          {missingPrice && <p className="text-[11.5px] text-state-held">{t('project.breakdown.pricesRequiredHint', { total: format(context.stage_amount) })}</p>}
 
-        <label className="block">{t('project.breakdown.note')}
-          <textarea value={editing.note} maxLength={2000} rows={2} onChange={event => setDraft({ ...editing, note: event.target.value })} className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white p-2 dark:bg-[#141414]" /></label>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="submit" disabled={!preview.ready} className="rounded-lg bg-brand-green px-3.5 py-2 font-semibold text-white hover:bg-brand-green-hover disabled:opacity-40">{t('project.breakdown.send')}</button>
-          <button type="button" onClick={cancelEditing} className="px-2 py-2 text-brand-mid-grey underline underline-offset-4">{t('common.cancel')}</button>
-        </div>
-      </fieldset>
-    </form>}
+          <label className="block font-medium text-brand-near-black dark:text-white">
+            {t('project.breakdown.note')} <span className="text-state-alert" aria-hidden>*</span>
+            <textarea
+              required
+              value={editing.note}
+              maxLength={2000}
+              rows={2}
+              placeholder={t('project.breakdown.notePlaceholder')}
+              onChange={event => setDraft({ ...editing, note: event.target.value })}
+              className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white p-2 font-normal text-brand-near-black outline-none focus:border-brand-green dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+            />
+          </label>
+          {preview.ready && !noteReady && <p className="text-[11.5px] text-brand-mid-grey">{t('project.breakdown.reasonRequired')}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="submit" disabled={!canSubmit} className="rounded-lg bg-brand-green px-3.5 py-2 font-semibold text-white hover:bg-brand-green-hover disabled:opacity-40">{t('project.breakdown.send')}</button>
+            <button type="button" onClick={cancelEditing} className="px-2 py-2 text-brand-mid-grey underline underline-offset-4">{t('common.cancel')}</button>
+          </div>
+        </fieldset>
+      </form>;
+    })()}
 
     {/* A proposal waiting for the Homeowner — role-separated actions. */}
     {pending && !editing && <div className="space-y-2 rounded-lg border border-brand-green/40 bg-brand-green/[0.03] p-3" data-breakdown-pending>
@@ -318,7 +351,7 @@ export function StageBreakdownPanel({
         {!isContractor && context.can_decide && <>
           <button type="button" disabled={working || pending.stale} onClick={() => setReview({ kind: 'approved', proposal: pending, hash: context.base_hash })}
             className="rounded-lg bg-brand-green px-3.5 py-2 font-semibold text-white hover:bg-brand-green-hover disabled:opacity-40">{t('project.breakdown.approve')}</button>
-          <button type="button" disabled={working} onClick={() => setReview({ kind: 'declined', proposal: pending, hash: context.base_hash })}
+          <button type="button" disabled={working} onClick={() => { setDeclineReason(''); setReview({ kind: 'declined', proposal: pending, hash: context.base_hash }); }}
             className="rounded-lg border border-brand-border-grey bg-white px-3.5 py-2 font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">{t('project.breakdown.keep')}</button>
           {onDiscussPrice && (
             <button
@@ -338,8 +371,20 @@ export function StageBreakdownPanel({
       </div>
     </div>}
 
-    {showLastDecision && latest && <p role="status" className="text-brand-mid-grey">
-      {t(latest.status === 'approved' ? 'project.breakdown.lastApproved' : 'project.breakdown.lastDeclined')}</p>}
+    {showLastDecision && latest && <div role="status" className="flex flex-wrap items-center justify-between gap-2 text-brand-mid-grey">
+      <span>{t(latest.status === 'approved' ? 'project.breakdown.lastApproved' : 'project.breakdown.lastDeclined')}</span>
+      {latest.status === 'declined' && onDiscussPrice && (
+        <button
+          type="button"
+          data-action="see-decline-reason"
+          onClick={onDiscussPrice}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 font-semibold text-white hover:bg-brand-green-hover"
+        >
+          <MessageSquare className="size-3.5 shrink-0" aria-hidden />
+          {t('project.breakdown.seeReason')}
+        </button>
+      )}
+    </div>}
 
     {/* Every earlier proposal, for the record. */}
     {hasHistory && <details>
@@ -359,11 +404,29 @@ export function StageBreakdownPanel({
       description={t(review?.kind === 'submit' ? 'project.breakdown.confirmSendBody' : review?.kind === 'approved' ? 'project.breakdown.confirmApproveBody'
         : review?.kind === 'declined' ? 'project.breakdown.confirmKeepBody' : 'project.breakdown.confirmWithdrawBody', { total: format(context.stage_amount) })}
       confirmLabel={t(review?.kind === 'approved' ? 'project.clientUi.confirmApproval' : 'project.breakdown.confirm')} cancelLabel={t('common.cancel')}
-      loading={working} error={error} onConfirm={commit} onCancel={() => { if (!busy.current) setReview(null); }}>
+      loading={working} confirmDisabled={review?.kind === 'declined' && !declineReason.trim()} error={error} onConfirm={commit} onCancel={() => { if (!busy.current) { setReview(null); setDeclineReason(''); } }}>
       {review?.kind === 'submit' && preview?.lines && editing && lineList(editing.rows.map(row => ({
         substage_id: row.substageId, name: row.name, before: context.substages.find(sub => sub.id === row.substageId)?.amount ?? null, amount: row.amount.trim(),
       })))}
       {review?.proposal && review.kind !== 'withdrawn' && lineList(review.proposal.lines)}
+      {review?.kind === 'declined' && (
+        <div className="space-y-1.5 pt-1" data-decline-reason-box>
+          <label className="block text-sm font-semibold text-brand-near-black">
+            {t('project.breakdown.declineReasonLabel')} <span className="text-state-alert" aria-hidden>*</span>
+            <textarea
+              required
+              rows={3}
+              maxLength={2000}
+              value={declineReason}
+              disabled={working}
+              placeholder={t('project.breakdown.declineReasonPlaceholder')}
+              onChange={event => setDeclineReason(event.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-brand-border-grey bg-white p-3 text-sm font-normal text-brand-near-black outline-none focus:border-brand-green"
+            />
+          </label>
+          <p className="text-xs text-brand-mid-grey">{t('project.breakdown.declineReasonRequired')}</p>
+        </div>
+      )}
     </ConfirmModal>
   </section>;
 }

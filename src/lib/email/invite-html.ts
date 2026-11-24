@@ -24,7 +24,7 @@ export function buildInviteHtml(
   // The body copy carries <strong> around the interpolated names, so the names are
   // escaped above and the template itself is trusted markup from our own dictionary.
   const body = `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.4px;">${esc(t('email.invite.heading'))}</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#122d2b;letter-spacing:-0.4px;">${esc(t('email.invite.heading'))}</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
       ${t('email.invite.body', { inviter: n, project: p })}
     </p>

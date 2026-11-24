@@ -66,8 +66,8 @@ export function primaryButton(href: string, label: string): string {
 /** Outlined secondary button. */
 export function secondaryButton(href: string, label: string): string {
   return `<table cellpadding="0" cellspacing="0">
-  <tr><td style="border-radius:8px;border:1px solid #e5e5e5;">
-    <a href="${href}" style="display:inline-block;padding:11px 28px;color:#1a1a1a;font-size:13px;font-weight:500;text-decoration:none;">
+  <tr><td style="border-radius:8px;border:1px solid #006b5e;">
+    <a href="${href}" style="display:inline-block;padding:11px 28px;color:#122d2b;font-size:13px;font-weight:600;text-decoration:none;">
       ${esc(label)} &rarr;
     </a>
   </td></tr>

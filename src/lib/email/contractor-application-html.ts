@@ -90,7 +90,7 @@ export function buildContractorApplicationHtml(
     </table>`).join('');
 
   const body = `
-    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a;">
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#122d2b;">
       ${esc(t('email.contractorApplication.heading'))} &#10003;
     </h1>
     <p style="margin:0 0 16px;font-size:15px;color:#555;line-height:1.65;">

@@ -32,10 +32,10 @@ export function buildVerifierInviteHtml(
   const href = `${siteUrl}/verifier-signup?t=${encodeURIComponent(token)}`;
 
   return emailShell(lang, `
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a8a87;">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#006b5e;">
       ${esc(t('email.verifierInvite.eyebrow'))}
     </p>
-    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;font-weight:800;color:#0a0a0a;">
+    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;font-weight:800;color:#122d2b;">
       ${esc(t('email.verifierInvite.heading'))}
     </h1>
     <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#3a3a38;">
@@ -48,7 +48,7 @@ export function buildVerifierInviteHtml(
       ${esc(t('email.verifierInvite.body2'))}
     </p>
     <table cellpadding="0" cellspacing="0" style="margin:24px 0 4px;">
-      <tr><td style="background:#0a0a0a;border-radius:10px;">
+      <tr><td style="background:#006b5e;border-radius:8px;">
         <a href="${esc(href)}"
            style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;">
           ${esc(t('email.verifierInvite.cta'))}

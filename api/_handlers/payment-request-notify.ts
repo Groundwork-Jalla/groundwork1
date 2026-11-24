@@ -3,6 +3,7 @@ import { sendViaResend } from '../_lib/resend-send.js';
 import { sendWhatsApp } from '../_lib/whatsapp-send.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { senderFor } from '../../src/lib/email/senders.js';
+import { emailShell, primaryButton } from '../../src/lib/email/shell.js';
 import { siteUrl } from '../../src/lib/site-url.js';
 
 const FROM = senderFor('other');
@@ -134,16 +135,13 @@ export async function handler(req: any, res: any) {
 
   const ctaLabel = isFr ? 'Ouvrir l’étape et ajouter le reçu' : 'Open stage & upload receipt';
 
-  const html = `
-    <div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:560px">
-      <p style="margin:0 0 14px">${esc(greeting)}</p>
-      <p style="margin:0 0 14px">${esc(lead)}</p>
-      ${note ? `<p style="margin:0 0 14px;padding:10px 12px;background:#f5f5f5;border-radius:8px">${esc(note)}</p>` : ''}
-      <p style="margin:0 0 18px">${esc(actionLine)}</p>
-      <p style="margin:20px 0"><a href="${esc(stageUrl)}" style="background:#1f4d3a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(ctaLabel)}</a></p>
-      <p style="margin:24px 0 0;color:#777;font-size:12px">Groundwork by Jalla</p>
-    </div>
-  `;
+  const html = emailShell(isFr ? 'fr' : 'en', `
+    <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.6;">${esc(greeting)}</p>
+    <p style="margin:0 0 14px;font-size:15px;color:#333;line-height:1.6;">${esc(lead)}</p>
+    ${note ? `<p style="margin:0 0 14px;padding:10px 12px;background:#f5f5f5;border-left:3px solid #006b5e;border-radius:6px;font-size:14px;color:#333;line-height:1.55;">${esc(note)}</p>` : ''}
+    <p style="margin:0 0 20px;font-size:14px;color:#555;line-height:1.6;">${esc(actionLine)}</p>
+    ${primaryButton(esc(stageUrl), ctaLabel)}
+  `);
 
   const whatsappBody = [
     greeting,

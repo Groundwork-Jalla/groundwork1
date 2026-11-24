@@ -33,7 +33,7 @@ export function buildClientInviteHtml(
   const n = esc(contractorName);
 
   const body = `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.4px;">${esc(t('email.clientInvite.heading'))}</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#122d2b;letter-spacing:-0.4px;">${esc(t('email.clientInvite.heading'))}</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
       ${t('email.clientInvite.body', { contractor: n })}
     </p>

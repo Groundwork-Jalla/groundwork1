@@ -45,10 +45,14 @@ export function internalHtml(a: Record<string, any>, appUrl: string): string {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/></head>
 <body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;overflow:hidden;">
+    <tr><td style="background:#122d2b;padding:20px 26px;">
+      <p style="margin:0;font-size:16px;font-weight:700;color:#fff;">Groundwork</p>
+      <p style="margin:2px 0 0;font-size:10px;color:rgba(255,255,255,0.65);">by Jalla</p>
+    </td></tr>
     <tr><td style="padding:22px 26px;border-bottom:1px solid #f0f0f0;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8a87;">New contractor application</p>
-      <p style="margin:4px 0 0;font-size:19px;font-weight:800;color:#0a0a0a;">${esc(a.full_name)}</p>
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#006b5e;">New contractor application</p>
+      <p style="margin:4px 0 0;font-size:19px;font-weight:800;color:#122d2b;">${esc(a.full_name)}</p>
       ${flagged ? `<p style="margin:8px 0 0;font-size:12px;color:#c2596b;">Auto-disqualified — answered No to a professional standard.</p>` : ''}
     </td></tr>
     <tr><td style="padding:18px 26px;">
@@ -65,10 +69,10 @@ export function internalHtml(a: Record<string, any>, appUrl: string): string {
         ${row('Language',  a.lang)}
       </table>
       <table cellpadding="0" cellspacing="0" style="margin-top:20px;">
-        <tr><td style="background:#0a0a0a;border-radius:9px;">
+        <tr><td style="background:#006b5e;border-radius:8px;">
           <a href="${esc(appUrl)}/admin/applications/${esc(a.id)}"
              style="display:inline-block;padding:11px 20px;font-size:13px;font-weight:600;color:#fff;text-decoration:none;">
-            Review application
+            Review application &rarr;
           </a>
         </td></tr>
       </table>

@@ -349,9 +349,9 @@ export default function ContractorProjectDetail() {
 
       {tab === 'money' && (
         <div className="space-y-4">
+          <StagePricingPanel key={`pricing:${project.id}`} project={project} onChanged={load} />
           <MoneyTab key={`money:${project.id}`} assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} substages={substages}
             canDecide={canDecide} onReviewReceipt={(stageId, receiptId) => setReviewing({ stageId, receiptId })} onOpenStage={openStage} />
-          <StagePricingPanel key={`pricing:${project.id}`} project={project} onChanged={load} />
         </div>
       )}
 
@@ -1107,7 +1107,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const breakdown = priceable
     ? <div id="stage-breakdown-section" data-tour={isOpen ? 'price-by-part' : undefined}>
         <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront}
-          inlineRows onInlineState={setBreakdownCtrl} openAddPartSignal={openBreakdownAddSignal} onChanged={onSubmitted}
+          inlineRows onInlineState={setBreakdownCtrl} openAddPartSignal={openBreakdownAddSignal} onDiscussPrice={onMessage} onChanged={onSubmitted}
           stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`} />
       </div>
     : null;
@@ -1295,6 +1295,32 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
             )}
           </div>
 
+          {activeBreakdown?.lastDeclined && !isEditingPrices && !pendingProposal && (
+            <div
+              role="status"
+              data-breakdown-declined-banner
+              className="mt-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-state-held/40 bg-state-held/[0.07] px-3.5 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-brand-near-black dark:text-white">
+                  {t('project.breakdown.declinedBannerTitle')}
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">
+                  {t('project.breakdown.declinedBannerHint')}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-action="see-decline-reason"
+                onClick={onMessage}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-green-hover"
+              >
+                <MessageSquare className="size-3.5 shrink-0" aria-hidden />
+                {t('project.breakdown.seeReason')}
+              </button>
+            </div>
+          )}
+
           {addingSubstage && canAddSubstage && !split && (
             <form
               onSubmit={handleSaveNewSubstage}
@@ -1447,10 +1473,11 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                           <div className="flex items-center gap-1.5" data-inline-substage-price>
                             <input
                               type="text"
+                              required
                               inputMode="decimal"
                               disabled={activeBreakdown.working}
                               aria-label={t('project.breakdown.amountFor', { part: substageLabel(item), currency: activeBreakdown.currency })}
-                              placeholder="0"
+                              placeholder={t('project.breakdown.amountPlaceholder')}
                               value={draftRow.amount}
                               onChange={event => {
                                 const raw = event.target.value;
@@ -1597,10 +1624,11 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                       <div className="flex items-center gap-1.5">
                         <input
                           type="text"
+                          required
                           inputMode="decimal"
                           disabled={activeBreakdown.working}
                           aria-label={t('project.breakdown.amountFor', { part: row.name || t('project.breakdown.newPart'), currency: activeBreakdown.currency })}
-                          placeholder="0"
+                          placeholder={t('project.breakdown.amountPlaceholder')}
                           value={row.amount}
                           onChange={event => {
                             const raw = event.target.value;

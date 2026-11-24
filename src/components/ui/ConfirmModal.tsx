@@ -1,6 +1,6 @@
+import { useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './button';
-import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   destructive?: boolean;
   loading?: boolean;
+  confirmDisabled?: boolean;
   error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
@@ -28,9 +29,15 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   destructive = false,
   loading = false,
+  confirmDisabled = false,
   error,
   onConfirm, onCancel, variant = 'default', eyebrow, children, summary,
 }: ConfirmModalProps) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (open) panelRef.current?.focus();
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -49,8 +56,8 @@ export function ConfirmModal({
           {/* Panel */}
           <motion.div
             role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
-            ref={(node:HTMLDivElement|null)=>{node?.focus();}}
-            onKeyDown={event=>{if(event.key==='Escape'&&!loading)onCancel();if(event.key==='Tab'){const controls=event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled)');const first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&(document.activeElement===first||document.activeElement===event.currentTarget)){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}}}
+            ref={panelRef}
+            onKeyDown={event=>{if(event.key==='Escape'&&!loading)onCancel();if(event.key==='Tab'){const controls=event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), textarea:not(:disabled), input:not(:disabled)');const first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&(document.activeElement===first||document.activeElement===event.currentTarget)){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}}}
             className={cn('relative w-full rounded-2xl bg-white shadow-xl', variant === 'client' ? 'flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden border border-brand-border-grey' : 'max-w-sm p-6')}
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -82,7 +89,7 @@ export function ConfirmModal({
                 type="button"
                 className={cn('flex-1 text-sm', variant === 'client' && 'min-h-11 whitespace-normal', destructive ? 'bg-state-alert hover:bg-state-alert' : variant === 'client' ? 'bg-brand-green text-white hover:bg-brand-green-hover' : '')}
                 onClick={onConfirm}
-                disabled={loading}
+                disabled={loading || confirmDisabled}
               >
                 {loading ? 'Please wait…' : confirmLabel}
               </Button>

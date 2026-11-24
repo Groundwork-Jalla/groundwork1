@@ -28,7 +28,7 @@ export function buildStageApprovedHtml(lang: Lang, e: StageApprovedEmail): strin
   const certLink = e.certificateId ? siteLink(`verify/${e.certificateId}`) : null;
 
   const body = `
-    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a;">${esc(t('email.stageApproved.heading'))} &#10003;</h1>
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#122d2b;">${esc(t('email.stageApproved.heading'))} &#10003;</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#555;line-height:1.65;">
       ${esc(t('email.stageApproved.greeting', { name: e.ownerName }))}<br/><br/>
       ${t('email.stageApproved.body', { stage: esc(e.stageName), project: esc(e.projectName) })}

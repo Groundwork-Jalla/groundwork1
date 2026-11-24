@@ -39,7 +39,7 @@ export function buildShareHtml(
   // The interpolated names carry <strong> from the dictionary, so each value is
   // escaped above and the template itself is our own trusted markup.
   const body = `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.4px;">${esc(t('email.share.heading'))}</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#122d2b;letter-spacing:-0.4px;">${esc(t('email.share.heading'))}</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
       ${rel
         ? t('email.share.bodyAs', { inviter: n, project: p, relation: rel })

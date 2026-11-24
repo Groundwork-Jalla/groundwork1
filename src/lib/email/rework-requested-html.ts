@@ -25,7 +25,7 @@ export function buildReworkHtml(lang: Lang, e: ReworkEmail): string {
   const link = siteLink(`projects/${e.projectId}`);
 
   const body = `
-    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a;">${esc(t('email.rework.heading'))}</h1>
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#122d2b;">${esc(t('email.rework.heading'))}</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#555;line-height:1.65;">
       ${esc(t('email.rework.greeting', { name: e.ownerName }))}<br/><br/>
       ${t('email.rework.body', { stage: esc(e.stageName), project: esc(e.projectName) })}

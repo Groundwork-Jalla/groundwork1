@@ -53,7 +53,7 @@ export function buildApplicationDecisionHtml(
   // the public marketing page, which is a dead end for somebody who has already signed up.
   const cta = accepted
     ? `<table cellpadding="0" cellspacing="0" style="margin:24px 0 4px;">
-         <tr><td style="background:#0a0a0a;border-radius:10px;">
+         <tr><td style="background:#006b5e;border-radius:8px;">
            <a href="${esc(claimToken ? `${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}` : `${siteUrl}/contractor-signup`)}"
               style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;">
              ${esc(t('email.decision.acceptedCta'))}
@@ -63,10 +63,10 @@ export function buildApplicationDecisionHtml(
     : '';
 
   return emailShell(lang, `
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a8a87;">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#006b5e;">
       ${esc(t('email.decision.eyebrow'))}
     </p>
-    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;font-weight:800;color:#0a0a0a;">
+    <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;font-weight:800;color:#122d2b;">
       ${esc(heading)}
     </h1>
     <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#3a3a38;">

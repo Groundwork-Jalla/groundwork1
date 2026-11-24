@@ -61,14 +61,14 @@ export async function sendMessage(
     void mirrorToCrm(messageId);
   }
 
-  // Notify other project members (fire-and-forget)
+  // Notify other project members (fire-and-forget) with a direct link to Messages
   notifyProjectMembers(
     projectId,
     senderId,
     'message_received',
     'New message',
     `${senderName} sent a message`,
-    { project_id: projectId },
+    { project_id: projectId, project_tab: 'messages', ...(messageId ? { message_id: messageId } : {}) },
     {
       titleKey: 'notifications.item.newMessage',
       bodyKey:  'notifications.item.newMessageBody',

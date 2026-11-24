@@ -1,4 +1,5 @@
 import { communicationSettings, composeCommunicationEmail, sendCommunicationEmail } from './communication-email.js';
+import { emailShell, primaryButton } from '../../src/lib/email/shell.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { groundworkOwnsCommunication } from './communication-ownership.js';
 import { pickLang, copyFor, ctaPath, stepTimeline, type Person, type Step, type Context } from '../../shared/lifecycle-copy.js';
@@ -19,12 +20,10 @@ type Svc = { from: (t: string) => any; rpc: (name: string, args: Record<string, 
 const HOUR = 3_600_000;
 
 export function emailHtml(body: string, cta: string, url: string | null): string {
-  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const paras = body.split(/\n{2,}/).map(t => `<p style="margin:0 0 16px">${esc(t).replace(/\n/g, '<br>')}</p>`).join('');
-  const button = cta && url
-    ? `<p style="margin:24px 0"><a href="${esc(url)}" style="background:#006b5e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(cta)}</a></p>`
-    : '';
-  return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:560px">${paras}${button}<p style="margin:24px 0 0;color:#777;font-size:12px">Groundwork by Jalla</p></div>`;
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const paras = body.split(/\n{2,}/).map(t => `<p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6;">${esc(t).replace(/\n/g, '<br>')}</p>`).join('');
+  const button = cta && url ? `<div style="margin:8px 0 0;">${primaryButton(esc(url), cta)}</div>` : '';
+  return emailShell('en', `${paras}${button}`);
 }
 
 /** A sequence for one audience never reaches somebody whose role is unknown. */
