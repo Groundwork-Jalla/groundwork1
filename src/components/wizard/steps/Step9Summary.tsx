@@ -453,12 +453,20 @@ export default function Step9Summary() {
     .some(plan => plan.facts.footprintSqm != null) ?? false;
   // Whether a floor count has been supplied, as opposed to defaulting to 1. Seeded
   // true for a draft that already carries more than one floor, so reopening one does
-  // not ask again for something already answered.
+  // not ask again for something already answered. On plan-only builds (no BOQ), the
+  // editable Floors field is always visible and valid whenever `data.floors >= 1`, so
+  // a 1-storey house never silently blocks Continue.
   const [floorsTouched, setFloorsTouched] = useState(data.floors > 1);
   const [manualFootprint, setManualFootprint] = useState(data.sqm > 0 ? String(data.sqm) : '');
+  const footprintEdited = useRef(false);
+  useEffect(() => {
+    if (!footprintEdited.current && data.sqm > 0 && !manualFootprint) {
+      setManualFootprint(String(data.sqm));
+    }
+  }, [data.sqm, manualFootprint]);
   const [budgetConfirmed, setBudgetConfirmed] = useState(false);
-  const hasValidFloors = hasExtractedFloors || floorsTouched;
-  const hasValidFootprint = hasExtractedFootprint || Number(manualFootprint) > 0;
+  const hasValidFloors = hasExtractedFloors || floorsTouched || (!hasBill && data.floors >= 1);
+  const hasValidFootprint = (hasBill && hasExtractedFootprint) || Number(manualFootprint) > 0 || data.sqm > 0;
   const validDateRange = !data.targetStartDate || !data.targetEndDate
     || data.targetEndDate >= data.targetStartDate;
   // Mandatory from 30 Oct 2026. Philip: "selecting a project start date must be made a
@@ -495,7 +503,7 @@ export default function Step9Summary() {
               className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black sm:col-span-3"
               required
             />
-            {!hasExtractedFootprint && (
+            {(!hasExtractedFootprint || !hasBill) && (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-brand-near-black">
                   {t('planGate.footprintRequired')}
@@ -503,6 +511,7 @@ export default function Step9Summary() {
                 <input
                   type="number" min="1" step="0.1" value={manualFootprint}
                   onChange={event => {
+                    footprintEdited.current = true;
                     setManualFootprint(event.target.value);
                     update({ sqm: Number(event.target.value) || 0 });
                   }}
