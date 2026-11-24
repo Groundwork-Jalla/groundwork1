@@ -1310,22 +1310,24 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                   </div>
                 </form>
               )}
-              <ConfirmModal
-                open={confirmStartStage}
-                title={t('wizard.joined.confirmChangeTitle')}
-                description={t('wizard.joined.confirmChangeBody', {
-                  from: currentStartStageNum,
-                  fromName: fromStageRow ? stageLabel(fromStageRow) : String(currentStartStageNum),
-                  to: nextStartStage,
-                  toName: toStageRow ? stageLabel(toStageRow) : String(nextStartStage),
-                })}
-                confirmLabel={t('wizard.joined.confirmChangeCta')}
-                cancelLabel={t('common.cancel')}
-                loading={savingStartStage}
-                error={startStageError}
-                onCancel={() => { if (!savingStartStage) setConfirmStartStage(false); }}
-                onConfirm={() => { void executeSaveStartingStage(); }}
-              />
+              {confirmStartStage && (
+                <ConfirmModal
+                  open={confirmStartStage}
+                  title={t('wizard.joined.confirmChangeTitle')}
+                  description={t('wizard.joined.confirmChangeBody', {
+                    from: currentStartStageNum,
+                    fromName: fromStageRow ? stageLabel(fromStageRow) : String(currentStartStageNum),
+                    to: nextStartStage,
+                    toName: toStageRow ? stageLabel(toStageRow) : String(nextStartStage),
+                  })}
+                  confirmLabel={t('wizard.joined.confirmChangeCta')}
+                  cancelLabel={t('common.cancel')}
+                  loading={savingStartStage}
+                  error={startStageError}
+                  onCancel={() => { if (!savingStartStage) setConfirmStartStage(false); }}
+                  onConfirm={() => { void executeSaveStartingStage(); }}
+                />
+              )}
             </div>
             <ul>
               {ordered.map(row => {
