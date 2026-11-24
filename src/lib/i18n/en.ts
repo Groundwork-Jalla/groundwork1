@@ -6082,6 +6082,7 @@ export const en = {
     noResultsFor: 'No results for “{query}”',
     s2Title: "What are you building?",
     s2Sub: "Select the primary use of your project.",
+    s2HavePlanLink: "Have an architecture plan? Upload it instead",
     s3Sub: "This helps us tailor the project setup experience to your building type.",
     s4Title: "How many floors?",
     s4Sub: "Include the ground floor. This affects structural estimates and staircase planning.",

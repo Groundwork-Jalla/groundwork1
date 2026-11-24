@@ -5968,6 +5968,7 @@ export const fr: Mirror<EnDict> = {
     noResultsFor: 'Aucun résultat pour « {query} »',
     s2Title: "Que construisez-vous ?",
     s2Sub: "Choisissez l'usage principal de votre projet.",
+    s2HavePlanLink: "Vous avez un plan architectural ? Importez-le plutôt",
     s3Sub: "Cela nous permet d'adapter la configuration à votre type de bâtiment.",
     s4Title: "Combien de niveaux ?",
     s4Sub: "Comptez le rez-de-chaussée. Cela influe sur les estimations structurelles et l'escalier.",

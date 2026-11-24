@@ -1,3 +1,4 @@
+import { Paperclip } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
@@ -93,8 +94,16 @@ export default function Step2ProjectType() {
     update({ projectType: value, ...reset });
   }
 
+  function returnToPlanQuestion() {
+    update({ hasArchitecturePlan: null });
+  }
+
   return (
-    <WizardShell canContinue={!!data.projectType} onContinue={next}>
+    <WizardShell
+      canContinue={!!data.projectType}
+      onContinue={next}
+      onBack={data.hasArchitecturePlan === false ? returnToPlanQuestion : undefined}
+    >
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           {t('wizard.s2Title')}
@@ -102,6 +111,17 @@ export default function Step2ProjectType() {
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
           {t('wizard.s2Sub')}
         </p>
+        {data.hasArchitecturePlan === false && (
+          <button
+            type="button"
+            data-action="switch-to-plan-upload"
+            onClick={returnToPlanQuestion}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-green underline underline-offset-4 hover:text-brand-green-hover"
+          >
+            <Paperclip className="size-3.5" aria-hidden />
+            {t('wizard.s2HavePlanLink')}
+          </button>
+        )}
 
         <div className="mt-7 grid grid-cols-2 gap-3">
           {OPTIONS.map(opt => (
