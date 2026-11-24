@@ -189,9 +189,9 @@ describe('the client never lets this break an upload', () => {
     // step needs is already in hand by then.
     const gate = read('src/components/wizard/ArchitecturePlanGate.tsx');
     // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
-    // stops holding the button once the grace period is out. Both documents are still
-    // required (plus the explicit plan-vouch checkbox when no plan evidence was found).
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning(?:\s*\|\|\s*\(uploadReading\.noPlanEvidence && !planVouched\))?\}/);
+    // stops holding the button once the grace period is out. Floor plan is required
+    // (plus the explicit plan-vouch checkbox when no plan evidence was found); BOQ is optional.
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| heldByRead \|\| boqScanning(?:\s*\|\|\s*\(uploadReading\.noPlanEvidence && !planVouched\))?\}/);
     expect(gate).not.toMatch(/\|\| looking\}/);
   });
 

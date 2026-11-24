@@ -185,13 +185,12 @@ describe('the question itself', () => {
     expect(copy).not.toMatch(/architectural design\b/i);
   });
 
-  it('requires both documents on the YES path', () => {
-    // Both are the point of that route. Somebody who cannot produce them belongs on
-    // the other branch, and Back is how they get there.
-    // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
-    // stops holding the button once the grace period is out. Both documents are still
-    // required, which is what this assertion is about.
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning \|\| \(uploadReading\.noPlanEvidence && !planVouched\)\}/);
+  it('requires a floor plan on the YES path while keeping BOQ optional', () => {
+    // A floor plan is always required on the YES path; BOQ is optional so users who have
+    // drawings without a BOQ can estimate from the plan and price stages later (24 Nov).
+    // When a BOQ IS attached, `boqScanning` still holds Continue until its read completes
+    // or the user picks manual entry.
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| heldByRead \|\| boqScanning \|\| \(uploadReading\.noPlanEvidence && !planVouched\)\}/);
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
@@ -335,8 +334,8 @@ describe('refreshing does not send anybody back to the first question', () => {
     expect(planQuestionDue(state({ hasPlanDoc: false, hasBqDoc: false, seen: false }))).toBe(true);
   });
 
-  it('and still asks when only one of the two was supplied', () => {
-    expect(planQuestionDue(state({ hasBqDoc: false, seen: false }))).toBe(true);
+  it('allows continuing with a floor plan alone when no BOQ is attached, while still asking if no floor plan was supplied', () => {
+    expect(planQuestionDue(state({ hasBqDoc: false, seen: false }))).toBe(false);
     expect(planQuestionDue(state({ hasPlanDoc: false, seen: false }))).toBe(true);
   });
 

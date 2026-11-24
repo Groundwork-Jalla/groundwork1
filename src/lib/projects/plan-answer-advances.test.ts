@@ -60,6 +60,23 @@ describe('the documents the answer produces satisfy the question that asked for 
     })).toBe(false);
   });
 
+  it('also advances cleanly when a floor plan is uploaded without a BOQ (24 Nov)', () => {
+    const planOnly: PlanAnswer = {
+      hasPlan: true,
+      floorPlans: [file('Floor Plan.pdf')],
+      bq: null,
+      reading: null,
+      lineItems: [],
+      floorPlanFacts: [{ ...NO_FLOOR_PLAN_FACTS }],
+      bqStatedFloors: null,
+    };
+    const planOnlyDocs = planDocuments(planOnly);
+    expect(planOnlyDocs.map(d => d.category)).toEqual(['floor_plan']);
+    expect(planQuestionDue({
+      step: 8, hasPlan: true, hasPlanDoc: true, hasBqDoc: false, seen: false,
+    })).toBe(false);
+  });
+
   it('asking only for the pre-179 category is what caused the loop', () => {
     // The bug, pinned as arithmetic rather than as prose: with the old test the
     // question stayed due and the wizard bounced straight back to the upload screen.

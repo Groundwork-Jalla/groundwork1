@@ -191,10 +191,9 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [cityRate, setCityRate]                 = useState<CityRate | null>(null);
   const [rateLoading, setRateLoading]           = useState(false);
   // Same pairing as PlanQuestionStep, and the same 179 rename: a plan is filed as
-  // 'floor_plan' now, 'other' before it. Asking only for 'other' here left
-  // `planDocumentsReady` false with both documents plainly attached.
-  const planDocumentsReady = docs.some(doc => doc.category === 'boq')
-    && docs.some(doc => doc.category === 'floor_plan' || doc.category === 'other');
+  // 'floor_plan' now, 'other' before it. A floor plan alone satisfies the document
+  // route when the user does not have a BOQ yet (24 Nov).
+  const planDocumentsReady = docs.some(doc => doc.category === 'floor_plan' || doc.category === 'other');
 
   /**
    * The documents were uploaded at some point in this run, even if a reload has since

@@ -189,6 +189,7 @@ export function planQuestionDue(state: {
   // On step 2 (e.g. Back from Summary on the document route), re-show the upload screen
   // so the user can review or replace their floor plans and BOQ without resetting to step 1.
   if (state.step === 2) return true;
-  // Answered YES: due only while the documents are still genuinely outstanding.
-  return !(state.hasPlanDoc && state.hasBqDoc) && !state.seen;
+  // Answered YES: a floor plan satisfies the gate (BOQ is optional); `seen` keeps
+  // reload-dropped files from re-opening the gate mid-wizard.
+  return !state.hasPlanDoc && !state.seen;
 }

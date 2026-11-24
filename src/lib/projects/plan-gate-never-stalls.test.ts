@@ -80,9 +80,9 @@ describe('the read runs in full', () => {
 describe('and it never silently holds the button', () => {
   const body = code(GATE);
 
-  it('normal Continue waits for the bill, while a slow bill offers explicit manual entry', () => {
+  it('normal Continue waits for the floor plan and any attached bill, while a slow bill offers explicit manual entry', () => {
     expect(body).toMatch(/const heldByRead = scanning && readSeconds < READ_GRACE_SECONDS;/);
-    expect(body).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning(?:\s*\|\|\s*\(uploadReading\.noPlanEvidence && !planVouched\))?\}/);
+    expect(body).toMatch(/disabled=\{!floorPlans\.length \|\| heldByRead \|\| boqScanning(?:\s*\|\|\s*\(uploadReading\.noPlanEvidence && !planVouched\))?\}/);
     expect(body).toContain('boqReadSeconds >= READ_GRACE_SECONDS');
     expect(body).toContain("t('planGate.enterTotalManually')");
     expect(body).toContain('floorPlans, bq, reading: null, lineItems: []');

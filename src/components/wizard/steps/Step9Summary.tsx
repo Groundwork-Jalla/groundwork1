@@ -316,7 +316,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
   const t = useT();
   const { lang } = useLanguage();
   const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft,
-    documentExtraction, pendingDocuments, planDocumentsSeen } = useWizard();
+    documentExtraction, pendingDocuments } = useWizard();
   // An unreadable bill requires its amount to be entered; an estimate cannot replace it.
   /**
    * The confirmed budget, in the money of the country being built in.
@@ -362,8 +362,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
    * Only an estimated build, with no bill to read, is converted — and there the
    * dollars are the original and the local figure is the derived one.
    */
-  const hasBill = !!data.boqBudget || (pendingDocuments ?? []).some(d => d.category === 'boq')
-    || (data.hasArchitecturePlan === true && planDocumentsSeen);
+  const hasBill = !!data.boqBudget || (pendingDocuments ?? []).some(d => d.category === 'boq');
   const reading = documentExtraction?.bqReading;
   const billTotal = billTotalSuggestion(data.boqBudget, reading);
   const estimate = billTotal ?? (hasBill ? 0
@@ -392,6 +391,11 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
         {t('wizard.confirmBudget.glanceTitle')}
       </label>
       <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.glanceSub')}</p>
+      {data.hasArchitecturePlan === true && !hasBill && (
+        <p className="rounded-lg border border-brand-green/25 bg-brand-green/[0.04] px-3 py-2 text-xs leading-relaxed text-brand-near-black" data-estimate-from-plan-note>
+          {t('planGate.estimateFromPlanNote')}
+        </p>
+      )}
       <div className="relative">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-brand-mid-grey">
           {currencyCode}
@@ -437,8 +441,9 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
 export default function Step9Summary() {
   const labels = useDomainLabels();
   const t = useT();
-  const { data, update, documentExtraction } = useWizard();
+  const { data, update, documentExtraction, pendingDocuments } = useWizard();
   const documentFlow = data.hasArchitecturePlan === true;
+  const hasBill = !!data.boqBudget || (pendingDocuments ?? []).some(d => d.category === 'boq');
   // The drawing OR the bill. A ground plan with a staircase never states its storey
   // count; its bill names the building in the title — "Mr.NAS G + 1" — and that is
   // just as much a figure read from the documents.
@@ -552,7 +557,7 @@ export default function Step9Summary() {
           )}
         </div>
 
-        {documentFlow
+        {documentFlow && hasBill
           ? <DocumentBudgetBreakdown />
           : <div className="mt-6"><BudgetBreakdownCard /></div>}
 

@@ -84,8 +84,7 @@ export default function Step11ConfirmBudget() {
    * like any other. Only an attached bill makes the confirmed total a document's own
    * number — which is what decides whether it may be reduced below what they approved.
    */
-  const hasBillOfQuantities = !!data.boqBudget || (pendingDocuments ?? []).some(doc => doc.category === 'boq')
-    || (documentFlow && planDocumentsSeen);
+  const hasBillOfQuantities = !!data.boqBudget || (pendingDocuments ?? []).some(doc => doc.category === 'boq');
   const opening   = data.bqTotalUsd ?? (documentFlow ? null : estimate);
   // The budget is confirmed on the summary screen; this step only reads it.
   const raw = confirmationDraft?.raw
@@ -97,7 +96,7 @@ export default function Step11ConfirmBudget() {
   const [needsReattachment] = useState(confirmationDraft?.hadAttachment === true);
 
   /**
-   * They uploaded a plan and a bill, and a reload threw the Files away.
+   * They uploaded a plan (and optionally a bill), and a reload threw the Files away.
    *
    * The wizard no longer sends them back to the architecture-plan question over this
    * — that is what put partners back at the very first screen — but the documents
@@ -107,7 +106,7 @@ export default function Step11ConfirmBudget() {
    */
   const planFilesLost = data.hasArchitecturePlan === true && planDocumentsSeen
     && !((pendingDocuments ?? []).some(doc => doc.category === 'floor_plan')
-      && (pendingDocuments ?? []).some(doc => doc.category === 'boq'));
+      && (!hasBillOfQuantities || (pendingDocuments ?? []).some(doc => doc.category === 'boq')));
 
   // ── A build that was already under way (103) ──────────────────────────────────────
   // Admin-only, because only the admin path can mark stages as already built. A partner

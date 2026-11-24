@@ -348,7 +348,7 @@ export function ArchitecturePlanGate({
           onError={setError}
         />
         <Drop
-          label={t('planGate.bq')} hint={t('planGate.bqHint')}
+          label={t('planGate.bqOptional')} hint={t('planGate.bqOptionalHint')}
           file={bq} busy={boqScanning} kind="boq" accept={BOQ_ACCEPT_ATTR}
           onPick={selection => {
             const file = Array.isArray(selection) ? selection[0] ?? null : selection;
@@ -365,6 +365,12 @@ export function ArchitecturePlanGate({
           onError={setError}
         />
       </div>
+
+      {floorPlans.length > 0 && !bq && !uploadReading.notADrawing && (
+        <p className="mt-4 rounded-xl border border-brand-green/25 bg-brand-green/[0.04] px-4 py-3 text-xs leading-relaxed text-brand-near-black dark:text-white" data-plan-without-boq-note>
+          {t('planGate.noBoqNote')}
+        </p>
+      )}
 
       {/* The total and nothing else.
           
@@ -534,8 +540,9 @@ export function ArchitecturePlanGate({
         <fieldset disabled={uploadReading.notADrawing} data-refused={uploadReading.notADrawing || undefined} className="m-0 ml-auto min-w-0 border-0 p-0">
         <motion.button
           type="button" whileTap={{ scale: 0.99 }}
-          // A pending bill must finish or the person explicitly chooses manual entry.
-          disabled={!floorPlans.length || !bq || heldByRead || boqScanning || (uploadReading.noPlanEvidence && !planVouched)}
+          // Floor plan is required; BOQ is optional. If a BOQ was attached, wait for its read
+          // or let the user take the manual-entry shortcut after the grace period.
+          disabled={!floorPlans.length || heldByRead || boqScanning || (uploadReading.noPlanEvidence && !planVouched)}
           onClick={() => { if (!uploadReading.notADrawing && !(uploadReading.noPlanEvidence && !planVouched)) onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
           }); }}
