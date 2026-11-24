@@ -163,3 +163,17 @@ export function clearWizardDraft(key?: string): void {
   if (!key) return;
   try { sessionStorage.removeItem(key); } catch { /* Browser storage is optional. */ }
 }
+
+/** Clear all saved wizard & client-onboarding drafts in this tab (e.g. on sign-out). */
+export function clearAllWizardDrafts(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && (k.startsWith('groundwork:own-project:') || k.startsWith('groundwork:client-project:') || k.startsWith('groundwork:managed-project:') || k.startsWith('groundwork:client-onboarding:'))) {
+        keys.push(k);
+      }
+    }
+    for (const k of keys) sessionStorage.removeItem(k);
+  } catch { /* Browser storage is optional. */ }
+}

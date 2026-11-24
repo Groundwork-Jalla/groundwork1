@@ -5,6 +5,7 @@ import { useAccountAccess } from '@/hooks/useAccountAccess';
 import type { AccountRole } from '@/lib/auth/account-role';
 import { parseStaffRoles, type StaffRole } from '@/lib/admin/rbac';
 import { supabase } from "@/lib/supabase/client";
+import { clearAllWizardDrafts } from "@/lib/projects/wizard-draft";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
 import { recordCrmContact } from "@/lib/auth/record-crm-contact";
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signOut() {
+    clearAllWizardDrafts();
     await supabase.auth.signOut();
   }
 
