@@ -14,6 +14,9 @@ export default [
     // Required by Google OAuth verification and Stripe before going live.
     route("privacy",           "routes/privacy.tsx"),
     route("terms",             "routes/terms.tsx"),
+    // The exact Contractor Platform Terms of Service signed during onboarding — public so
+    // prospective contractors can review before creating an account.
+    route("contractor-terms",  "routes/contractor-terms.tsx"),
     // The instrument a contractor signs at /work/onboarding (116). Public, because
     // a signature on a document somebody could not read is not a signature.
     route("partner-agreement", "routes/partner-agreement.tsx"),
