@@ -1192,8 +1192,11 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
     sub => (sub.evidence_urls?.length ?? 0) > 0 || !!sub.approved_at,
   );
   const hasRecordedStageWork = ordered.some(
-    row => (!row.pre_existing && (row.status === 'complete' || row.status === 'pending_review' || row.payment_status === 'paid'))
-      || isRowPaidUpfront(row),
+    row => (!row.pre_existing && (
+      row.status === 'complete'
+      || row.status === 'pending_review'
+      || (Number(row.payment_milestone_usd ?? 0) > 0 && row.payment_status === 'paid')
+    )) || isRowPaidUpfront(row),
   );
   const canChangeStartingStage = (canConfirmPayments || isOwner)
     && project.status !== 'archived'
