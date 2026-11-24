@@ -18,6 +18,7 @@ import { EvidenceThumbs } from '@/components/project/EvidenceThumbs';
 import { DocumentViewer } from '@/components/project/DocumentViewer';
 import { ProjectDocuments } from '@/components/project/ProjectDocuments';
 import { ReceiptDecisionDialog } from '@/components/contractor/ReceiptDecisionDialog';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { ProjectExchangeRateNote } from '@/components/project/ExchangeRateNote';
@@ -937,10 +938,12 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const [breakdownCtrl, setBreakdownCtrl] = useState<StageBreakdownInlineState | null>(null);
   const [editingStartStage, setEditingStartStage] = useState(false);
   const [nextStartStage, setNextStartStage] = useState(1);
+  const [confirmStartStage, setConfirmStartStage] = useState(false);
   const [savingStartStage, setSavingStartStage] = useState(false);
   const [startStageError, setStartStageError] = useState<string | null>(null);
   useEffect(() => {
     setEditingStartStage(false);
+    setConfirmStartStage(false);
     setStartStageError(null);
   }, [project.id]);
   const selectedIdForPlan = selected?.id ?? '';
@@ -1206,17 +1209,24 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
     && !hasRecordedEvidence
     && !hasRecordedStageWork;
 
-  async function handleSaveStartingStage(e: React.FormEvent) {
+  function handleSaveStartingStage(e: React.FormEvent) {
     e.preventDefault();
     if (savingStartStage) return;
     if (nextStartStage === currentStartStageNum) {
       setEditingStartStage(false);
       return;
     }
+    setStartStageError(null);
+    setConfirmStartStage(true);
+  }
+
+  async function executeSaveStartingStage() {
+    if (savingStartStage) return;
     setSavingStartStage(true);
     setStartStageError(null);
     try {
       await updateProjectStartingStage(project.id, nextStartStage);
+      setConfirmStartStage(false);
       setEditingStartStage(false);
       const targetRow = ordered.find(row => row.stage_number === nextStartStage);
       await onSubmitted();
@@ -1230,6 +1240,9 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
       setSavingStartStage(false);
     }
   }
+
+  const fromStageRow = ordered.find(row => row.stage_number === currentStartStageNum);
+  const toStageRow = ordered.find(row => row.stage_number === nextStartStage);
 
   const card = 'rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]';
   return (
@@ -1289,7 +1302,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                     <button
                       type="button"
                       disabled={savingStartStage}
-                      onClick={() => { setEditingStartStage(false); setStartStageError(null); }}
+                      onClick={() => { setEditingStartStage(false); setConfirmStartStage(false); setStartStageError(null); }}
                       className="rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:border-[#3a3a3a]"
                     >
                       {t('common.cancel')}
@@ -1297,6 +1310,22 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                   </div>
                 </form>
               )}
+              <ConfirmModal
+                open={confirmStartStage}
+                title={t('wizard.joined.confirmChangeTitle')}
+                description={t('wizard.joined.confirmChangeBody', {
+                  from: currentStartStageNum,
+                  fromName: fromStageRow ? stageLabel(fromStageRow) : String(currentStartStageNum),
+                  to: nextStartStage,
+                  toName: toStageRow ? stageLabel(toStageRow) : String(nextStartStage),
+                })}
+                confirmLabel={t('wizard.joined.confirmChangeCta')}
+                cancelLabel={t('common.cancel')}
+                loading={savingStartStage}
+                error={startStageError}
+                onCancel={() => { if (!savingStartStage) setConfirmStartStage(false); }}
+                onConfirm={() => { void executeSaveStartingStage(); }}
+              />
             </div>
             <ul>
               {ordered.map(row => {

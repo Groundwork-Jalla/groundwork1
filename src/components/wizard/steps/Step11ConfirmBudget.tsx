@@ -29,6 +29,7 @@ import { errorMessage } from '@/lib/errors';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 import { useUsdQuote, useUsdRate } from '@/lib/budget/live-fx';
 import { UsdQuoteNote } from '@/components/project/ExchangeRateNote';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
 
@@ -59,6 +60,7 @@ export default function Step11ConfirmBudget() {
   const [initialAmount, setInitialAmount]         = useState('');
   const [initialStages, setInitialStages]         = useState<number[]>([]);
   const [initialNote, setInitialNote]             = useState('');
+  const [confirmingCreate, setConfirmingCreate]   = useState(false);
   const fileRef   = useRef<HTMLInputElement>(null);
   const attachmentGeneration = useRef(0);
   useEffect(() => () => { attachmentGeneration.current++; }, []);
@@ -706,13 +708,29 @@ export default function Step11ConfirmBudget() {
           <motion.button
             type="button"
             disabled={!canSubmit}
-            onClick={handleCreate}
+            onClick={() => { if (canSubmit) setConfirmingCreate(true); }}
             whileTap={{ scale: 0.99 }}
             className="w-full rounded-xl bg-brand-green text-white text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-40 inline-flex items-center justify-center gap-2"
           >
             {busy && <Loader2 className="size-4 animate-spin" />}
             {busy ? t('wizard.confirmBudget.creating') : t('wizard.confirmBudget.cta')}
           </motion.button>
+
+          <ConfirmModal
+            open={confirmingCreate}
+            title={t('wizard.joined.confirmCreateTitle')}
+            description={startStage === 1
+              ? t('wizard.joined.confirmCreateFromStart', { name: stageLabel(1) })
+              : t('wizard.joined.confirmCreateMidBuild', { n: startStage, name: stageLabel(startStage), prev: startStage - 1 })}
+            confirmLabel={t('wizard.joined.confirmCreateCta')}
+            cancelLabel={t('wizard.joined.confirmCreateCancel')}
+            loading={busy}
+            onCancel={() => setConfirmingCreate(false)}
+            onConfirm={() => {
+              setConfirmingCreate(false);
+              void handleCreate();
+            }}
+          />
 
         </div>
       </div>

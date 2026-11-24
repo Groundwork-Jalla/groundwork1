@@ -657,10 +657,12 @@ export function StageTracker({
   const [certificate, setCertificate] = useState<{ projectId: string; name: string; url: string } | null>(null);
   const [editingStartStage, setEditingStartStage] = useState(false);
   const [nextStartStage, setNextStartStage] = useState(1);
+  const [confirmStartStage, setConfirmStartStage] = useState(false);
   const [savingStartStage, setSavingStartStage] = useState(false);
   const [startStageError, setStartStageError] = useState<string | null>(null);
   useEffect(() => {
     setEditingStartStage(false);
+    setConfirmStartStage(false);
     setStartStageError(null);
   }, [projectId]);
 
@@ -740,13 +742,19 @@ export function StageTracker({
     && !hasRecordedEvidence
     && !hasRecordedStageWork;
 
-  async function handleSaveStartingStage(e: React.FormEvent) {
+  function handleSaveStartingStage(e: React.FormEvent) {
     e.preventDefault();
     if (savingStartStage) return;
     if (nextStartStage === currentStartStageNum) {
       setEditingStartStage(false);
       return;
     }
+    setStartStageError(null);
+    setConfirmStartStage(true);
+  }
+
+  async function executeSaveStartingStage() {
+    if (savingStartStage) return;
     setSavingStartStage(true);
     setStartStageError(null);
     try {
@@ -756,6 +764,7 @@ export function StageTracker({
       observedStage.current = { projectId, id: targetRow?.id ?? null };
       setNextAction(null);
       setSelection({ projectId, stageId: targetRow?.id ?? null, follow: true });
+      setConfirmStartStage(false);
       setEditingStartStage(false);
       await onPaymentChanged();
     } catch (err) {
@@ -768,42 +777,63 @@ export function StageTracker({
     }
   }
 
+  const fromStageRow = orderedStages.find(row => row.stage_number === currentStartStageNum);
+  const toStageRow = orderedStages.find(row => row.stage_number === nextStartStage);
+
   const startStageForm = canChangeStartingStage && editingStartStage ? (
-    <form onSubmit={handleSaveStartingStage} className="mt-3 space-y-2 rounded-xl border border-brand-border-grey bg-brand-off-white/60 p-3" data-change-starting-stage-form>
-      <label className="block">
-        <span className="block text-xs font-semibold text-brand-near-black">{t('wizard.joined.stageLabel')}</span>
-        <select
-          value={nextStartStage}
-          onChange={e => setNextStartStage(Number(e.target.value))}
-          disabled={savingStartStage}
-          className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black focus:border-brand-green focus:outline-none"
-        >
-          {orderedStages.slice(0, -1).map(row => (
-            <option key={row.id} value={row.stage_number}>{row.stage_number}. {stageLabel(row)}</option>
-          ))}
-        </select>
-      </label>
-      <p className="text-[11px] leading-relaxed text-brand-mid-grey">{t('wizard.joined.changeStartStageHint')}</p>
-      {startStageError && <p role="alert" className="text-[11px] font-medium text-state-blocked">{startStageError}</p>}
-      <div className="flex flex-wrap items-center gap-2 pt-0.5">
-        <button
-          type="submit"
-          disabled={savingStartStage}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-50"
-        >
-          {savingStartStage && <Loader2 className="size-3 animate-spin" aria-hidden />}
-          {t('wizard.joined.changeStartStageSave')}
-        </button>
-        <button
-          type="button"
-          disabled={savingStartStage}
-          onClick={() => { setEditingStartStage(false); setStartStageError(null); }}
-          className="rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black"
-        >
-          {t('common.cancel')}
-        </button>
-      </div>
-    </form>
+    <>
+      <form onSubmit={handleSaveStartingStage} className="mt-3 space-y-2 rounded-xl border border-brand-border-grey bg-brand-off-white/60 p-3" data-change-starting-stage-form>
+        <label className="block">
+          <span className="block text-xs font-semibold text-brand-near-black">{t('wizard.joined.stageLabel')}</span>
+          <select
+            value={nextStartStage}
+            onChange={e => setNextStartStage(Number(e.target.value))}
+            disabled={savingStartStage}
+            className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black focus:border-brand-green focus:outline-none"
+          >
+            {orderedStages.slice(0, -1).map(row => (
+              <option key={row.id} value={row.stage_number}>{row.stage_number}. {stageLabel(row)}</option>
+            ))}
+          </select>
+        </label>
+        <p className="text-[11px] leading-relaxed text-brand-mid-grey">{t('wizard.joined.changeStartStageHint')}</p>
+        {startStageError && <p role="alert" className="text-[11px] font-medium text-state-blocked">{startStageError}</p>}
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <button
+            type="submit"
+            disabled={savingStartStage}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover disabled:opacity-50"
+          >
+            {savingStartStage && <Loader2 className="size-3 animate-spin" aria-hidden />}
+            {t('wizard.joined.changeStartStageSave')}
+          </button>
+          <button
+            type="button"
+            disabled={savingStartStage}
+            onClick={() => { setEditingStartStage(false); setConfirmStartStage(false); setStartStageError(null); }}
+            className="rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black"
+          >
+            {t('common.cancel')}
+          </button>
+        </div>
+      </form>
+      <ConfirmModal
+        open={confirmStartStage}
+        title={t('wizard.joined.confirmChangeTitle')}
+        description={t('wizard.joined.confirmChangeBody', {
+          from: currentStartStageNum,
+          fromName: fromStageRow ? stageLabel(fromStageRow) : String(currentStartStageNum),
+          to: nextStartStage,
+          toName: toStageRow ? stageLabel(toStageRow) : String(nextStartStage),
+        })}
+        confirmLabel={t('wizard.joined.confirmChangeCta')}
+        cancelLabel={t('common.cancel')}
+        loading={savingStartStage}
+        error={startStageError}
+        onCancel={() => { if (!savingStartStage) setConfirmStartStage(false); }}
+        onConfirm={() => { void executeSaveStartingStage(); }}
+      />
+    </>
   ) : null;
 
   const detail = selectedStage ? (
