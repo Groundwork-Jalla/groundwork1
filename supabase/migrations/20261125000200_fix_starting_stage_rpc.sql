@@ -99,7 +99,10 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM public.project_substages
      WHERE project_id = p_project_id
-       AND (COALESCE(cardinality(evidence_urls), 0) > 0 OR approved_at IS NOT NULL)
+       AND (
+         (jsonb_typeof(evidence_urls) = 'array' AND jsonb_array_length(evidence_urls) > 0)
+         OR approved_at IS NOT NULL
+       )
   ) THEN
     RAISE EXCEPTION 'starting_stage_locked: evidence has already been uploaded on this project';
   END IF;
@@ -138,7 +141,7 @@ BEGIN
   END IF;
 
   v_is_boq := COALESCE(v_project.budget_source, '') = 'boq';
-  v_verify := COALESCE(v_project.tier, '') IN ('verified', 'management');
+  v_verify := COALESCE(v_project.tier, '') IN ('jalla_verify', 'jalla_management');
 
   -- Recover full construction pool from active/locked stages so moving the starting
   -- stage BACKWARD (e.g. from Stage 5 to Stage 3) restores milestone amounts cleanly.
@@ -208,7 +211,7 @@ BEGIN
 
   -- 5. Update project pointers.
   UPDATE public.projects
-     SET joined_at_stage = v_start,
+     SET joined_at_stage = CASE WHEN v_start > 1 THEN v_start ELSE NULL END,
          current_stage   = v_start,
          updated_at      = now()
    WHERE id = p_project_id;
