@@ -89,9 +89,16 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen,
         {editing.context.stages.map(stage => <div key={stage.id} className="grid grid-cols-3 items-center gap-3 border-b border-brand-border-grey pb-3 text-xs dark:border-[#2c2c2c]">
           <label htmlFor={`stage-price-${stage.id}`} className="min-w-36 flex-1">{stageLabel(stage)}{!stage.editable && <span className="mt-1 block text-brand-mid-grey">{t('project.priceChanges.held')}</span>}</label>
           <span className="font-mono break-all">{format(stage.amount,editing.context.currency)}</span>
-          {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? stage.amount ?? ''}
-            onChange={event => { const raw = event.target.value; setDraft({ ...editing, amounts: { ...editing.amounts, [stage.id]: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw } }); }}
-            className="min-w-0 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono" /> : <span className="font-mono">{format(stage.amount, editing.context.currency)}</span>}
+          {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? ''}
+            placeholder={stage.amount != null ? format(stage.amount, editing.context.currency) : ''}
+            onChange={event => {
+              const raw = event.target.value;
+              const nextAmounts = { ...editing.amounts };
+              if (!raw.trim()) delete nextAmounts[stage.id];
+              else nextAmounts[stage.id] = /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw;
+              setDraft({ ...editing, amounts: nextAmounts });
+            }}
+            className="min-w-0 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono placeholder:text-brand-mid-grey/50" /> : <span className="font-mono">{format(stage.amount, editing.context.currency)}</span>}
         </div>)}
         <p className="text-sm">{t('project.priceChanges.currentTotal', { amount: format(editing.context.total, editing.context.currency) })}</p>
         <p className="text-sm font-semibold">{t('project.priceChanges.proposedTotal', { amount: preview ? format(preview.total, editing.context.currency) : '—' })}</p>

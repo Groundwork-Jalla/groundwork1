@@ -31,6 +31,7 @@ describe('stage price proposals and client decisions', () => {
   it('lets the primary contractor prepare a new total while fixed stages remain without inputs', async () => {
     await load(); render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.propose')!.props.onClick();
     expect(render().some(e => e.props.name === 'stage-price-land')).toBe(false);
+    expect(render().find(e => e.props.name === 'stage-price-stage')!.props.value).toBe('');
     render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '72000' } });
     expect(text(render())).toContain('192,000 XAF');
     render().find(e => e.type === 'textarea')!.props.onChange({ target: { value: 'Homeowner added a boys quarters' } });
