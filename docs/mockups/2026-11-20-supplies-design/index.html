@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Groundwork Supplies — Interactive Product Demos</title>
+<style>
+  :root {
+    --dg: #122D2B;
+    --dg-2: #0D2220;
+    --teal: #006B5E;
+    --teal-hover: #00584D;
+    --teal-soft: #E8F4F2;
+    --teal-border: #BFE0DA;
+    --canvas: #F5F7F6;
+    --white: #FFFFFF;
+    --ink: #162322;
+    --ink-70: #465755;
+    --ink-50: #6C7D7B;
+    --border: #DCE5E3;
+    --amber-bg: #FEF7E7;
+    --amber-ink: #8C5A08;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0D2220 0%, #122D2B 52%, #006B5E 100%);
+    color: #ffffff;
+    padding: 40px 24px 52px;
+  }
+  .hero-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 18px;
+  }
+  .brand-name { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 11px; color: #B8DDD7; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+  .pill {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #E7F6F3;
+  }
+  h1 {
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 850;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 15.5px;
+    line-height: 1.58;
+    color: #D6EEE9;
+    max-width: 720px;
+  }
+
+  .main {
+    max-width: 1080px;
+    width: 100%;
+    margin: -28px auto 48px;
+    padding: 0 24px;
+    flex: 1;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 12px 28px rgba(18, 45, 43, 0.06);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--teal);
+    box-shadow: 0 18px 34px rgba(0, 107, 94, 0.12);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: var(--teal-soft);
+    border: 1px solid var(--teal-border);
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .step-pill {
+    font-size: 11.5px;
+    font-weight: 750;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--canvas);
+    border: 1px solid var(--border);
+    color: var(--dg);
+  }
+  .card h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--dg);
+    letter-spacing: -0.015em;
+  }
+  .audience {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--teal);
+    margin-top: 3px;
+  }
+  .desc {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-70);
+  }
+  .flow-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--canvas);
+    border: 1px solid var(--border);
+  }
+  .flow-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink-70);
+  }
+  .flow-num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    background: var(--teal);
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: 750;
+    padding: 13px 16px;
+    border-radius: 11px;
+    transition: background 0.15s ease;
+  }
+  .btn-primary:hover { background: var(--teal-hover); }
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    background: #ffffff;
+    color: var(--dg);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 14px;
+    border-radius: 10px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-secondary:hover { border-color: var(--teal); background: var(--teal-soft); }
+
+  .tip-bar {
+    margin-top: 24px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--teal);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13.5px;
+    color: var(--ink-70);
+  }
+  .tip-bar strong { color: var(--dg); }
+
+  footer {
+    text-align: center;
+    padding: 20px 24px 32px;
+    font-size: 12.5px;
+    color: var(--ink-50);
+  }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand-row">
+        <div class="brand">
+          <div class="brand-mark">G</div>
+          <div>
+            <div class="brand-name">Groundwork Supplies</div>
+            <div class="brand-sub">Interactive Product Demos · Offline Ready</div>
+          </div>
+        </div>
+        <div class="pill">3 Separate Role Flows · Plain Language</div>
+      </div>
+      <h1>Choose Which Experience You Want to Present</h1>
+      <p>
+        Each demo below is completely separate and self-explanatory—built for one specific audience with a step-by-step presenter guide, clickable buttons, and Desktop / Mobile preview.
+      </p>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="grid">
+      <!-- 1. Supplier Portal -->
+      <article class="card">
+        <div class="card-top">
+          <div class="icon-box">🏪</div>
+          <span class="step-pill">8 Guided Steps</span>
+        </div>
+        <div>
+          <h2>Supplier Portal Demo</h2>
+          <div class="audience">For Material Depots &amp; Suppliers</div>
+        </div>
+        <p class="desc">
+          Walks a supplier calmly from Day 1 sign-up to receiving direct payments and tracking deliveries—without technical jargon or crowded tables.
+        </p>
+        <ul class="flow-list">
+          <li><span class="flow-num">1</span><span>Create Supplier Account &amp; Business Check (KYB)</span></li>
+          <li><span class="flow-num">2</span><span>Store Setup, Delivery Zones &amp; Direct Bank/MoMo</span></li>
+          <li><span class="flow-num">3</span><span>Upload Products (1-Click Excel Sheet or Single Item)</span></li>
+          <li><span class="flow-num">4</span><span>Live Catalogue, Incoming Orders &amp; Receipt Check</span></li>
+          <li><span class="flow-num">5</span><span>Send Truck, Track Delivery, Chat Quotes &amp; Staff</span></li>
+        </ul>
+        <div class="actions">
+          <a class="btn-primary" href="supplier-demo.html">Open Supplier Demo →</a>
+          <a class="btn-secondary" href="Groundwork-Supplier-Portal-Demo.pdf" target="_blank">📄 View Supplier Walkthrough PDF</a>
+        </div>
+      </article>
+
+      <!-- 2. Homeowner Supplies -->
+      <article class="card">
+        <div class="card-top">
+          <div class="icon-box">🏡</div>
+          <span class="step-pill">5 Guided Steps</span>
+        </div>
+        <div>
+          <h2>Homeowner Supplies Demo</h2>
+          <div class="audience">For Diaspora &amp; Local Homeowners</div>
+        </div>
+        <p class="desc">
+          Shows how a Homeowner buys verified building materials with zero hidden markup—paying the depot directly and seeing delivery proof on site.
+        </p>
+        <ul class="flow-list">
+          <li><span class="flow-num">1</span><span>Browse Verified Depots Near Your Site</span></li>
+          <li><span class="flow-num">2</span><span>Pick Materials or Review Contractor’s List</span></li>
+          <li><span class="flow-num">3</span><span>Clean Total &amp; Optional On-Site Verifier Check</span></li>
+          <li><span class="flow-num">4</span><span>Pay Supplier Directly &amp; Upload Receipt</span></li>
+          <li><span class="flow-num">5</span><span>Track Truck &amp; View Site Offload Photos</span></li>
+        </ul>
+        <div class="actions">
+          <a class="btn-primary" href="homeowner-demo.html">Open Homeowner Demo →</a>
+          <a class="btn-secondary" href="Groundwork-Homeowner-Supplies-Demo.pdf" target="_blank">📄 View Homeowner Walkthrough PDF</a>
+        </div>
+      </article>
+
+      <!-- 3. Contractor Supplies -->
+      <article class="card">
+        <div class="card-top">
+          <div class="icon-box">👷</div>
+          <span class="step-pill">5 Guided Steps</span>
+        </div>
+        <div>
+          <h2>Contractor Supplies Demo</h2>
+          <div class="audience">For Builders &amp; Site Engineers</div>
+        </div>
+        <p class="desc">
+          Shows how a contractor builds a stage material list, sends it straight to the Homeowner to pay (0% markup), and signs off at the site gate.
+        </p>
+        <ul class="flow-list">
+          <li><span class="flow-num">1</span><span>Active Stage Material Needs &amp; Verified Depots</span></li>
+          <li><span class="flow-num">2</span><span>Build Stage List &amp; Request Bulk Delivery Quote</span></li>
+          <li><span class="flow-num">3</span><span>Send Order to Homeowner to Pay Directly</span></li>
+          <li><span class="flow-num">4</span><span>Track Approved Order &amp; Truck ETA</span></li>
+          <li><span class="flow-num">5</span><span>Count Bags &amp; Sign Off at the Site Gate</span></li>
+        </ul>
+        <div class="actions">
+          <a class="btn-primary" href="contractor-demo.html">Open Contractor Demo →</a>
+          <a class="btn-secondary" href="Groundwork-Contractor-Supplies-Demo.pdf" target="_blank">📄 View Contractor Walkthrough PDF</a>
+        </div>
+      </article>
+    </div>
+
+    <div class="tip-bar">
+      <div>
+        <strong>Presenter Tip:</strong> Inside each demo, use <strong>Next Step →</strong> at the top to walk through the story step by step, or click any green button inside the screen to try it live. Use <strong>Mobile View</strong> to preview how it looks on a phone.
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Groundwork by Jalla · Supplies Interactive Demo Suite · Works 100% offline in any browser
+  </footer>
+</body>
+</html>

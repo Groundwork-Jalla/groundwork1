@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Groundwork Supplies — Contractor Demo (5 Steps)</title>
+<style>
+  :root {
+    --dg: #122D2B;
+    --dg-2: #0C1F1D;
+    --teal: #006B5E;
+    --teal-hover: #00584D;
+    --teal-soft: #E8F4F2;
+    --teal-border: #BFE0DA;
+    --canvas: #F5F7F6;
+    --white: #FFFFFF;
+    --ink: #162322;
+    --ink-70: #465755;
+    --ink-50: #6C7D7B;
+    --border: #DCE5E3;
+    --amber-bg: #FEF7E7;
+    --amber-border: #F3D999;
+    --amber-ink: #8C5A08;
+    --red-bg: #FEF3F2;
+    --red-border: #FECDCA;
+    --red-ink: #B42318;
+    --green-bg: #ECFDF3;
+    --green-border: #ABEFC6;
+    --green-ink: #067647;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+    background: #E8EEEC;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .guide-bar {
+    background: var(--dg-2); color: #fff; padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.12); position: sticky; top: 0; z-index: 40;
+  }
+  .guide-inner {
+    max-width: 1220px; margin: 0 auto; display: flex; align-items: center;
+    justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+  .guide-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .back-hub {
+    color: #B8DDD7; text-decoration: none; font-size: 12.5px; font-weight: 700;
+    padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.08); white-space: nowrap;
+  }
+  .back-hub:hover { background: rgba(255,255,255,0.16); color: #fff; }
+  .guide-badge {
+    background: var(--teal); color: #fff; font-size: 11.5px; font-weight: 800;
+    padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .guide-caption { font-size: 13.5px; color: #E4F4F1; line-height: 1.35; }
+  .guide-caption strong { color: #fff; }
+  .guide-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .g-btn {
+    border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); color: #fff;
+    font-size: 12.5px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .g-btn:hover { background: rgba(255,255,255,0.16); }
+  .g-btn.primary { background: var(--teal); border-color: var(--teal); }
+  .g-btn.primary:hover { background: var(--teal-hover); }
+  .g-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .step-strip { background: #163633; padding: 8px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); overflow-x: auto; }
+  .step-strip-inner { max-width: 1220px; margin: 0 auto; display: flex; gap: 8px; min-width: max-content; }
+  .step-chip {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #BDDAD5;
+    font-size: 12.5px; font-weight: 650; cursor: pointer; white-space: nowrap;
+  }
+  .step-chip:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .step-chip.active { background: #fff; color: var(--dg); border-color: #fff; font-weight: 800; }
+  .step-chip.done { color: #8DE0CF; border-color: rgba(141,224,207,0.35); }
+  .chip-num {
+    width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800;
+  }
+  .step-chip.active .chip-num { background: var(--teal); color: #fff; }
+
+  .stage-wrap { flex: 1; padding: 22px 20px 36px; display: flex; justify-content: center; align-items: flex-start; }
+  .app-frame {
+    width: 100%; max-width: 1120px; background: var(--canvas); border-radius: 18px;
+    border: 1px solid #CFDAD7; box-shadow: 0 20px 50px rgba(18, 45, 43, 0.12);
+    overflow: hidden; min-height: 690px; display: flex; flex-direction: column;
+    transition: max-width 0.2s ease;
+  }
+  body.mobile-mode .app-frame {
+    max-width: 410px; border: 8px solid #1C2B29; border-radius: 34px; min-height: 760px;
+  }
+
+  .top-nav {
+    background: var(--dg); color: #fff; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  body.mobile-mode .top-nav { padding: 13px 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mark {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--teal);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px;
+  }
+  .brand-name { font-size: 15px; font-weight: 800; }
+  .brand-sub { font-size: 11px; color: #B8DDD7; }
+  .project-pill {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #E8F6F3;
+  }
+
+  .app-main { padding: 26px 28px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+  body.mobile-mode .app-main { padding: 16px; gap: 14px; }
+
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 23px; font-weight: 850; color: var(--dg); letter-spacing: -0.02em; }
+  body.mobile-mode .page-head h1 { font-size: 19px; }
+  .page-head p { font-size: 14px; color: var(--ink-70); margin-top: 4px; line-height: 1.48; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+  body.mobile-mode .grid-2, body.mobile-mode .grid-3 { grid-template-columns: 1fr; }
+  @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; box-shadow: 0 4px 12px rgba(18, 45, 43, 0.03);
+  }
+  body.mobile-mode .card { padding: 15px; }
+  .card-title { font-size: 16px; font-weight: 800; color: var(--dg); margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--ink-50); line-height: 1.45; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 750; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .b-green { background: var(--green-bg); color: var(--green-ink); border: 1px solid var(--green-border); }
+  .b-amber { background: var(--amber-bg); color: var(--amber-ink); border: 1px solid var(--amber-border); }
+  .b-teal { background: var(--teal-soft); color: var(--teal); border: 1px solid var(--teal-border); }
+  .b-red { background: var(--red-bg); color: var(--red-ink); border: 1px solid var(--red-border); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 18px; border-radius: 10px; border: 1px solid transparent;
+    font-size: 14px; font-weight: 750; cursor: pointer; font-family: inherit;
+  }
+  .btn-teal { background: var(--teal); color: #fff; }
+  .btn-teal:hover { background: var(--teal-hover); }
+  .btn-outline { background: #fff; color: var(--dg); border-color: #C7D6D3; }
+  .btn-outline:hover { background: var(--teal-soft); border-color: var(--teal); }
+  .btn-danger { background: var(--red-bg); color: var(--red-ink); border-color: var(--red-border); }
+  .btn-sm { padding: 8px 13px; font-size: 13px; border-radius: 9px; }
+  .btn-full { width: 100%; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    border: 1px solid var(--border); background: #fff; color: var(--ink-70);
+  }
+  .chip.on { background: var(--teal-soft); color: var(--teal); border-color: var(--teal-border); }
+
+  .qty-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: #FAFDFC;
+  }
+  .stepper { display: inline-flex; align-items: center; gap: 8px; }
+  .step-btn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid #C5D4D1; background: #fff;
+    font-weight: 800; font-size: 15px; cursor: pointer; color: var(--dg);
+  }
+  .step-val { min-width: 48px; text-align: center; font-weight: 800; font-size: 14.5px; color: var(--dg); }
+
+  .banner-trust {
+    background: var(--teal-soft); border: 1px solid var(--teal-border); border-radius: 12px;
+    padding: 14px 16px; font-size: 13.5px; color: var(--dg); line-height: 1.48;
+  }
+  .input, .textarea {
+    width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid #C8D6D3;
+    font-size: 14px; color: var(--ink); font-family: inherit; background: #fff;
+  }
+  .msg { padding: 11px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; }
+  .msg.me { background: var(--dg); color: #fff; }
+  .msg.depot { background: var(--teal-soft); color: var(--dg); border: 1px solid var(--teal-border); }
+
+  .check-line {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 15px; border-radius: 12px; border: 1px solid var(--border); background: #fff;
+  }
+
+  .driver-card {
+    background: linear-gradient(135deg, #122D2B 0%, #006B5E 100%);
+    color: #fff; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .screen { display: none; flex-direction: column; gap: 18px; }
+  .screen.active { display: flex; }
+
+  .toast {
+    position: fixed; bottom: 22px; right: 22px; background: var(--dg); color: #fff;
+    padding: 12px 18px; border-radius: 11px; font-size: 13.5px; font-weight: 700;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.2); opacity: 0; pointer-events: none;
+    transform: translateY(10px); transition: all 0.2s ease; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+  <div class="guide-bar">
+    <div class="guide-inner">
+      <div class="guide-left">
+        <a href="index.html" class="back-hub">← All 3 Demos</a>
+        <span class="guide-badge" id="stepCounter">Step 1 of 5</span>
+        <div class="guide-caption" id="stepCaption"></div>
+      </div>
+      <div class="guide-actions">
+        <button class="g-btn" id="btnPrev" onclick="goStep(currentStep - 1)">← Back</button>
+        <button class="g-btn primary" id="btnNext" onclick="goStep(currentStep + 1)">Next Step →</button>
+        <button class="g-btn" id="btnMobile" onclick="toggleMobile()">📱 Mobile View</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-strip">
+    <div class="step-strip-inner" id="stepStrip"></div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="app-frame">
+      <header class="top-nav">
+        <div class="brand">
+          <div class="mark">G</div>
+          <div>
+            <div class="brand-name">Groundwork Supplies</div>
+            <div class="brand-sub">Contractor View · Site Engineer Vanessa</div>
+          </div>
+        </div>
+        <div class="project-pill">🏗️ Villa Bonapriso · Stage 5: Structure &amp; Walls</div>
+      </header>
+
+      <main class="app-main">
+
+        <!-- STEP 1: STAGE MATERIAL NEEDS & VERIFIED DEPOTS -->
+        <section class="screen active" id="screen-0">
+          <div class="page-head">
+            <div>
+              <h1>Order Materials for Stage 5 (Structure &amp; Walls)</h1>
+              <p>Pick a verified depot delivering to Bonapriso, build the list, and send it straight to the Homeowner to pay.</p>
+            </div>
+            <span class="badge b-teal">Linked to Stage 5</span>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Suggested Materials for Structure &amp; Walls</div>
+            <div class="card-sub" style="margin-bottom:12px;">Matched automatically to your active build stage.</div>
+            <div class="chips">
+              <span class="chip on">🧱 Cement 42.5</span>
+              <span class="chip on">🔩 12mm Iron Bars</span>
+              <span class="chip on">🪨 River Sand</span>
+              <span class="chip">🏗️ Hollow Blocks 15cm</span>
+              <span class="chip">🪵 Formwork Timber</span>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="badge b-green">✓ Verified · In Stock</span>
+                <span style="font-size:12.5px;color:var(--ink-50);">Same-day delivery</span>
+              </div>
+              <div class="card-title">Bonapriso Materials Depot</div>
+              <div class="card-sub">Cement 4,800 XAF · 12mm Rebar 4,650 XAF · Flatbed truck with offloading to Bonapriso.</div>
+              <button class="btn btn-teal btn-full" style="margin-top:auto;" onclick="goStep(1)">Build Stage 5 Order Here →</button>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="badge b-green">✓ Verified · In Stock</span>
+                <span style="font-size:12.5px;color:var(--ink-50);">24h delivery</span>
+              </div>
+              <div class="card-title">Littoral Steel &amp; Cement</div>
+              <div class="card-sub">Bulk steel &amp; factory cement deliveries across Douala and Kribi.</div>
+              <button class="btn btn-outline btn-full" style="margin-top:auto;" onclick="goStep(1)">View Stock &amp; Prices →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2: BUILD STAGE ORDER & CHAT FOR DELIVERY QUOTE -->
+        <section class="screen" id="screen-1">
+          <div class="page-head">
+            <div>
+              <h1>Build Your Stage 5 Material List</h1>
+              <p>Set exact quantities needed on site and confirm truck availability with Bonapriso Materials Depot.</p>
+            </div>
+            <span class="badge b-teal" id="orderTotalPill">Total: 1,254,000 XAF</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="card-title">Select Quantities</div>
+
+              <div class="qty-row">
+                <div>
+                  <div style="font-weight:800;color:var(--dg);">Cimencam Cement (50kg)</div>
+                  <div style="font-size:12.5px;color:var(--ink-50);">4,800 XAF / bag</div>
+                </div>
+                <div class="stepper">
+                  <button class="step-btn" onclick="changeQty('cement', -20)">−</button>
+                  <span class="step-val" id="qtyCement">200</span>
+                  <button class="step-btn" onclick="changeQty('cement', 20)">+</button>
+                </div>
+              </div>
+
+              <div class="qty-row">
+                <div>
+                  <div style="font-weight:800;color:var(--dg);">Iron Bar FeE500 — 12mm</div>
+                  <div style="font-size:12.5px;color:var(--ink-50);">4,650 XAF / bar</div>
+                </div>
+                <div class="stepper">
+                  <button class="step-btn" onclick="changeQty('rebar', -10)">−</button>
+                  <span class="step-val" id="qtyRebar">60</span>
+                  <button class="step-btn" onclick="changeQty('rebar', 10)">+</button>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--dg);display:block;margin-bottom:6px;">Requested Delivery Date</label>
+                <input class="input" value="Tomorrow Morning (Before 10:00 AM)" />
+              </div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="card-title">Quick Chat With Depot (Optional)</div>
+              <div class="card-sub">Confirm truck access or ask for a bulk delivery price.</div>
+              <div class="msg me">Hi, can you deliver 200 bags cement &amp; 60 bars 12mm rebar to Villa Bonapriso tomorrow morning?</div>
+              <div class="msg depot" id="depotReply" style="display:none;">
+                <strong>Bonapriso Materials Depot:</strong> Yes! Stock is ready. Flatbed delivery + offloading to Bonapriso is <strong>15,000 XAF</strong>.
+              </div>
+              <button class="btn btn-outline btn-sm" id="btnAskQuote" onclick="simulateDepotReply()">💬 Preview Depot Reply</button>
+              <button class="btn btn-teal btn-full" style="margin-top:auto;" onclick="goStep(2)">Review &amp; Send to Homeowner →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3: SEND REQUEST TO HOMEOWNER (0% MARKUP) -->
+        <section class="screen" id="screen-2">
+          <div class="page-head">
+            <div>
+              <h1>Send Order to Homeowner to Pay Directly</h1>
+              <p>You don’t need to handle material cash—the Homeowner reviews the exact depot price and pays the supplier straight.</p>
+            </div>
+            <span class="badge b-green">0% Markup · Transparent</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Request Summary</div>
+              <div class="card-sub">Sending to Homeowner (Villa Bonapriso)</div>
+              <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:14px;"><span>Supplier</span><strong>Bonapriso Materials Depot ✓</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;"><span>Cimencam Cement</span><strong id="sumCement">200 bags · 960,000 XAF</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;"><span>12mm Iron Bars</span><strong id="sumRebar">60 bars · 279,000 XAF</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;"><span>Delivery &amp; Offload</span><strong>15,000 XAF</strong></div>
+                <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;font-size:16px;">
+                  <strong>Direct Depot Total</strong>
+                  <strong style="color:var(--teal);" id="sumTotal">1,254,000 XAF</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="card-title">Short Note to Homeowner</div>
+              <textarea class="textarea" rows="3">Needed on site by tomorrow morning so the team can finish the Stage 5 columns on schedule.</textarea>
+              <div class="banner-trust" style="font-size:13px;">
+                <strong>Builds instant trust:</strong> The Homeowner sees the official depot prices and pays the supplier’s verified account directly—so approvals happen much faster.
+              </div>
+              <button class="btn btn-teal btn-full" style="margin-top:auto;" onclick="toast('Order request sent to Homeowner!'); goStep(3);">
+                Send Request to Homeowner →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 4: TRACK APPROVED ORDER & TRUCK ARRIVAL -->
+        <section class="screen" id="screen-3">
+          <div class="page-head">
+            <div>
+              <h1>Order Approved — Truck Is On the Way</h1>
+              <p>The Homeowner paid the depot directly and your truck has left the yard.</p>
+            </div>
+            <span class="badge b-green">Paid &amp; Dispatched ✓</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="driver-card">
+              <span class="badge" style="align-self:flex-start;background:rgba(255,255,255,0.18);color:#fff;">🚚 Arriving in ~25 Minutes</span>
+              <div style="font-size:21px;font-weight:850;">Driver: Paul N.</div>
+              <div style="font-size:14px;color:#D6EEE9;">Flatbed Truck · Plate <strong>LT-482-CM</strong></div>
+              <div style="font-size:13.5px;color:#B8DDD7;">Carrying: 200 bags Cimencam Cement + 60 bars 12mm Rebar</div>
+              <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" style="background:#fff;color:var(--dg);" onclick="toast('Calling driver Paul N. (+237 677 19 44 02)...')">📞 Call Driver</button>
+                <button class="btn btn-sm" style="background:rgba(255,255,255,0.16);color:#fff;border-color:rgba(255,255,255,0.28);" onclick="goStep(4)">Truck Arrived at Gate →</button>
+              </div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+              <div class="card-title">Live Status Updates</div>
+              <div class="check-line"><span>1. Homeowner paid depot directly</span><span class="badge b-green">Done ✓</span></div>
+              <div class="check-line"><span>2. Depot confirmed payment</span><span class="badge b-green">Done ✓</span></div>
+              <div class="check-line"><span>3. Truck loaded &amp; left depot</span><span class="badge b-green">Done ✓</span></div>
+              <div class="check-line" style="border-color:var(--teal);"><span>4. Site Gate Delivery Sign-Off</span><span class="badge b-amber">Up Next</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 5: SITE GATE DELIVERY SIGN-OFF -->
+        <section class="screen" id="screen-4">
+          <div class="page-head">
+            <div>
+              <h1>Site Gate Delivery Sign-Off</h1>
+              <p>Count the materials as they come off the truck, snap one offload photo, and confirm delivery.</p>
+            </div>
+            <span class="badge b-amber" id="gateBadge">Waiting for Sign-Off</span>
+          </div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="check-line">
+              <div>
+                <strong style="color:var(--dg);">Cimencam Cement 42.5 (50kg)</strong>
+                <div style="font-size:12.5px;color:var(--ink-50);">Ordered: 200 bags · Dry &amp; undamaged</div>
+              </div>
+              <span class="badge b-green">200 / 200 Counted ✓</span>
+            </div>
+
+            <div class="check-line">
+              <div>
+                <strong style="color:var(--dg);">Iron Bar FeE500 — 12mm</strong>
+                <div style="font-size:12.5px;color:var(--ink-50);">Ordered: 60 bars</div>
+              </div>
+              <span class="badge b-green">60 / 60 Counted ✓</span>
+            </div>
+
+            <div class="check-line" id="photoRow">
+              <div>
+                <strong style="color:var(--dg);">Site Offload Photo</strong>
+                <div style="font-size:12.5px;color:var(--ink-50);" id="photoSub">Take 1 quick photo of stacked bags on site for the Homeowner</div>
+              </div>
+              <button class="btn btn-outline btn-sm" id="btnPhoto" onclick="attachSitePhoto()">📷 Attach Offload Photo</button>
+            </div>
+
+            <div id="shortBox" style="display:none;background:var(--red-bg);border:1px solid var(--red-border);border-radius:12px;padding:14px;">
+              <strong style="color:var(--red-ink);font-size:13.5px;">Short / Damaged Item Report</strong>
+              <p style="font-size:13px;color:var(--ink-70);margin:4px 0 8px;">Flagging a shortage notifies the Depot and Homeowner immediately before closing the order.</p>
+              <input class="input" value="3 bags torn during offload — requesting replacement on next trip" />
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+              <button class="btn btn-teal" id="btnSignOff" onclick="confirmGateDelivery()">✓ Confirm Full Delivery Received</button>
+              <button class="btn btn-danger" onclick="toggleShortReport()">⚠ Report Short / Damaged Count</button>
+              <button class="btn btn-outline" onclick="goStep(0)" style="margin-left:auto;">↻ Restart Demo</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const STEPS = [
+    { label: '1. Stage Needs',  caption: '<strong>Step 1 — Active Stage Needs:</strong> Contractor sees materials matched to Stage 5 and verified depots delivering to their site.' },
+    { label: '2. Build List',   caption: '<strong>Step 2 — Build Stage List:</strong> Contractor sets exact quantities and can quickly confirm truck availability in chat.' },
+    { label: '3. Send to Owner',caption: '<strong>Step 3 — Send to Homeowner:</strong> 1 click sends the exact depot order to the Homeowner to pay directly (0% markup).' },
+    { label: '4. Track Truck',  caption: '<strong>Step 4 — Track Truck:</strong> Once the Homeowner pays, contractor gets driver contact details and live arrival time.' },
+    { label: '5. Site Sign-Off',caption: '<strong>Step 5 — Gate Sign-Off:</strong> Contractor counts bags at the gate, attaches an offload photo, and closes delivery cleanly.' },
+  ];
+
+  let currentStep = 0;
+  let qty = { cement: 200, rebar: 60 };
+  let photoDone = false;
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._t);
+    window._t = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function renderStrip() {
+    document.getElementById('stepStrip').innerHTML = STEPS.map((s, i) => `
+      <button class="step-chip ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" onclick="goStep(${i})">
+        <span class="chip-num">${i < currentStep ? '✓' : i + 1}</span>${s.label}
+      </button>
+    `).join('');
+  }
+
+  function goStep(idx) {
+    if (idx < 0 || idx >= STEPS.length) return;
+    currentStep = idx;
+    document.querySelectorAll('.screen').forEach((el, i) => el.classList.toggle('active', i === idx));
+    document.getElementById('stepCounter').textContent = `Step ${idx + 1} of ${STEPS.length}`;
+    document.getElementById('stepCaption').innerHTML = STEPS[idx].caption;
+    document.getElementById('btnPrev').disabled = idx === 0;
+    document.getElementById('btnNext').disabled = idx === STEPS.length - 1;
+    renderStrip();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleMobile() {
+    document.body.classList.toggle('mobile-mode');
+    document.getElementById('btnMobile').textContent = document.body.classList.contains('mobile-mode') ? '💻 Desktop View' : '📱 Mobile View';
+  }
+
+  function changeQty(item, delta) {
+    qty[item] = Math.max(10, qty[item] + delta);
+    const cCost = qty.cement * 4800;
+    const rCost = qty.rebar * 4650;
+    const total = cCost + rCost + 15000;
+    document.getElementById('qtyCement').textContent = qty.cement;
+    document.getElementById('qtyRebar').textContent = qty.rebar;
+    document.getElementById('orderTotalPill').textContent = `Total: ${total.toLocaleString()} XAF`;
+    document.getElementById('sumCement').textContent = `${qty.cement} bags · ${cCost.toLocaleString()} XAF`;
+    document.getElementById('sumRebar').textContent = `${qty.rebar} bars · ${rCost.toLocaleString()} XAF`;
+    document.getElementById('sumTotal').textContent = `${total.toLocaleString()} XAF`;
+  }
+
+  function simulateDepotReply() {
+    document.getElementById('depotReply').style.display = 'block';
+    document.getElementById('btnAskQuote').style.display = 'none';
+    toast('Depot confirmed same-day truck delivery!');
+  }
+
+  function attachSitePhoto() {
+    photoDone = true;
+    document.getElementById('photoSub').textContent = 'Attached: Offload-Villa-Bonapriso-238PM.jpg';
+    document.getElementById('btnPhoto').outerHTML = '<span class="badge b-green">Photo Attached ✓</span>';
+    toast('Site offload photo attached!');
+  }
+
+  function toggleShortReport() {
+    const box = document.getElementById('shortBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function confirmGateDelivery() {
+    if (!photoDone && document.getElementById('btnPhoto')) attachSitePhoto();
+    const b = document.getElementById('gateBadge');
+    b.className = 'badge b-green';
+    b.textContent = 'Delivery Signed Off ✓';
+    document.getElementById('btnSignOff').textContent = '✓ Delivery Closed — Homeowner & Depot Notified';
+    toast('Delivery confirmed! Homeowner & Supplier notified.');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  goStep(Math.min(STEPS.length - 1, Math.max(0, Number(params.get('step') || 0))));
+</script>
+</body>
+</html>

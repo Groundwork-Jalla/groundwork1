@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Groundwork Supplies — Supplier Portal Demo (8 Steps)</title>
+<style>
+  :root {
+    --dg: #122D2B;
+    --dg-2: #0C1F1D;
+    --teal: #006B5E;
+    --teal-hover: #00584D;
+    --teal-soft: #E8F4F2;
+    --teal-border: #BFE0DA;
+    --canvas: #F5F7F6;
+    --white: #FFFFFF;
+    --ink: #162322;
+    --ink-70: #465755;
+    --ink-50: #6C7D7B;
+    --border: #DCE5E3;
+    --amber-bg: #FEF7E7;
+    --amber-border: #F3D999;
+    --amber-ink: #8C5A08;
+    --red-bg: #FEF3F2;
+    --red-border: #FECDCA;
+    --red-ink: #B42318;
+    --green-bg: #ECFDF3;
+    --green-border: #ABEFC6;
+    --green-ink: #067647;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+    background: #E8EEEC;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top Presenter Guide Bar */
+  .guide-bar {
+    background: var(--dg-2);
+    color: #fff;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .guide-inner {
+    max-width: 1220px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .guide-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .back-hub {
+    color: #B8DDD7;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    white-space: nowrap;
+  }
+  .back-hub:hover { background: rgba(255,255,255,0.16); color: #fff; }
+  .guide-badge {
+    background: var(--teal);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .guide-caption {
+    font-size: 13.5px;
+    color: #E4F4F1;
+    line-height: 1.35;
+  }
+  .guide-caption strong { color: #fff; }
+  .guide-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .g-btn {
+    border: 1px solid rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .g-btn:hover { background: rgba(255,255,255,0.16); }
+  .g-btn.primary { background: var(--teal); border-color: var(--teal); }
+  .g-btn.primary:hover { background: var(--teal-hover); }
+  .g-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .guide-hidden .guide-caption-row { display: none; }
+
+  /* Stepper strip */
+  .step-strip {
+    background: #163633;
+    padding: 8px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    overflow-x: auto;
+  }
+  .step-strip-inner {
+    max-width: 1220px;
+    margin: 0 auto;
+    display: flex;
+    gap: 6px;
+    min-width: max-content;
+  }
+  .step-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: transparent;
+    color: #BDDAD5;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .step-chip:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .step-chip.active {
+    background: #ffffff;
+    color: var(--dg);
+    border-color: #ffffff;
+    font-weight: 800;
+  }
+  .step-chip.done { color: #8DE0CF; border-color: rgba(141,224,207,0.35); }
+  .chip-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10.5px; font-weight: 800;
+  }
+  .step-chip.active .chip-num { background: var(--teal); color: #fff; }
+
+  /* App Viewport Frame */
+  .stage-wrap {
+    flex: 1;
+    padding: 22px 20px 36px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .app-frame {
+    width: 100%;
+    max-width: 1180px;
+    background: var(--canvas);
+    border-radius: 18px;
+    border: 1px solid #CFDAD7;
+    box-shadow: 0 20px 50px rgba(18, 45, 43, 0.12);
+    overflow: hidden;
+    min-height: 700px;
+    display: flex;
+    flex-direction: column;
+    transition: max-width 0.2s ease;
+  }
+  body.mobile-mode .app-frame {
+    max-width: 420px;
+    border: 8px solid #1C2B29;
+    border-radius: 34px;
+    min-height: 760px;
+  }
+  body.mobile-mode th, body.mobile-mode td {
+    padding: 9px 7px;
+    font-size: 12.2px;
+  }
+
+  /* App Shell */
+  .app-layout { display: flex; flex: 1; min-height: 680px; }
+  .sidebar {
+    width: 232px;
+    background: var(--dg);
+    color: #fff;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex-shrink: 0;
+  }
+  body.mobile-mode .sidebar { display: none; }
+  @media (max-width: 820px) { .sidebar { display: none; } }
+
+  .mobile-topbar {
+    display: none;
+    background: var(--dg);
+    color: #fff;
+    padding: 14px 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  body.mobile-mode .mobile-topbar { display: flex; }
+  @media (max-width: 820px) { .mobile-topbar { display: flex; } }
+
+  .sb-brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+  .sb-mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--teal); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 16px;
+  }
+  .sb-title { font-size: 14.5px; font-weight: 800; }
+  .sb-sub { font-size: 11px; color: #A9D4CC; }
+  .sb-store-box {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .sb-store-name { font-size: 13px; font-weight: 800; }
+  .sb-store-city { font-size: 11.5px; color: #B8DDD7; margin-top: 2px; }
+  .verified-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 8px; font-size: 11px; font-weight: 750;
+    padding: 3px 8px; border-radius: 999px;
+    background: rgba(0, 107, 94, 0.45); color: #BFF5EA;
+  }
+  .verified-tag.pending { background: rgba(245, 158, 11, 0.25); color: #FDE68A; }
+
+  .sb-nav { display: flex; flex-direction: column; gap: 4px; }
+  .sb-section {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #82ADA6; padding: 10px 10px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; border-radius: 10px;
+    color: #CFE6E1; font-size: 13.5px; font-weight: 650;
+    cursor: pointer; border: none; background: transparent; text-align: left; width: 100%;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-item.active { background: var(--teal); color: #fff; font-weight: 750; }
+  .nav-pill {
+    background: rgba(255,255,255,0.2); color: #fff;
+    font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+  }
+
+  /* Main Panel */
+  .app-main {
+    flex: 1;
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+  body.mobile-mode .app-main { padding: 16px; gap: 14px; }
+
+  .page-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+  }
+  .page-head h1 {
+    font-size: 22px; font-weight: 850; color: var(--dg); letter-spacing: -0.02em;
+  }
+  body.mobile-mode .page-head h1 { font-size: 19px; }
+  .page-head p { font-size: 14px; color: var(--ink-70); margin-top: 4px; line-height: 1.45; }
+
+  /* Cards & Grids */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(18, 45, 43, 0.03);
+  }
+  body.mobile-mode .card { padding: 15px; }
+  .card-title { font-size: 15.5px; font-weight: 800; color: var(--dg); margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--ink-50); margin-bottom: 14px; line-height: 1.45; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  body.mobile-mode .grid-2, body.mobile-mode .grid-3 { grid-template-columns: 1fr; }
+  @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* Forms */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
+  .field label { font-size: 13px; font-weight: 700; color: var(--dg); }
+  .input, .select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid #C8D6D3;
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff;
+    font-family: inherit;
+  }
+  .input:focus, .select:focus { outline: 2px solid var(--teal-soft); border-color: var(--teal); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 18px; border-radius: 10px; border: 1px solid transparent;
+    font-size: 14px; font-weight: 750; cursor: pointer; font-family: inherit;
+    transition: background 0.14s ease, transform 0.1s ease;
+  }
+  .btn:active { transform: scale(0.99); }
+  .btn-teal { background: var(--teal); color: #fff; }
+  .btn-teal:hover { background: var(--teal-hover); }
+  .btn-outline { background: #fff; color: var(--dg); border-color: #C7D6D3; }
+  .btn-outline:hover { background: var(--teal-soft); border-color: var(--teal); }
+  .btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+  .btn-full { width: 100%; }
+
+  /* Badges & Banners */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 750; padding: 4px 10px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .b-green { background: var(--green-bg); color: var(--green-ink); border: 1px solid var(--green-border); }
+  .b-amber { background: var(--amber-bg); color: var(--amber-ink); border: 1px solid var(--amber-border); }
+  .b-teal { background: var(--teal-soft); color: var(--teal); border: 1px solid var(--teal-border); }
+  .b-red { background: var(--red-bg); color: var(--red-ink); border: 1px solid var(--red-border); }
+
+  .banner-trust {
+    background: var(--teal-soft);
+    border: 1px solid var(--teal-border);
+    border-radius: 12px;
+    padding: 13px 15px;
+    font-size: 13.5px;
+    color: var(--dg);
+    line-height: 1.48;
+  }
+
+  /* KPI Cards (max 3!) */
+  .kpi {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--teal);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .kpi-label { font-size: 12.5px; font-weight: 700; color: var(--ink-50); }
+  .kpi-val { font-size: 24px; font-weight: 850; color: var(--dg); margin-top: 4px; }
+  .kpi-note { font-size: 12px; color: var(--teal); font-weight: 650; margin-top: 4px; }
+
+  /* Tables (clean max 4 columns!) */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    text-align: left; font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--ink-50);
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    background: #FAFDFC;
+  }
+  td {
+    padding: 13px 12px; border-bottom: 1px solid #EEF3F2;
+    vertical-align: middle; color: var(--ink);
+  }
+  tr:last-child td { border-bottom: none; }
+  .row-highlight td { background: #F4FBF9; }
+
+  /* Checklist / Upload items */
+  .doc-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: #fff;
+  }
+  .doc-item.uploaded { border-color: var(--green-border); background: #F7FDF9; }
+  .doc-title { font-size: 14px; font-weight: 750; color: var(--dg); }
+  .doc-sub { font-size: 12.5px; color: var(--ink-50); margin-top: 2px; }
+
+  /* Chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    border: 1px solid var(--border); background: #fff; color: var(--ink-70);
+    cursor: pointer;
+  }
+  .chip.on { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+  /* Tabs */
+  .tabs { display: inline-flex; background: #E9F0EE; padding: 4px; border-radius: 11px; gap: 4px; }
+  .tab {
+    padding: 9px 15px; border-radius: 8px; border: none; background: transparent;
+    font-size: 13.5px; font-weight: 750; color: var(--ink-70); cursor: pointer;
+  }
+  .tab.active { background: #fff; color: var(--dg); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed #9EC6BE;
+    background: #F5FBF9;
+    border-radius: 14px;
+    padding: 28px 20px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+
+  /* Timeline */
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  body.mobile-mode .timeline { grid-template-columns: 1fr; }
+  .tl-node {
+    padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: #fff;
+  }
+  .tl-node.done { border-color: var(--green-border); background: var(--green-bg); }
+  .tl-node.current { border: 2px solid var(--teal); background: #fff; }
+  .tl-step { font-size: 11.5px; font-weight: 800; color: var(--teal); text-transform: uppercase; }
+  .tl-name { font-size: 14px; font-weight: 800; color: var(--dg); margin-top: 3px; }
+  .tl-desc { font-size: 12px; color: var(--ink-70); margin-top: 3px; }
+
+  /* Receipt slip visual */
+  .receipt-slip {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    background: #FAFDFC;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .slip-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-70); }
+  .slip-row strong { color: var(--dg); }
+
+  /* Chat */
+  .chat-box { display: flex; flex-direction: column; gap: 10px; }
+  .msg {
+    max-width: 82%; padding: 12px 15px; border-radius: 14px; font-size: 13.5px; line-height: 1.48;
+  }
+  .msg.buyer { background: #EEF3F2; color: var(--ink); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.supplier { background: var(--dg); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg-meta { font-size: 11px; opacity: 0.72; margin-bottom: 4px; font-weight: 700; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 22px; right: 22px;
+    background: var(--dg); color: #fff;
+    padding: 12px 18px; border-radius: 11px;
+    font-size: 13.5px; font-weight: 700;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.2);
+    opacity: 0; pointer-events: none; transform: translateY(10px);
+    transition: all 0.2s ease; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .screen { display: none; flex-direction: column; gap: 18px; }
+  .screen.active { display: flex; }
+
+  /* Onboarding Centered Card */
+  .onboard-wrap { max-width: 640px; margin: 4px auto; width: 100%; }
+</style>
+</head>
+<body>
+
+  <!-- Presenter Guide Bar -->
+  <div class="guide-bar" id="guideBar">
+    <div class="guide-inner">
+      <div class="guide-left">
+        <a href="index.html" class="back-hub">← All 3 Demos</a>
+        <span class="guide-badge" id="stepCounter">Step 1 of 8</span>
+        <div class="guide-caption" id="stepCaption"></div>
+      </div>
+      <div class="guide-actions">
+        <button class="g-btn" id="btnPrev" onclick="goStep(currentStep - 1)">← Back</button>
+        <button class="g-btn primary" id="btnNext" onclick="goStep(currentStep + 1)">Next Step →</button>
+        <button class="g-btn" id="btnMobile" onclick="toggleMobile()">📱 Mobile View</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8-Step Story Navigation -->
+  <div class="step-strip">
+    <div class="step-strip-inner" id="stepStrip"></div>
+  </div>
+
+  <!-- Main App Viewport -->
+  <div class="stage-wrap">
+    <div class="app-frame">
+      <!-- Mobile Header -->
+      <div class="mobile-topbar">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div class="sb-mark" style="width:28px;height:28px;font-size:13px;">G</div>
+          <div>
+            <div style="font-size:13.5px;font-weight:800;">Supplier Portal</div>
+            <div style="font-size:11px;color:#A9D4CC;" id="mobStoreName">Bonapriso Materials Depot</div>
+          </div>
+        </div>
+        <span class="badge b-green" id="mobVerifBadge" style="font-size:11px;">Step 1/8</span>
+      </div>
+
+      <div class="app-layout">
+        <!-- Supplier-Only Sidebar (No role confusion!) -->
+        <aside class="sidebar">
+          <div class="sb-brand">
+            <div class="sb-mark">G</div>
+            <div>
+              <div class="sb-title">Groundwork Supplies</div>
+              <div class="sb-sub">Supplier Portal</div>
+            </div>
+          </div>
+
+          <div class="sb-store-box">
+            <div class="sb-store-name" id="sbStoreName">Bonapriso Materials Depot</div>
+            <div class="sb-store-city" id="sbStoreCity">Douala, Cameroon</div>
+            <div class="verified-tag pending" id="sbVerifTag">⏳ Setup in Progress</div>
+          </div>
+
+          <nav class="sb-nav">
+            <div class="sb-section">Getting Started</div>
+            <button class="nav-item" data-step="0" onclick="goStep(0)">1. Create Account</button>
+            <button class="nav-item" data-step="1" onclick="goStep(1)">2. Business Check</button>
+            <button class="nav-item" data-step="2" onclick="goStep(2)">3. Store &amp; Bank Setup</button>
+
+            <div class="sb-section">Your Products</div>
+            <button class="nav-item" data-step="3" onclick="goStep(3)">4. Upload Products</button>
+            <button class="nav-item" data-step="4" onclick="goStep(4)">5. Live Catalogue <span class="nav-pill" id="catCountPill">5</span></button>
+
+            <div class="sb-section">Sales &amp; Delivery</div>
+            <button class="nav-item" data-step="5" onclick="goStep(5)">6. Orders &amp; Payments <span class="nav-pill" id="ordBadge">1</span></button>
+            <button class="nav-item" data-step="6" onclick="goStep(6)">7. Track Delivery</button>
+            <button class="nav-item" data-step="7" onclick="goStep(7)">8. Chat &amp; Staff</button>
+          </nav>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 1: CREATE SUPPLIER ACCOUNT
+          ══════════════════════════════════════════════════ -->
+          <section class="screen active" id="screen-0">
+            <div class="onboard-wrap">
+              <div class="page-head" style="margin-bottom:16px;">
+                <div>
+                  <span class="badge b-teal" style="margin-bottom:8px;">Free to Join · Takes 2 Minutes</span>
+                  <h1>Open Your Supplier Store on Groundwork</h1>
+                  <p>Sell building materials directly to verified Homeowners and contractors—with payments going straight into your business account.</p>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="field">
+                  <label>Business / Depot Name</label>
+                  <input class="input" id="inpBizName" value="Bonapriso Materials Depot" oninput="syncStoreName()" />
+                </div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label>Main City</label>
+                    <select class="select" id="inpCity" onchange="syncStoreName()">
+                      <option selected>Douala</option>
+                      <option>Yaoundé</option>
+                      <option>Kribi</option>
+                      <option>Bafoussam</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>WhatsApp Number (for Order Alerts)</label>
+                    <input class="input" value="+237 677 41 22 08" />
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label>Contact Email</label>
+                    <input class="input" value="sales@bonaprisodepot.cm" />
+                  </div>
+                  <div class="field">
+                    <label>Preferred Language</label>
+                    <select class="select">
+                      <option selected>English</option>
+                      <option>Français</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="banner-trust" style="margin:6px 0 16px;">
+                  <strong>No setup fee.</strong> Once you create your account, we guide you through 2 quick checks so buyers can trust and order from your store right away.
+                </div>
+
+                <button class="btn btn-teal btn-full" onclick="toast('Supplier account created!'); goStep(1);">
+                  Create Supplier Account &amp; Continue →
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 2: BUSINESS VERIFICATION (KYB)
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-1">
+            <div class="page-head">
+              <div>
+                <h1>Verify Your Business (KYB)</h1>
+                <p>Upload your basic business papers once so your store earns the <strong>Verified Supplier ✓</strong> badge.</p>
+              </div>
+              <span class="badge b-amber" id="kybStatusPill">3 of 4 Uploaded</span>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="doc-item uploaded" id="doc-rccm">
+                <div>
+                  <div class="doc-title">1. Business Registration (RCCM)</div>
+                  <div class="doc-sub" id="sub-rccm">Uploaded: RCCM-Bonapriso-2025.pdf</div>
+                </div>
+                <span class="badge b-green">Uploaded ✓</span>
+              </div>
+
+              <div class="doc-item uploaded" id="doc-niu">
+                <div>
+                  <div class="doc-title">2. Tax Identification Number (NIU)</div>
+                  <div class="doc-sub" id="sub-niu">Uploaded: NIU-Certificate-M0924.pdf</div>
+                </div>
+                <span class="badge b-green">Uploaded ✓</span>
+              </div>
+
+              <div class="doc-item uploaded" id="doc-id">
+                <div>
+                  <div class="doc-title">3. Director / Authorised Signatory ID</div>
+                  <div class="doc-sub" id="sub-id">Uploaded: National-ID-Director.jpg</div>
+                </div>
+                <span class="badge b-green">Uploaded ✓</span>
+              </div>
+
+              <div class="doc-item" id="doc-depot">
+                <div>
+                  <div class="doc-title">4. Depot Address &amp; Front Photo</div>
+                  <div class="doc-sub" id="sub-depot">Helps buyers &amp; delivery trucks know your real yard</div>
+                </div>
+                <button class="btn btn-teal btn-sm" id="btnUploadDepot" onclick="uploadDepotPhoto()">Upload Photo</button>
+              </div>
+            </div>
+
+            <div class="banner-trust" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div><strong>Fast review:</strong> Groundwork verifies documents within 24 hours. Your private ID files are never shown to buyers.</div>
+              <button class="btn btn-teal" onclick="approveKyb()">Submit &amp; Continue to Store Setup →</button>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 3: STORE, DELIVERY & DIRECT PAYOUT SETUP
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-2">
+            <div class="page-head">
+              <div>
+                <h1>Set Up Your Store &amp; Payout Account</h1>
+                <p>Tell buyers where you deliver and which business account they should pay directly.</p>
+              </div>
+              <span class="badge b-green">Verified Business ✓</span>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-title">Delivery Areas &amp; Fees</div>
+                <div class="card-sub">Tap the cities/areas your trucks deliver to.</div>
+
+                <div class="chips" style="margin-bottom:16px;">
+                  <button class="chip on" onclick="this.classList.toggle('on')">Douala ✓</button>
+                  <button class="chip on" onclick="this.classList.toggle('on')">Bonapriso ✓</button>
+                  <button class="chip on" onclick="this.classList.toggle('on')">Bonamoussadi ✓</button>
+                  <button class="chip on" onclick="this.classList.toggle('on')">Akwa ✓</button>
+                  <button class="chip" onclick="this.classList.toggle('on')">Yaoundé</button>
+                  <button class="chip" onclick="this.classList.toggle('on')">Kribi</button>
+                </div>
+
+                <div class="field">
+                  <label>Standard Delivery Fee (in Douala)</label>
+                  <input class="input" value="15,000 XAF per truck trip" />
+                </div>
+                <div class="field">
+                  <label>Usual Delivery Time</label>
+                  <select class="select">
+                    <option selected>Same day or next morning (4–24 hours)</option>
+                    <option>Within 48 hours</option>
+                  </select>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:650;color:var(--dg);cursor:pointer;">
+                  <input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--teal);" />
+                  Offloading labour included on site
+                </label>
+              </div>
+
+              <div class="card">
+                <div class="card-title">Where Buyers Pay You Directly</div>
+                <div class="card-sub">Your bank or Mobile Money name must match your business name.</div>
+
+                <div class="field">
+                  <label>Business Bank Name</label>
+                  <input class="input" value="Afriland First Bank Cameroon" />
+                </div>
+                <div class="field">
+                  <label>Bank Account Number (RIB / IBAN)</label>
+                  <input class="input" value="10005-00001-04829103841-22" />
+                </div>
+                <div class="field">
+                  <label>Business Mobile Money (MTN / Orange)</label>
+                  <input class="input" value="MTN MoMo Merchant · +237 677 41 22 08" />
+                </div>
+
+                <div class="banner-trust" style="font-size:12.5px;">
+                  <strong>Direct to you:</strong> Groundwork does not hold your sales money. Buyers transfer straight to your verified account and upload their receipt.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="btn btn-teal" onclick="toast('Store & payout details saved!'); goStep(3);">
+                Save Store Settings &amp; Upload Products →
+              </button>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 4: UPLOAD PRODUCTS (1-CLICK SHEET OR SINGLE)
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-3">
+            <div class="page-head">
+              <div>
+                <h1>Upload Your Products</h1>
+                <p>No need to type 100 items one by one—drop your existing price sheet, or add a single item anytime.</p>
+              </div>
+              <div class="tabs">
+                <button class="tab active" id="tabSheet" onclick="switchUploadTab('sheet')">📄 Upload Price Sheet</button>
+                <button class="tab" id="tabSingle" onclick="switchUploadTab('single')">＋ Add 1 Product</button>
+              </div>
+            </div>
+
+            <!-- Tab A: Price Sheet Import -->
+            <div id="paneSheet" class="card">
+              <div class="dropzone" id="sheetDrop">
+                <div style="font-size:32px;">📊</div>
+                <div style="font-size:16px;font-weight:800;color:var(--dg);">Drop your Excel, CSV, or Price List here</div>
+                <div style="font-size:13.5px;color:var(--ink-70);max-width:460px;">
+                  Groundwork reads your product names, units, and prices automatically so your store goes live in minutes.
+                </div>
+                <button class="btn btn-teal" onclick="loadSampleSheet()">Try Sample Price Sheet (5 Products)</button>
+              </div>
+
+              <div id="sheetPreview" style="display:none;margin-top:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                  <strong style="color:var(--dg);font-size:14.5px;">✓ 5 products ready to add to your store</strong>
+                  <button class="btn btn-teal btn-sm" onclick="toast('5 products imported to your live catalogue!'); goStep(4);">
+                    Import All 5 Products →
+                  </button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Unit</th></tr></thead>
+                    <tbody>
+                      <tr><td><strong>Cimencam Cement 42.5 (50kg)</strong></td><td>Cement</td><td>4,800 XAF</td><td>Per Bag</td></tr>
+                      <tr><td><strong>Iron Bar FeE500 — 12mm</strong></td><td>Steel &amp; Rebar</td><td>4,650 XAF</td><td>Per Bar</td></tr>
+                      <tr><td><strong>Washed River Sand (20T Truck)</strong></td><td>Sand &amp; Gravel</td><td>185,000 XAF</td><td>Per Truck</td></tr>
+                      <tr><td><strong>Hollow Cement Blocks 15cm</strong></td><td>Blocks</td><td>375 XAF</td><td>Per Block</td></tr>
+                      <tr><td><strong>Aluminium Roofing Sheet 0.45mm</strong></td><td>Roofing</td><td>6,200 XAF</td><td>Per Sheet</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab B: Add Single Product -->
+            <div id="paneSingle" class="card" style="display:none;">
+              <div class="grid-2">
+                <div class="field">
+                  <label>Product Name</label>
+                  <input class="input" id="newProdName" value="Dangote 3X Cement 42.5 (50kg)" />
+                </div>
+                <div class="field">
+                  <label>Category</label>
+                  <select class="select" id="newProdCat">
+                    <option selected>Cement</option>
+                    <option>Steel &amp; Rebar</option>
+                    <option>Sand &amp; Gravel</option>
+                    <option>Blocks</option>
+                    <option>Roofing</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid-3">
+                <div class="field">
+                  <label>Price (XAF)</label>
+                  <input class="input" id="newProdPrice" value="4750" />
+                </div>
+                <div class="field">
+                  <label>Sold Per</label>
+                  <select class="select" id="newProdUnit">
+                    <option selected>Bag</option>
+                    <option>Bar</option>
+                    <option>Truck</option>
+                    <option>Block</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Minimum Order</label>
+                  <input class="input" value="20 bags" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Used During Which Build Stages? (Helps buyers find you)</label>
+                <div class="chips">
+                  <button class="chip on" type="button" onclick="this.classList.toggle('on')">Foundation</button>
+                  <button class="chip on" type="button" onclick="this.classList.toggle('on')">Structure &amp; Walls</button>
+                  <button class="chip" type="button" onclick="this.classList.toggle('on')">Roofing</button>
+                  <button class="chip" type="button" onclick="this.classList.toggle('on')">Finishing</button>
+                </div>
+              </div>
+              <button class="btn btn-teal" onclick="addSingleProduct()">+ Add Product to Live Catalogue</button>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 5: LIVE CATALOGUE
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-4">
+            <div class="page-head">
+              <div>
+                <h1>Your Live Catalogue</h1>
+                <p>Update prices or switch any item between In Stock and Out of Stock with one tap.</p>
+              </div>
+              <button class="btn btn-teal btn-sm" onclick="goStep(3)">+ Add More Products</button>
+            </div>
+
+            <div class="card" style="padding:14px 16px;">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Price (XAF)</th>
+                      <th>Availability</th>
+                      <th>Quick Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="catalogueBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="btn btn-teal" onclick="goStep(5)">See Incoming Orders →</button>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 6: INCOMING ORDERS & CONFIRM PAYMENT
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-5">
+            <div class="page-head">
+              <div>
+                <h1>Orders &amp; Payment Check</h1>
+                <p>When a buyer pays into your bank or MoMo account, check their receipt and confirm with one click.</p>
+              </div>
+              <span class="badge b-teal">WhatsApp Alerts ON ✓</span>
+            </div>
+
+            <!-- Only 3 clean KPI cards -->
+            <div class="grid-3">
+              <div class="kpi">
+                <div class="kpi-label">Active Orders</div>
+                <div class="kpi-val">3</div>
+                <div class="kpi-note">Douala deliveries</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Receipts to Check</div>
+                <div class="kpi-val" id="kpiReceipts">1</div>
+                <div class="kpi-note" id="kpiReceiptsNote">Waiting for your OK</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Sales This Month</div>
+                <div class="kpi-val">4,850,000 XAF</div>
+                <div class="kpi-note">Paid directly to you</div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <!-- Clean 4-column table -->
+              <div class="card" style="padding:14px;">
+                <div class="card-title" style="padding:4px 6px 10px;">Recent Orders</div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Site / Buyer</th><th>Order</th><th>Total</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr class="row-highlight">
+                        <td><strong>Villa Bonapriso</strong><div style="font-size:12px;color:var(--ink-50);">Douala</div></td>
+                        <td>200 Cement + 60 Rebar</td>
+                        <td><strong>1,254,000 XAF</strong></td>
+                        <td><span class="badge b-amber" id="ord402Status">Check Receipt</span></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Résidence Akwa</strong><div style="font-size:12px;color:var(--ink-50);">Douala</div></td>
+                        <td>2 Trucks River Sand</td>
+                        <td>370,000 XAF</td>
+                        <td><span class="badge b-green">Delivered ✓</span></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Duplex Logpom</strong><div style="font-size:12px;color:var(--ink-50);">Douala</div></td>
+                        <td>1,200 Hollow Blocks</td>
+                        <td>450,000 XAF</td>
+                        <td><span class="badge b-green">Delivered ✓</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Receipt Review Panel -->
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                  <div class="card-title" style="margin:0;">Order #ORD-402 · Receipt</div>
+                  <span class="badge b-amber" id="receiptBadge">Needs Check</span>
+                </div>
+                <div class="receipt-slip" style="margin-bottom:14px;">
+                  <div class="slip-row"><span>Buyer</span><strong>Homeowner (Villa Bonapriso)</strong></div>
+                  <div class="slip-row"><span>Paid Via</span><strong>Afriland Bank Transfer</strong></div>
+                  <div class="slip-row"><span>Reference</span><strong>TRF-2026-88412</strong></div>
+                  <div class="slip-row"><span>Amount Sent</span><strong style="color:var(--teal);font-size:15px;">1,254,000 XAF</strong></div>
+                  <div class="slip-row"><span>Receipt Image</span><strong>📄 Bank-Transfer-Slip.jpg</strong></div>
+                </div>
+                <button class="btn btn-teal btn-full" id="btnConfirmPay" onclick="confirmPayment()">
+                  ✓ Confirm Money Received in My Account
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 7: DISPATCH & DELIVERY TRACKING
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-6">
+            <div class="page-head">
+              <div>
+                <h1>Send Truck &amp; Track Delivery</h1>
+                <p>Assign your driver so the Homeowner and site contractor know exactly when the truck arrives.</p>
+              </div>
+              <span class="badge b-green" id="delivStatusTop">Paid · Ready to Load</span>
+            </div>
+
+            <!-- 4-Step Visual Progress -->
+            <div class="timeline">
+              <div class="tl-node done" id="tl-1">
+                <div class="tl-step">Step 1 · Done</div>
+                <div class="tl-name">Payment Confirmed</div>
+                <div class="tl-desc">1,254,000 XAF received</div>
+              </div>
+              <div class="tl-node current" id="tl-2">
+                <div class="tl-step">Step 2 · Now</div>
+                <div class="tl-name">Loading Truck</div>
+                <div class="tl-desc">200 Cement + 60 Rebar</div>
+              </div>
+              <div class="tl-node" id="tl-3">
+                <div class="tl-step">Step 3</div>
+                <div class="tl-name">Truck On the Way</div>
+                <div class="tl-desc">Driver alerts buyer</div>
+              </div>
+              <div class="tl-node" id="tl-4">
+                <div class="tl-step">Step 4</div>
+                <div class="tl-name">Delivered on Site</div>
+                <div class="tl-desc">Offload photo signed</div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-title">Assign Driver &amp; Truck</div>
+                <div class="card-sub">Order #ORD-402 · Delivering to Villa Bonapriso, Douala</div>
+                <div class="field">
+                  <label>Driver Name &amp; Truck Plate</label>
+                  <select class="select">
+                    <option selected>Paul N. — Flatbed Truck (LT-482-CM)</option>
+                    <option>Marc E. — Tipper Truck (LT-901-DK)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Estimated Arrival Time</label>
+                  <input class="input" value="Today, 2:30 PM" />
+                </div>
+                <button class="btn btn-teal btn-full" id="btnDispatch" onclick="advanceDelivery()">
+                  🚚 Mark Truck Out for Delivery
+                </button>
+              </div>
+
+              <div class="card" id="proofCard">
+                <div class="card-title">Site Delivery Confirmation</div>
+                <div class="card-sub">Once your truck offloads, the site signs off here to close the order cleanly.</div>
+                <div id="proofPending" class="banner-trust" style="background:var(--canvas);border-color:var(--border);">
+                  Waiting for truck to depart and offload at <strong>Villa Bonapriso</strong>. Click <em>Mark Truck Out for Delivery</em> on the left to preview live tracking.
+                </div>
+                <div id="proofDone" style="display:none;">
+                  <div class="banner-trust" style="background:var(--green-bg);border-color:var(--green-border);color:var(--green-ink);">
+                    <strong>✓ Full Delivery Signed Off at 2:38 PM</strong><br />
+                    200/200 bags cement &amp; 60/60 iron bars received in good condition.<br />
+                    Signed by: <strong>Site Engineer &amp; Groundwork Verifier</strong> · Offload photo attached.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══════════════════════════════════════════════════
+               STEP 8: BUYER CHAT QUOTES & STAFF ROLES
+          ══════════════════════════════════════════════════ -->
+          <section class="screen" id="screen-7">
+            <div class="page-head">
+              <div>
+                <h1>Buyer Messages &amp; Your Team</h1>
+                <p>Answer special delivery requests in chat and give your staff their own login permissions.</p>
+              </div>
+              <div class="tabs">
+                <button class="tab active" id="tabChat" onclick="switchFinalTab('chat')">💬 Buyer Chat &amp; Quote</button>
+                <button class="tab" id="tabStaff" onclick="switchFinalTab('staff')">👥 Staff Roles</button>
+              </div>
+            </div>
+
+            <!-- Chat Pane -->
+            <div id="paneChat" class="card">
+              <div class="card-title">Message from Homeowner · Kribi Beach Villa</div>
+              <div class="card-sub">Special delivery request outside your standard Douala zone</div>
+              <div class="chat-box" id="chatMessages" style="margin-bottom:14px;">
+                <div class="msg buyer">
+                  <div class="msg-meta">Homeowner · 10:14 AM</div>
+                  Hello! My builder needs 150 bags of Cimencam Cement delivered to Kribi next week. Can your truck deliver there and what is the delivery cost?
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-teal" id="btnSendQuote" onclick="sendQuoteReply()">
+                  Send Delivery Quote (45,000 XAF to Kribi) →
+                </button>
+                <button class="btn btn-outline" onclick="goStep(0)">↻ Restart Supplier Demo</button>
+              </div>
+            </div>
+
+            <!-- Staff Pane -->
+            <div id="paneStaff" class="card" style="display:none;">
+              <div class="card-title">Your Store Team</div>
+              <div class="card-sub">Each staff member only sees the part of the store they need.</div>
+              <div class="table-wrap" style="margin-bottom:16px;">
+                <table>
+                  <thead><tr><th>Staff Member</th><th>Role</th><th>What They Can Do</th><th>Status</th></tr></thead>
+                  <tbody id="staffBody">
+                    <tr><td><strong>Dr. S</strong></td><td>Store Owner</td><td>Full access, bank details &amp; approvals</td><td><span class="badge b-green">Active</span></td></tr>
+                    <tr><td><strong>Claire M.</strong></td><td>Sales &amp; Stock</td><td>Update prices, stock &amp; reply to buyers</td><td><span class="badge b-green">Active</span></td></tr>
+                    <tr><td><strong>Paul N.</strong></td><td>Dispatch Officer</td><td>Assign trucks &amp; mark orders delivered</td><td><span class="badge b-green">Active</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input class="input" id="staffName" placeholder="New staff name (e.g., Eric T.)" style="max-width:240px;" />
+                <select class="select" id="staffRole" style="max-width:220px;">
+                  <option>Finance (Confirm Payments)</option>
+                  <option>Sales &amp; Stock</option>
+                  <option>Dispatch Officer</option>
+                </select>
+                <button class="btn btn-teal" onclick="addStaff()">+ Invite Staff</button>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const STEPS = [
+    { label: '1. Sign Up',       caption: '<strong>Step 1 — Sign Up:</strong> Supplier opens a free Groundwork store in 2 minutes with their business name, city, and WhatsApp.' },
+    { label: '2. Business Check',caption: '<strong>Step 2 — Business Verification:</strong> Supplier uploads RCCM, NIU, ID & depot photo once to earn the Verified Supplier badge.' },
+    { label: '3. Store & Bank',  caption: '<strong>Step 3 — Store & Bank Setup:</strong> Supplier sets delivery areas and enters their own Bank/MoMo account so buyers pay them directly.' },
+    { label: '4. Upload Items',  caption: '<strong>Step 4 — Upload Products:</strong> Supplier drops their existing Excel/PDF price sheet in 1 click—no manual typing required.' },
+    { label: '5. Catalogue',     caption: '<strong>Step 5 — Live Catalogue:</strong> Clean, simple product list where stock status and prices update with a single tap.' },
+    { label: '6. Orders & Pay',  caption: '<strong>Step 6 — Incoming Orders:</strong> Supplier checks the buyer’s bank transfer receipt and confirms payment in one click.' },
+    { label: '7. Delivery',      caption: '<strong>Step 7 — Delivery Tracking:</strong> Supplier assigns a truck, tracks progress, and receives signed offload proof from the site.' },
+    { label: '8. Chat & Staff',  caption: '<strong>Step 8 — Chat & Staff:</strong> Supplier sends custom delivery quotes and gives sales, finance, or dispatch staff their own login.' },
+  ];
+
+  let currentStep = 0;
+  let deliveryStage = 0;
+  let products = [
+    { name: 'Cimencam Cement 42.5 (50kg)', price: '4,800 XAF / bag', stock: 'In Stock' },
+    { name: 'Iron Bar FeE500 — 12mm',      price: '4,650 XAF / bar', stock: 'In Stock' },
+    { name: 'Washed River Sand (20T)',     price: '185,000 XAF / truck', stock: 'In Stock' },
+    { name: 'Hollow Cement Blocks 15cm',   price: '375 XAF / block', stock: 'Low Stock' },
+    { name: 'Aluminium Roofing 0.45mm',    price: '6,200 XAF / sheet', stock: 'In Stock' },
+  ];
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._t);
+    window._t = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  function renderStrip() {
+    document.getElementById('stepStrip').innerHTML = STEPS.map((s, i) => `
+      <button class="step-chip ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" onclick="goStep(${i})">
+        <span class="chip-num">${i < currentStep ? '✓' : i + 1}</span>${s.label}
+      </button>
+    `).join('');
+  }
+
+  function goStep(idx) {
+    if (idx < 0 || idx >= STEPS.length) return;
+    currentStep = idx;
+    document.querySelectorAll('.screen').forEach((el, i) => el.classList.toggle('active', i === idx));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', Number(el.dataset.step) === idx));
+    document.getElementById('stepCounter').textContent = `Step ${idx + 1} of ${STEPS.length}`;
+    document.getElementById('stepCaption').innerHTML = STEPS[idx].caption;
+    document.getElementById('mobVerifBadge').textContent = `Step ${idx + 1}/${STEPS.length}`;
+    document.getElementById('btnPrev').disabled = idx === 0;
+    document.getElementById('btnNext').disabled = idx === STEPS.length - 1;
+    if (idx >= 2) {
+      const tag = document.getElementById('sbVerifTag');
+      tag.classList.remove('pending');
+      tag.textContent = '✓ Verified Supplier';
+    }
+    renderStrip();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleMobile() {
+    document.body.classList.toggle('mobile-mode');
+    const isMob = document.body.classList.contains('mobile-mode');
+    document.getElementById('btnMobile').textContent = isMob ? '💻 Desktop View' : '📱 Mobile View';
+  }
+
+  function syncStoreName() {
+    const n = document.getElementById('inpBizName').value || 'Bonapriso Materials Depot';
+    const c = document.getElementById('inpCity').value || 'Douala';
+    document.getElementById('sbStoreName').textContent = n;
+    document.getElementById('mobStoreName').textContent = n;
+    document.getElementById('sbStoreCity').textContent = `${c}, Cameroon`;
+  }
+
+  function uploadDepotPhoto() {
+    const row = document.getElementById('doc-depot');
+    row.classList.add('uploaded');
+    document.getElementById('sub-depot').textContent = 'Uploaded: Depot-Yard-Bonapriso.jpg';
+    const btn = document.getElementById('btnUploadDepot');
+    btn.outerHTML = '<span class="badge b-green">Uploaded ✓</span>';
+    const pill = document.getElementById('kybStatusPill');
+    pill.className = 'badge b-green';
+    pill.textContent = '4 of 4 Ready ✓';
+    toast('Depot photo uploaded!');
+  }
+
+  function approveKyb() {
+    toast('Business documents submitted — Verified badge active!');
+    goStep(2);
+  }
+
+  function switchUploadTab(mode) {
+    document.getElementById('tabSheet').classList.toggle('active', mode === 'sheet');
+    document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+    document.getElementById('paneSheet').style.display = mode === 'sheet' ? 'block' : 'none';
+    document.getElementById('paneSingle').style.display = mode === 'single' ? 'block' : 'none';
+  }
+
+  function loadSampleSheet() {
+    document.getElementById('sheetPreview').style.display = 'block';
+    toast('Price sheet read automatically — 5 products ready!');
+  }
+
+  function renderCatalogue() {
+    document.getElementById('catCountPill').textContent = products.length;
+    document.getElementById('catalogueBody').innerHTML = products.map((p, i) => {
+      const cls = p.stock === 'In Stock' ? 'b-green' : p.stock === 'Low Stock' ? 'b-amber' : 'b-red';
+      return `
+        <tr>
+          <td><strong>${p.name}</strong></td>
+          <td><strong>${p.price}</strong></td>
+          <td><span class="badge ${cls}">${p.stock}</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="cycleStock(${i})">Change Stock</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function cycleStock(i) {
+    const order = ['In Stock', 'Low Stock', 'Out of Stock'];
+    products[i].stock = order[(order.indexOf(products[i].stock) + 1) % order.length];
+    renderCatalogue();
+    toast(`${products[i].name} marked ${products[i].stock}`);
+  }
+
+  function addSingleProduct() {
+    const name = document.getElementById('newProdName').value.trim();
+    const price = Number(document.getElementById('newProdPrice').value || 0).toLocaleString();
+    const unit = document.getElementById('newProdUnit').value.toLowerCase();
+    if (!name) return;
+    products.unshift({ name, price: `${price} XAF / ${unit}`, stock: 'In Stock' });
+    renderCatalogue();
+    toast(`Added "${name}" to your live catalogue!`);
+    goStep(4);
+  }
+
+  function confirmPayment() {
+    document.getElementById('ord402Status').className = 'badge b-green';
+    document.getElementById('ord402Status').textContent = 'Paid · Ready';
+    document.getElementById('receiptBadge').className = 'badge b-green';
+    document.getElementById('receiptBadge').textContent = 'Confirmed ✓';
+    document.getElementById('kpiReceipts').textContent = '0';
+    document.getElementById('kpiReceiptsNote').textContent = 'All receipts checked ✓';
+    document.getElementById('ordBadge').textContent = '✓';
+    const b = document.getElementById('btnConfirmPay');
+    b.textContent = 'Payment Confirmed ✓ — Go to Delivery →';
+    b.onclick = () => goStep(6);
+    toast('Payment confirmed! Buyer notified automatically.');
+  }
+
+  function advanceDelivery() {
+    const btn = document.getElementById('btnDispatch');
+    if (deliveryStage === 0) {
+      deliveryStage = 1;
+      document.getElementById('tl-2').className = 'tl-node done';
+      document.getElementById('tl-3').className = 'tl-node current';
+      document.getElementById('delivStatusTop').textContent = 'Truck On the Way';
+      btn.textContent = '✓ Preview Site Delivery Sign-Off';
+      toast('Truck dispatched! Homeowner & site contractor alerted.');
+    } else {
+      deliveryStage = 2;
+      document.getElementById('tl-3').className = 'tl-node done';
+      document.getElementById('tl-4').className = 'tl-node done';
+      document.getElementById('delivStatusTop').textContent = 'Delivered & Signed ✓';
+      document.getElementById('proofPending').style.display = 'none';
+      document.getElementById('proofDone').style.display = 'block';
+      btn.textContent = 'Order Completed ✓ — Next: Chat & Staff →';
+      btn.onclick = () => goStep(7);
+      toast('Full delivery signed off on site!');
+    }
+  }
+
+  function switchFinalTab(mode) {
+    document.getElementById('tabChat').classList.toggle('active', mode === 'chat');
+    document.getElementById('tabStaff').classList.toggle('active', mode === 'staff');
+    document.getElementById('paneChat').style.display = mode === 'chat' ? 'block' : 'none';
+    document.getElementById('paneStaff').style.display = mode === 'staff' ? 'block' : 'none';
+  }
+
+  function sendQuoteReply() {
+    const box = document.getElementById('chatMessages');
+    if (document.getElementById('quoteSentMsg')) return;
+    box.insertAdjacentHTML('beforeend', `
+      <div class="msg supplier" id="quoteSentMsg">
+        <div class="msg-meta">Bonapriso Materials Depot · Just now</div>
+        <strong>Quote Sent:</strong> 150 bags Cimencam Cement (720,000 XAF) + Kribi Truck Delivery (45,000 XAF) = <strong>765,000 XAF total</strong>. Ready to deliver Tuesday morning!
+      </div>
+    `);
+    document.getElementById('btnSendQuote').textContent = '✓ Quote Sent to Homeowner';
+    toast('Delivery quote sent in chat!');
+  }
+
+  function addStaff() {
+    const name = document.getElementById('staffName').value.trim() || 'Eric T.';
+    const role = document.getElementById('staffRole').value;
+    document.getElementById('staffBody').insertAdjacentHTML('beforeend', `
+      <tr><td><strong>${name}</strong></td><td>${role}</td><td>Invited via WhatsApp &amp; email</td><td><span class="badge b-amber">Invite Sent</span></td></tr>
+    `);
+    document.getElementById('staffName').value = '';
+    toast(`Invite sent to ${name}!`);
+  }
+
+  // Support URL hash ?step=N for clean PDF capture
+  const params = new URLSearchParams(window.location.search);
+  renderCatalogue();
+  goStep(Math.min(STEPS.length - 1, Math.max(0, Number(params.get('step') || 0))));
+</script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Groundwork Supplies — Homeowner Demo (5 Steps)</title>
+<style>
+  :root {
+    --dg: #122D2B;
+    --dg-2: #0C1F1D;
+    --teal: #006B5E;
+    --teal-hover: #00584D;
+    --teal-soft: #E8F4F2;
+    --teal-border: #BFE0DA;
+    --canvas: #F5F7F6;
+    --white: #FFFFFF;
+    --ink: #162322;
+    --ink-70: #465755;
+    --ink-50: #6C7D7B;
+    --border: #DCE5E3;
+    --amber-bg: #FEF7E7;
+    --amber-border: #F3D999;
+    --amber-ink: #8C5A08;
+    --green-bg: #ECFDF3;
+    --green-border: #ABEFC6;
+    --green-ink: #067647;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+    background: #E8EEEC;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .guide-bar {
+    background: var(--dg-2); color: #fff; padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.12); position: sticky; top: 0; z-index: 40;
+  }
+  .guide-inner {
+    max-width: 1220px; margin: 0 auto; display: flex; align-items: center;
+    justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+  .guide-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .back-hub {
+    color: #B8DDD7; text-decoration: none; font-size: 12.5px; font-weight: 700;
+    padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.08); white-space: nowrap;
+  }
+  .back-hub:hover { background: rgba(255,255,255,0.16); color: #fff; }
+  .guide-badge {
+    background: var(--teal); color: #fff; font-size: 11.5px; font-weight: 800;
+    padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .guide-caption { font-size: 13.5px; color: #E4F4F1; line-height: 1.35; }
+  .guide-caption strong { color: #fff; }
+  .guide-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .g-btn {
+    border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); color: #fff;
+    font-size: 12.5px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .g-btn:hover { background: rgba(255,255,255,0.16); }
+  .g-btn.primary { background: var(--teal); border-color: var(--teal); }
+  .g-btn.primary:hover { background: var(--teal-hover); }
+  .g-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .step-strip { background: #163633; padding: 8px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); overflow-x: auto; }
+  .step-strip-inner { max-width: 1220px; margin: 0 auto; display: flex; gap: 8px; min-width: max-content; }
+  .step-chip {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #BDDAD5;
+    font-size: 12.5px; font-weight: 650; cursor: pointer; white-space: nowrap;
+  }
+  .step-chip:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .step-chip.active { background: #fff; color: var(--dg); border-color: #fff; font-weight: 800; }
+  .step-chip.done { color: #8DE0CF; border-color: rgba(141,224,207,0.35); }
+  .chip-num {
+    width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800;
+  }
+  .step-chip.active .chip-num { background: var(--teal); color: #fff; }
+
+  .stage-wrap { flex: 1; padding: 22px 20px 36px; display: flex; justify-content: center; align-items: flex-start; }
+  .app-frame {
+    width: 100%; max-width: 1120px; background: var(--canvas); border-radius: 18px;
+    border: 1px solid #CFDAD7; box-shadow: 0 20px 50px rgba(18, 45, 43, 0.12);
+    overflow: hidden; min-height: 690px; display: flex; flex-direction: column;
+    transition: max-width 0.2s ease;
+  }
+  body.mobile-mode .app-frame {
+    max-width: 410px; border: 8px solid #1C2B29; border-radius: 34px; min-height: 760px;
+  }
+
+  /* Homeowner Top Navigation (Clean Storefront Look) */
+  .top-nav {
+    background: var(--dg); color: #fff; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  body.mobile-mode .top-nav { padding: 13px 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mark {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--teal);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px;
+  }
+  .brand-name { font-size: 15px; font-weight: 800; }
+  .brand-sub { font-size: 11px; color: #B8DDD7; }
+  .project-pill {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #E8F6F3;
+  }
+
+  .app-main { padding: 26px 28px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+  body.mobile-mode .app-main { padding: 16px; gap: 14px; }
+
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 23px; font-weight: 850; color: var(--dg); letter-spacing: -0.02em; }
+  body.mobile-mode .page-head h1 { font-size: 19px; }
+  .page-head p { font-size: 14px; color: var(--ink-70); margin-top: 4px; line-height: 1.48; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  body.mobile-mode .grid-2, body.mobile-mode .grid-3 { grid-template-columns: 1fr; }
+  @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; box-shadow: 0 4px 12px rgba(18, 45, 43, 0.03);
+  }
+  body.mobile-mode .card { padding: 15px; }
+  .card-title { font-size: 16px; font-weight: 800; color: var(--dg); margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--ink-50); line-height: 1.45; }
+
+  /* Supplier Cards */
+  .depot-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(18, 45, 43, 0.04);
+  }
+  .depot-cover {
+    height: 92px; padding: 14px 16px; color: #fff;
+    background: linear-gradient(135deg, #122D2B 0%, #006B5E 100%);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .depot-cover.c2 { background: linear-gradient(135deg, #1E3A38 0%, #1F7A6E 100%); }
+  .depot-cover.c3 { background: linear-gradient(135deg, #173432 0%, #2A6E65 100%); }
+  .depot-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .depot-name { font-size: 16px; font-weight: 800; color: var(--dg); }
+  .depot-meta { font-size: 13px; color: var(--ink-70); line-height: 1.45; }
+
+  /* Product Cards (1 single price!) */
+  .prod-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .prod-icon {
+    height: 70px; border-radius: 10px; background: var(--teal-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+  .prod-name { font-size: 15px; font-weight: 800; color: var(--dg); }
+  .prod-price { font-size: 17px; font-weight: 850; color: var(--teal); }
+  .prod-unit { font-size: 12.5px; color: var(--ink-50); font-weight: 600; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 750; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .b-green { background: var(--green-bg); color: var(--green-ink); border: 1px solid var(--green-border); }
+  .b-amber { background: var(--amber-bg); color: var(--amber-ink); border: 1px solid var(--amber-border); }
+  .b-teal { background: var(--teal-soft); color: var(--teal); border: 1px solid var(--teal-border); }
+  .b-white { background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 18px; border-radius: 10px; border: 1px solid transparent;
+    font-size: 14px; font-weight: 750; cursor: pointer; font-family: inherit;
+  }
+  .btn-teal { background: var(--teal); color: #fff; }
+  .btn-teal:hover { background: var(--teal-hover); }
+  .btn-outline { background: #fff; color: var(--dg); border-color: #C7D6D3; }
+  .btn-outline:hover { background: var(--teal-soft); border-color: var(--teal); }
+  .btn-sm { padding: 8px 13px; font-size: 13px; border-radius: 9px; }
+  .btn-full { width: 100%; }
+
+  .callout {
+    background: var(--amber-bg); border: 1px solid var(--amber-border); border-radius: 14px;
+    padding: 15px 18px; display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+  }
+  .banner-trust {
+    background: var(--teal-soft); border: 1px solid var(--teal-border); border-radius: 12px;
+    padding: 14px 16px; font-size: 13.5px; color: var(--dg); line-height: 1.48;
+  }
+
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid #EEF3F2; font-size: 14px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .total-box {
+    background: #F4FBF9; border: 1px solid var(--teal-border); border-radius: 12px;
+    padding: 16px; margin-top: 10px;
+  }
+
+  .toggle-card {
+    border: 1.5px solid var(--teal-border); background: #FAFDFC; border-radius: 12px;
+    padding: 14px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    cursor: pointer;
+  }
+  .toggle-card.on { border-color: var(--teal); background: var(--teal-soft); }
+
+  .bank-box {
+    border: 1px solid var(--border); border-radius: 12px; padding: 15px; background: #FAFDFC;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .bank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; flex-wrap: wrap; }
+  .bank-row span { color: var(--ink-50); }
+  .bank-row strong { color: var(--dg); }
+
+  .dropzone {
+    border: 2px dashed #9EC6BE; background: #F5FBF9; border-radius: 14px;
+    padding: 24px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .dropzone.done { border-style: solid; border-color: var(--green-border); background: var(--green-bg); }
+
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  body.mobile-mode .timeline { grid-template-columns: 1fr; }
+  .tl-node { padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: #fff; }
+  .tl-node.done { border-color: var(--green-border); background: var(--green-bg); }
+  .tl-node.current { border: 2px solid var(--teal); }
+  .tl-step { font-size: 11px; font-weight: 800; color: var(--teal); text-transform: uppercase; }
+  .tl-name { font-size: 14px; font-weight: 800; color: var(--dg); margin-top: 3px; }
+  .tl-desc { font-size: 12px; color: var(--ink-70); margin-top: 3px; }
+
+  .proof-photo {
+    border-radius: 12px; padding: 18px;
+    background: linear-gradient(135deg, #122D2B 0%, #006B5E 100%);
+    color: #fff; display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .screen { display: none; flex-direction: column; gap: 18px; }
+  .screen.active { display: flex; }
+
+  .toast {
+    position: fixed; bottom: 22px; right: 22px; background: var(--dg); color: #fff;
+    padding: 12px 18px; border-radius: 11px; font-size: 13.5px; font-weight: 700;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.2); opacity: 0; pointer-events: none;
+    transform: translateY(10px); transition: all 0.2s ease; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+  <!-- Presenter Guide Bar -->
+  <div class="guide-bar">
+    <div class="guide-inner">
+      <div class="guide-left">
+        <a href="index.html" class="back-hub">← All 3 Demos</a>
+        <span class="guide-badge" id="stepCounter">Step 1 of 5</span>
+        <div class="guide-caption" id="stepCaption"></div>
+      </div>
+      <div class="guide-actions">
+        <button class="g-btn" id="btnPrev" onclick="goStep(currentStep - 1)">← Back</button>
+        <button class="g-btn primary" id="btnNext" onclick="goStep(currentStep + 1)">Next Step →</button>
+        <button class="g-btn" id="btnMobile" onclick="toggleMobile()">📱 Mobile View</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-Step Story Navigation -->
+  <div class="step-strip">
+    <div class="step-strip-inner" id="stepStrip"></div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="app-frame">
+      <header class="top-nav">
+        <div class="brand">
+          <div class="mark">G</div>
+          <div>
+            <div class="brand-name">Groundwork Supplies</div>
+            <div class="brand-sub">Homeowner View</div>
+          </div>
+        </div>
+        <div class="project-pill">🏡 Villa Bonapriso · Stage 5: Structure &amp; Walls</div>
+      </header>
+
+      <main class="app-main">
+
+        <!-- STEP 1: BROWSE VERIFIED SUPPLIERS -->
+        <section class="screen active" id="screen-0">
+          <div class="page-head">
+            <div>
+              <h1>Verified Suppliers Delivering to Douala</h1>
+              <p>Every depot here has been checked by Groundwork. Pay the supplier directly—zero middleman markup.</p>
+            </div>
+            <span class="badge b-green">✓ Verified Depots Only</span>
+          </div>
+
+          <div class="callout">
+            <div>
+              <div style="font-size:14.5px;font-weight:800;color:#5E3C05;">📋 Your Contractor Sent a Material List for Stage 5</div>
+              <div style="font-size:13px;color:#7A4F0B;margin-top:2px;">200 bags Cement + 60 Iron Bars from Bonapriso Materials Depot · <strong>0% contractor markup</strong></div>
+            </div>
+            <button class="btn btn-teal btn-sm" onclick="goStep(1)">Review List →</button>
+          </div>
+
+          <div class="grid-3">
+            <div class="depot-card">
+              <div class="depot-cover">
+                <span class="badge b-white" style="align-self:flex-start;">✓ Verified Supplier</span>
+                <div style="font-size:13px;font-weight:700;opacity:0.9;">Douala · Same-day delivery</div>
+              </div>
+              <div class="depot-body">
+                <div class="depot-name">Bonapriso Materials Depot</div>
+                <div class="depot-meta">Cement, iron bars, blocks &amp; river sand. Offloading included on site.</div>
+                <div style="margin-top:auto;padding-top:6px;">
+                  <button class="btn btn-teal btn-full btn-sm" onclick="goStep(1)">Open Storefront →</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="depot-card">
+              <div class="depot-cover c2">
+                <span class="badge b-white" style="align-self:flex-start;">✓ Verified Supplier</span>
+                <div style="font-size:13px;font-weight:700;opacity:0.9;">Douala &amp; Kribi · 24h delivery</div>
+              </div>
+              <div class="depot-body">
+                <div class="depot-name">Littoral Steel &amp; Cement</div>
+                <div class="depot-meta">Factory-direct rebar, Cimencam cement &amp; roofing sheets for full builds.</div>
+                <div style="margin-top:auto;padding-top:6px;">
+                  <button class="btn btn-outline btn-full btn-sm" onclick="goStep(1)">Open Storefront →</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="depot-card">
+              <div class="depot-cover c3">
+                <span class="badge b-white" style="align-self:flex-start;">✓ Verified Supplier</span>
+                <div style="font-size:13px;font-weight:700;opacity:0.9;">Yaoundé &amp; Douala · 24–48h</div>
+              </div>
+              <div class="depot-body">
+                <div class="depot-name">CamBuild Finishing Hub</div>
+                <div class="depot-meta">Tiles, plumbing, electrical &amp; exterior paint for finishing stages.</div>
+                <div style="margin-top:auto;padding-top:6px;">
+                  <button class="btn btn-outline btn-full btn-sm" onclick="goStep(1)">Open Storefront →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2: STOREFRONT & PICK MATERIALS -->
+        <section class="screen" id="screen-1">
+          <div class="page-head">
+            <div>
+              <span class="badge b-green" style="margin-bottom:6px;">✓ Verified Supplier · Douala</span>
+              <h1>Bonapriso Materials Depot</h1>
+              <p>Simple, transparent depot prices. Your contractor’s Stage 5 items are already pre-selected below.</p>
+            </div>
+            <button class="btn btn-teal" onclick="goStep(2)">Review Cart (<span id="cartCount">2</span> items) →</button>
+          </div>
+
+          <div class="grid-3">
+            <div class="prod-card">
+              <div class="prod-icon">🧱</div>
+              <div class="prod-name">Cimencam Cement 42.5 (50kg)</div>
+              <div><span class="prod-price">4,800 XAF</span> <span class="prod-unit">/ bag</span></div>
+              <span class="badge b-green" style="align-self:flex-start;">In Stock</span>
+              <button class="btn btn-teal btn-sm btn-full" id="btnAdd1" onclick="toggleCart(1)">✓ 200 Bags in Cart</button>
+            </div>
+
+            <div class="prod-card">
+              <div class="prod-icon">🔩</div>
+              <div class="prod-name">Iron Bar FeE500 — 12mm</div>
+              <div><span class="prod-price">4,650 XAF</span> <span class="prod-unit">/ bar</span></div>
+              <span class="badge b-green" style="align-self:flex-start;">In Stock</span>
+              <button class="btn btn-teal btn-sm btn-full" id="btnAdd2" onclick="toggleCart(2)">✓ 60 Bars in Cart</button>
+            </div>
+
+            <div class="prod-card">
+              <div class="prod-icon">🚚</div>
+              <div class="prod-name">Washed River Sand (20T Truck)</div>
+              <div><span class="prod-price">185,000 XAF</span> <span class="prod-unit">/ truck</span></div>
+              <span class="badge b-green" style="align-self:flex-start;">In Stock</span>
+              <button class="btn btn-outline btn-sm btn-full" id="btnAdd3" onclick="toggleCart(3)">+ Add 1 Truck</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3: CLEAN CHECKOUT & OPTIONAL SITE VERIFIER -->
+        <section class="screen" id="screen-2">
+          <div class="page-head">
+            <div>
+              <h1>Review Your Stage 5 Order</h1>
+              <p>One clear total—with optional Groundwork on-site verification when the truck arrives.</p>
+            </div>
+            <span class="badge b-teal">0% Markup · Direct Depot Price</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Order Summary</div>
+              <div class="card-sub">Delivering to Villa Bonapriso, Douala</div>
+              <div style="margin-top:10px;">
+                <div class="summary-row"><span>Cimencam Cement (200 bags)</span><strong>960,000 XAF</strong></div>
+                <div class="summary-row"><span>Iron Bar 12mm (60 bars)</span><strong>279,000 XAF</strong></div>
+                <div class="summary-row"><span>Flatbed Truck Delivery &amp; Offload</span><strong>15,000 XAF</strong></div>
+                <div class="summary-row" id="verifRow"><span>Groundwork On-Site Delivery Check</span><strong>15,000 XAF</strong></div>
+              </div>
+              <div class="total-box">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                  <span style="font-weight:800;color:var(--dg);">Total to Pay</span>
+                  <strong style="font-size:21px;color:var(--teal);" id="totalXaf">1,269,000 XAF</strong>
+                </div>
+                <div style="text-align:right;font-size:12.5px;color:var(--ink-50);margin-top:3px;" id="totalUsd">
+                  Approx. $2,080 USD (for reference)
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+              <div>
+                <div class="card-title">Peace of Mind on Delivery Day</div>
+                <div class="card-sub">Recommended for diaspora Homeowners building from abroad.</div>
+              </div>
+
+              <div class="toggle-card on" id="verifToggle" onclick="toggleVerifier()">
+                <div>
+                  <div style="font-size:14.5px;font-weight:800;color:var(--dg);">✓ Add Groundwork Delivery Verifier</div>
+                  <div style="font-size:13px;color:var(--ink-70);margin-top:3px;line-height:1.45;">
+                    An independent verifier meets the truck at your site gate, counts every bag and bar, and uploads photo proof to your project.
+                  </div>
+                </div>
+                <strong style="color:var(--teal);white-space:nowrap;">+15,000 XAF</strong>
+              </div>
+
+              <div class="banner-trust" style="font-size:13px;">
+                <strong>Direct Payment:</strong> On the next screen, you’ll see Bonapriso Materials Depot’s verified bank &amp; Mobile Money account to pay directly.
+              </div>
+
+              <button class="btn btn-teal btn-full" style="margin-top:auto;" onclick="goStep(3)">
+                Continue to Direct Payment →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 4: PAY SUPPLIER DIRECTLY & UPLOAD RECEIPT -->
+        <section class="screen" id="screen-3">
+          <div class="page-head">
+            <div>
+              <h1>Pay Supplier Directly &amp; Upload Receipt</h1>
+              <p>Transfer the exact amount directly to the supplier’s verified business account, then upload your slip.</p>
+            </div>
+            <span class="badge b-green">✓ Account Verified by Groundwork</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Verified Supplier Account Details</div>
+              <div class="card-sub">Bonapriso Materials Depot · Order #ORD-402</div>
+              <div class="bank-box" style="margin-top:12px;">
+                <div class="bank-row"><span>Account Name</span><strong>Bonapriso Materials Depot SARL</strong></div>
+                <div class="bank-row"><span>Bank</span><strong>Afriland First Bank Cameroon</strong></div>
+                <div class="bank-row"><span>Account / RIB</span><strong>10005-00001-04829103841-22</strong></div>
+                <div class="bank-row"><span>Business MoMo</span><strong>MTN MoMo · +237 677 41 22 08</strong></div>
+                <div class="bank-row"><span>Amount to Transfer</span><strong style="color:var(--teal);font-size:15px;" id="payAmount">1,269,000 XAF</strong></div>
+              </div>
+              <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="toast('Account details copied!')">📋 Copy Account Details</button>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+              <div>
+                <div class="card-title">Upload Your Payment Receipt</div>
+                <div class="card-sub">A screenshot from your bank app, wire transfer PDF, or MoMo confirmation works.</div>
+              </div>
+              <div class="dropzone" id="receiptZone">
+                <div style="font-size:28px;" id="rcptIcon">📎</div>
+                <div style="font-size:14.5px;font-weight:800;color:var(--dg);" id="rcptTitle">Tap to Attach Transfer Receipt</div>
+                <div style="font-size:12.5px;color:var(--ink-70);" id="rcptSub">Supplier gets an instant WhatsApp alert to check and dispatch your truck.</div>
+                <button class="btn btn-teal btn-sm" id="btnUploadRcpt" onclick="uploadReceipt()">Upload Sample Bank Receipt</button>
+              </div>
+              <button class="btn btn-teal btn-full" id="btnGoTrack" style="margin-top:auto;" onclick="finishPayment()">
+                Submit Receipt &amp; Track Delivery →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 5: LIVE DELIVERY TRACKING & SITE PROOF -->
+        <section class="screen" id="screen-4">
+          <div class="page-head">
+            <div>
+              <h1>Order #ORD-402 · Live Delivery Tracking</h1>
+              <p>See every step from payment confirmation to photo proof at your building site.</p>
+            </div>
+            <span class="badge b-green" id="trackTopBadge">✓ Delivered &amp; Verified on Site</span>
+          </div>
+
+          <div class="timeline">
+            <div class="tl-node done">
+              <div class="tl-step">Step 1 · Done</div>
+              <div class="tl-name">Receipt Uploaded</div>
+              <div class="tl-desc">Sent at 11:05 AM</div>
+            </div>
+            <div class="tl-node done">
+              <div class="tl-step">Step 2 · Done</div>
+              <div class="tl-name">Depot Confirmed</div>
+              <div class="tl-desc">Money received ✓</div>
+            </div>
+            <div class="tl-node done">
+              <div class="tl-step">Step 3 · Done</div>
+              <div class="tl-name">Truck Dispatched</div>
+              <div class="tl-desc">Driver Paul N.</div>
+            </div>
+            <div class="tl-node done">
+              <div class="tl-step">Step 4 · Done</div>
+              <div class="tl-name">Delivered on Site</div>
+              <div class="tl-desc">Counted at 2:38 PM</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="proof-photo">
+              <span class="badge b-white" style="align-self:flex-start;">📸 Verified Site Offload Proof</span>
+              <div style="font-size:18px;font-weight:800;margin-top:4px;">200 Cement Bags &amp; 60 Iron Bars Offloaded</div>
+              <div style="font-size:13.5px;color:#D6EEE9;line-height:1.5;">
+                Counted at Villa Bonapriso gate at <strong>2:38 PM</strong>. Zero damaged bags. Signed by both your Contractor and Groundwork Site Verifier.
+              </div>
+              <div style="margin-top:8px;font-size:12px;color:#B8DDD7;">📍 Bonapriso, Douala · Saved permanently to Stage 5 project records</div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+              <div class="card-title">Your Order Record Is Saved</div>
+              <div class="card-sub">Everything—your bank transfer receipt, supplier confirmation, and site offload photos—stays saved inside your Stage 5 timeline automatically.</div>
+              <div class="banner-trust" style="font-size:13px;">
+                <strong>Result:</strong> No cash handed to middlemen, no missing bags, and clear proof of where every XAF went.
+              </div>
+              <div style="display:flex;gap:10px;margin-top:auto;flex-wrap:wrap;">
+                <button class="btn btn-teal" onclick="toast('Order receipt PDF downloaded!')">📄 Download Order Receipt</button>
+                <button class="btn btn-outline" onclick="goStep(0)">↻ Restart Demo</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const STEPS = [
+    { label: '1. Verified Depots', caption: '<strong>Step 1 — Browse Depots:</strong> Homeowner sees only Groundwork-verified suppliers delivering to their build city—plus any list sent by their contractor.' },
+    { label: '2. Pick Materials',  caption: '<strong>Step 2 — Pick Materials:</strong> Clean item cards with one clear XAF price per item—no crowded tables or confusing math.' },
+    { label: '3. Clean Checkout',  caption: '<strong>Step 3 — Checkout &amp; Site Check:</strong> One simple total (with USD shown once) and an optional Groundwork Verifier to count bags at the gate.' },
+    { label: '4. Pay Directly',    caption: '<strong>Step 4 — Direct Payment:</strong> Homeowner pays the supplier’s verified Bank or MoMo account directly (0% markup) and uploads their transfer slip.' },
+    { label: '5. Site Proof',      caption: '<strong>Step 5 — Track &amp; Proof:</strong> Homeowner follows the truck live and receives signed offload proof saved to their project stage.' },
+  ];
+
+  let currentStep = 0;
+  let hasVerifier = true;
+  let receiptUploaded = false;
+  let cartState = { 1: true, 2: true, 3: false };
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._t);
+    window._t = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function renderStrip() {
+    document.getElementById('stepStrip').innerHTML = STEPS.map((s, i) => `
+      <button class="step-chip ${i === currentStep ? 'active' : i < currentStep ? 'done' : ''}" onclick="goStep(${i})">
+        <span class="chip-num">${i < currentStep ? '✓' : i + 1}</span>${s.label}
+      </button>
+    `).join('');
+  }
+
+  function goStep(idx) {
+    if (idx < 0 || idx >= STEPS.length) return;
+    currentStep = idx;
+    document.querySelectorAll('.screen').forEach((el, i) => el.classList.toggle('active', i === idx));
+    document.getElementById('stepCounter').textContent = `Step ${idx + 1} of ${STEPS.length}`;
+    document.getElementById('stepCaption').innerHTML = STEPS[idx].caption;
+    document.getElementById('btnPrev').disabled = idx === 0;
+    document.getElementById('btnNext').disabled = idx === STEPS.length - 1;
+    renderStrip();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleMobile() {
+    document.body.classList.toggle('mobile-mode');
+    document.getElementById('btnMobile').textContent = document.body.classList.contains('mobile-mode') ? '💻 Desktop View' : '📱 Mobile View';
+  }
+
+  function toggleCart(n) {
+    cartState[n] = !cartState[n];
+    const labels = {
+      1: cartState[1] ? '✓ 200 Bags in Cart' : '+ Add 200 Bags',
+      2: cartState[2] ? '✓ 60 Bars in Cart'  : '+ Add 60 Bars',
+      3: cartState[3] ? '✓ 1 Truck in Cart'  : '+ Add 1 Truck',
+    };
+    const btn = document.getElementById(`btnAdd${n}`);
+    btn.textContent = labels[n];
+    btn.className = `btn ${cartState[n] ? 'btn-teal' : 'btn-outline'} btn-sm btn-full`;
+    const count = Object.values(cartState).filter(Boolean).length;
+    document.getElementById('cartCount').textContent = count;
+    toast(cartState[n] ? 'Added to Stage 5 cart' : 'Removed from cart');
+  }
+
+  function toggleVerifier() {
+    hasVerifier = !hasVerifier;
+    const card = document.getElementById('verifToggle');
+    card.classList.toggle('on', hasVerifier);
+    document.getElementById('verifRow').style.display = hasVerifier ? 'flex' : 'none';
+    const total = hasVerifier ? 1269000 : 1254000;
+    const usd = Math.round(total / 610).toLocaleString();
+    document.getElementById('totalXaf').textContent = `${total.toLocaleString()} XAF`;
+    document.getElementById('totalUsd').textContent = `Approx. $${usd} USD (for reference)`;
+    document.getElementById('payAmount').textContent = `${total.toLocaleString()} XAF`;
+    toast(hasVerifier ? 'On-site delivery verifier added (+15,000 XAF)' : 'Delivery verifier removed');
+  }
+
+  function uploadReceipt() {
+    receiptUploaded = true;
+    const z = document.getElementById('receiptZone');
+    z.classList.add('done');
+    document.getElementById('rcptIcon').textContent = '✅';
+    document.getElementById('rcptTitle').textContent = 'Bank-Transfer-Slip.jpg Uploaded';
+    document.getElementById('rcptSub').textContent = 'Ready to notify Bonapriso Materials Depot.';
+    document.getElementById('btnUploadRcpt').style.display = 'none';
+    toast('Transfer receipt attached!');
+  }
+
+  function finishPayment() {
+    if (!receiptUploaded) uploadReceipt();
+    toast('Receipt sent to supplier! Live tracking active.');
+    goStep(4);
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  goStep(Math.min(STEPS.length - 1, Math.max(0, Number(params.get('step') || 0))));
+</script>
+</body>
+</html>
