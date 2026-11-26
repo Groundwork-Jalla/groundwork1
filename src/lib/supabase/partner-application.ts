@@ -278,35 +278,51 @@ export interface PartnerAnswers {
  * safe here, unlike the anonymous writes in application-drafts.ts: `self_read_application`
  * (133) lets an applicant see their own row.
  */
-export async function submitPartnerApplication(
+/**
+ * Build the `contractor_applications` insert payload with conditional sub-answers
+ * normalized to match migration 152's CHECK constraints (`project_detail_matches` and
+ * `offsite_reason_matches`) and `NOT NULL` text columns safely defaulted.
+ *
+ * Keeping this pure lets tests verify that stale sub-answers from Back/Next edits or
+ * restored drafts can never produce a 23514 constraint violation on submit or stopHere.
+ */
+export function buildPartnerApplicationRow(
   userId: string, prefill: PartnerPrefill, a: PartnerAnswers,
-): Promise<string | null> {
+) {
   // Filed under the status the answers earned. An application that ended at a
   // disqualifying question is RECORDED, not discarded: it is where the funnel loses
   // people, which is the thing Philip's metrics are about. 133's unique index counts
   // only pending/reviewing/accepted as live, so a disqualified row never blocks a
   // fresh attempt when their situation changes.
   const status = a.disqualifiedReason ? 'disqualified' : 'pending';
+  const projectStatus = a.projectStatus ?? null;
+  const clientOnSiteDaily = a.clientOnSiteDaily ?? null;
+  const offsiteReason = clientOnSiteDaily === false
+    ? (a.clientOffsiteReason?.trim() || null)
+    : null;
+  const offsiteReasonOther = offsiteReason === 'other'
+    ? (a.clientOffsiteReasonOther?.trim() || null)
+    : null;
 
-  const { data, error } = await supabase.from('contractor_applications').insert({
-    source: 'in_app',
+  return {
+    source: 'in_app' as const,
     user_id: userId,
     status,
-    project_status:              a.projectStatus ?? null,
-    project_stage:               a.projectStage || null,
-    project_start_window:        a.projectStartWindow || null,
-    client_on_site_daily:        a.clientOnSiteDaily ?? null,
-    client_offsite_reason:       a.clientOffsiteReason || null,
-    client_offsite_reason_other: a.clientOffsiteReasonOther || null,
+    project_status:              projectStatus,
+    project_stage:               projectStatus === 'running' ? (a.projectStage?.trim() || null) : null,
+    project_start_window:        projectStatus === 'starting' ? (a.projectStartWindow?.trim() || null) : null,
+    client_on_site_daily:        clientOnSiteDaily,
+    client_offsite_reason:       offsiteReason,
+    client_offsite_reason_other: offsiteReasonOther,
     will_use_groundwork:         a.willUseGroundwork ?? null,
     disqualified_reason:         a.disqualifiedReason ?? null,
-    full_name: prefill.fullName,
-    email: prefill.email,
-    phone: prefill.phone,
-    country: prefill.country,
-    city: a.city,
-    business_name: prefill.businessName,
-    role: a.role,
+    full_name: prefill.fullName ?? '',
+    email: prefill.email ?? '',
+    phone: prefill.phone ?? '',
+    country: prefill.country ?? '',
+    city: a.city ?? '',
+    business_name: prefill.businessName ?? null,
+    role: a.role ?? '',
     // The trade a contractor typed when they picked "other" at onboarding.
     //
     // 081 requires it: `CHECK (role <> 'other' OR role_other IS NOT NULL)`, because
@@ -317,23 +333,33 @@ export async function submitPartnerApplication(
     //
     // The value was already loaded in `prefill`; it simply was not passed on.
     role_other: a.role === 'other' ? (prefill.specialtyOther?.trim() || null) : null,
-    years_experience: a.yearsExperience,
-    operates_as: a.operatesAs,
-    languages: a.languages,
-    diaspora_history: a.diasporaHistory,
+    years_experience: a.yearsExperience ?? '',
+    operates_as: a.operatesAs ?? '',
+    languages: a.languages ?? [],
+    diaspora_history: a.diasporaHistory ?? '',
     has_current_project: a.hasCurrentProject,
     will_introduce: a.willIntroduce,
-    why_join: a.whyJoin,
-    differentiator: a.differentiator,
-    regions: a.regions,
-    concurrent_projects: a.concurrentProjects,
+    why_join: a.whyJoin ?? '',
+    differentiator: a.differentiator ?? '',
+    regions: a.regions ?? '',
+    concurrent_projects: a.concurrentProjects ?? '',
     // Already accepted in the partner agreement at onboarding (117).
     accepts_milestones: true,
     accepts_verification: true,
     accepts_no_side_pay: true,
     agreed_to_terms: true,
     ready_for_early: true,
-  }).select('id').single();
+  };
+}
+
+export async function submitPartnerApplication(
+  userId: string, prefill: PartnerPrefill, a: PartnerAnswers,
+): Promise<string | null> {
+  const row = buildPartnerApplicationRow(userId, prefill, a);
+
+  const { data, error } = await supabase.from('contractor_applications')
+    .insert(row)
+    .select('id').single();
   if (error) throw error;
   return (data as { id?: string } | null)?.id ?? null;
 }

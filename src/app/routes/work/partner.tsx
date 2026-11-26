@@ -71,7 +71,11 @@ const GROUNDWORK_USE = ['yes', 'maybe', 'no'] as const;
 function isDuplicateApplication(err: unknown): boolean {
   const e = (err ?? {}) as { code?: unknown; message?: unknown };
   const message = typeof e.message === 'string' ? e.message : '';
-  return e.code === '23505' || /one_per_account/.test(message);
+  return e.code === '23505' || /one_per_account|one_open_per_user/.test(message);
+}
+
+function isLiveApplicationState(s: ApplicationState): boolean {
+  return s === 'pending' || s === 'reviewing' || s === 'accepted';
 }
 
 /**
@@ -338,6 +342,7 @@ export default function PartnerApplication() {
     // click end one sequence and begin another. The RPC keeps the first occurrence,
     // so calling it on every Next cannot inflate the count.
     trackFunnel('partner_application', 'started');
+    setError(null);
     setPageStack(stack => [...stack, page]);
     setPage(nextPage);
   }
@@ -345,6 +350,7 @@ export default function PartnerApplication() {
   function goBack() {
     const previous = pageStack.at(-1);
     if (previous === undefined) return;
+    setError(null);
     setPageStack(stack => stack.slice(0, -1));
     setPage(previous);
   }
@@ -448,6 +454,16 @@ export default function PartnerApplication() {
       clearPartnerDraftId(user.id);
       setStopped(reason);
     } catch (err) {
+      if (isDuplicateApplication(err)) {
+        const again = await myApplicationSummary(user.id).catch(() => null);
+        if (again && isLiveApplicationState(again.state)) {
+          setState(again.state);
+          setQualified(again.decisionReady);
+          void myApplicationDetail(user.id).then(setDetail).catch(() => {});
+          if (again.decisionReady) void openBooking(again.language);
+          return;
+        }
+      }
       setError(applicantError(err, t('partner.submitFailed'), t('partner.tradeMissing')));
     } finally { setBusy(false); }
   }
@@ -572,10 +588,11 @@ export default function PartnerApplication() {
        */
       if (isDuplicateApplication(err)) {
         const again = await myApplicationSummary(user.id).catch(() => null);
-        if (again && again.state !== 'none') {
+        if (again && isLiveApplicationState(again.state)) {
           setState(again.state);
           setQualified(again.decisionReady);
           void myApplicationDetail(user.id).then(setDetail).catch(() => {});
+          if (again.decisionReady) void openBooking(again.language);
           return;
         }
       }
