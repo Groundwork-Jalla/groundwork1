@@ -34,11 +34,13 @@ export function stagePricePreview(context: StagePriceContext, drafts: Record<str
   let total = units(context.total);
   const rows: { stage_id: string; amount: string }[] = [];
   for (const stage of context.stages.filter(stage => stage.editable)) {
-    if (stage.amount == null) return null;
-    const amount = (drafts[stage.id] ?? stage.amount).trim();
+    const currentAmount = stage.amount ?? '0';
+    const hasDraft = Object.prototype.hasOwnProperty.call(drafts, stage.id);
+    if (!hasDraft) continue;
+    const amount = drafts[stage.id].trim();
     if (!/^\d{1,13}(?:\.\d{1,6})?$/.test(amount)||units(amount)>1_000_000_000_000_000_000n) return null;
-    if (units(amount) === units(stage.amount)) continue;
-    total += units(amount) - units(stage.amount); rows.push({ stage_id: stage.id, amount });
+    if (units(amount) === units(currentAmount)) continue;
+    total += units(amount) - units(currentAmount); rows.push({ stage_id: stage.id, amount });
   }
   return total > 0n && total <= 1_000_000_000_000_000_000n ? { rows, total: decimal(total) } : null;
 }

@@ -665,5 +665,73 @@ REVOKE ALL ON FUNCTION public.delete_own_contractor_project(uuid)
 GRANT EXECUTE ON FUNCTION public.delete_own_contractor_project(uuid)
   TO authenticated;
 
+-- ── 5. Allow proposing stage prices one stage at a time even when other stages are NULL ─
+CREATE OR REPLACE FUNCTION public.stage_pricing_context(p_project uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE p public.projects%ROWTYPE; v_basis jsonb; v_code text; v_rate numeric; v_total numeric; v_rows jsonb; v_hash text;v_history jsonb;
+BEGIN
+ IF auth.uid() IS NULL OR NOT (public.is_admin() OR public.project_member(p_project)) THEN RAISE EXCEPTION 'project_access_required'; END IF;
+ SELECT * INTO p FROM public.projects WHERE id=p_project;
+ IF NOT FOUND OR p.tracking_started_at IS NULL OR p.budget_usd IS NULL OR p.budget_usd<=0 THEN RAISE EXCEPTION 'pricing_not_started'; END IF;
+ IF (p.budget_source='boq' OR p.pricing_revision>0) AND p.budget_currency IS NOT NULL AND p.budget_fx_rate>0 AND p.budget_amount>0 THEN
+   v_code:=p.budget_currency;v_rate:=p.budget_fx_rate;v_total:=p.budget_amount;
+ ELSIF p.budget_source='boq' THEN RAISE EXCEPTION 'bill_confirmation_required';
+ ELSE
+   v_basis:='{"CM":["XAF",600],"CI":["XOF",600],"SN":["XOF",600],"TG":["XOF",600],"BJ":["XOF",600],"NG":["NGN",1600],"GH":["GHS",16],"KE":["KES",130],"UG":["UGX",3700],"TZ":["TZS",2500],"RW":["RWF",1300],"ET":["ETB",57],"ZA":["ZAR",18],"ZM":["ZMW",28],"ZW":["USD",1],"MZ":["MZN",64],"BW":["BWP",14],"CD":["CDF",2800],"MA":["MAD",10],"EG":["EGP",48],"GB":["GBP",0.79],"US":["USD",1]}'::jsonb->upper(coalesce(p.country,''));
+   v_code:=coalesce(v_basis->>0,'USD');v_rate:=coalesce((v_basis->>1)::numeric,1);v_total:=round(p.budget_usd*v_rate,6);
+ END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('id',s.id,'stage_number',s.stage_number,'stage_key',s.stage_key,'name',s.name,
+   'amount',coalesce(CASE WHEN p.budget_source='boq' OR p.pricing_revision>0 THEN s.milestone_amount ELSE round(s.payment_milestone_usd*v_rate,6) END, 0)::text,
+   'usd',coalesce(s.payment_milestone_usd, 0)::text,'status',s.status,'pre_existing',s.pre_existing,'budget_pct',s.budget_pct,
+   'fixed_amount_usd',s.fixed_amount_usd,'editable',public.stage_price_editable(s.id)) ORDER BY s.stage_number,s.id),'[]'::jsonb)
+ INTO v_rows FROM public.project_stages s WHERE s.project_id=p_project;
+ v_hash:=md5(jsonb_build_object('revision',p.pricing_revision,'source',p.budget_source,'currency',v_code,'rate',v_rate,
+   'total',v_total,'usd',p.budget_usd,'state',p.status,'stages',v_rows,'receipts',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.stage_payment_receipts r WHERE r.project_id=p_project),'payments',(SELECT jsonb_agg(to_jsonb(pay) ORDER BY pay.id) FROM public.payments pay WHERE pay.project_id=p_project))::text);
+ SELECT coalesce(jsonb_agg(item ORDER BY proposed_at DESC,id),'[]'::jsonb) INTO v_history FROM
+ (SELECT id,proposed_at,jsonb_build_object('id',id,'status',status,'proposed_at',proposed_at,'note',note,'currency',currency,
+ 'old_total',old_total::text,'new_total',new_total::text,'changes',changes,'decided_at',decided_at,'stale',base_hash<>v_hash OR NOT EXISTS(SELECT 1 FROM public.contractor_invites ci WHERE ci.project_id=p_project AND ci.contractor_user_id=proposed_by AND ci.status='accepted' AND ci.is_primary),'can_withdraw',proposed_by=auth.uid() AND status='pending') AS item
+ FROM public.stage_price_amendments WHERE project_id=p_project ORDER BY proposed_at DESC,id LIMIT 50) history;
+ RETURN jsonb_build_object('project_id',p_project,'currency',v_code,'fx_rate',v_rate::text,'total',v_total::text,'base_hash',v_hash,'stages',v_rows,'history',v_history,
+   'can_propose',public.is_primary_project_contractor(p_project) AND NOT public.is_project_client(p_project) AND p.status::text IN('active','on_hold','completed'),
+   'can_approve',public.is_project_client(p_project) AND p.status::text IN('active','on_hold','completed'));
+END $$;
+
+CREATE OR REPLACE FUNCTION public.propose_stage_prices(p_project uuid,p_rows jsonb,p_base_hash text,p_note text DEFAULT NULL)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE c jsonb; r jsonb; s jsonb; v_changes jsonb:='[]'; v_amount numeric; v_before numeric; v_delta numeric:=0; v_id uuid; v_seen uuid[]:='{}'; v_stage uuid;
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.is_primary_project_contractor(p_project) OR public.is_project_client(p_project) THEN RAISE EXCEPTION 'not_primary_contractor'; END IF;
+ PERFORM public.lock_project_stage_progression(p_project);
+ PERFORM 1 FROM public.projects WHERE id=p_project FOR UPDATE;
+ PERFORM 1 FROM public.project_stages WHERE project_id=p_project ORDER BY id FOR UPDATE;
+ c:=public.stage_pricing_context(p_project);
+ IF c->>'can_propose'<>'true' THEN RAISE EXCEPTION 'pricing_paused'; END IF;
+ IF p_base_hash IS DISTINCT FROM c->>'base_hash' THEN RAISE EXCEPTION 'stale_stage_prices'; END IF;
+ IF p_rows IS NULL OR jsonb_typeof(p_rows)<>'array' OR jsonb_array_length(p_rows) NOT BETWEEN 1 AND 100 OR length(coalesce(p_note,''))>2000 THEN RAISE EXCEPTION 'invalid_stage_prices'; END IF;
+ IF EXISTS(SELECT 1 FROM public.stage_price_amendments WHERE project_id=p_project AND status='pending') THEN RAISE EXCEPTION 'price_proposal_pending'; END IF;
+ FOR r IN SELECT * FROM jsonb_array_elements(p_rows) LOOP
+   IF coalesce(r->>'amount','') !~ '^\d+(\.\d{1,6})?$' OR coalesce(r->>'stage_id','') !~ '^[a-fA-F0-9-]{36}$' THEN RAISE EXCEPTION 'invalid_stage_prices'; END IF;
+   v_amount:=(r->>'amount')::numeric;
+   IF v_amount<0 OR v_amount>1e12 OR (v_amount>0 AND round(v_amount/(c->>'fx_rate')::numeric,9)<=0) THEN RAISE EXCEPTION 'invalid_stage_prices'; END IF;
+   v_stage:=(r->>'stage_id')::uuid;
+   IF v_stage=ANY(v_seen) THEN RAISE EXCEPTION 'invalid_stage_prices'; END IF;
+   v_seen:=array_append(v_seen,v_stage);
+   SELECT value INTO s FROM jsonb_array_elements(c->'stages') WHERE value->>'id'=v_stage::text;
+   IF s IS NULL OR s->>'editable'<>'true' THEN RAISE EXCEPTION 'stage_price_locked'; END IF;
+   v_before:=coalesce((s->>'amount')::numeric, 0);
+   IF v_amount=v_before THEN CONTINUE; END IF;
+   v_delta:=v_delta+v_amount-v_before;
+   v_changes:=v_changes||jsonb_build_array(jsonb_build_object('stage_id',v_stage,'stage_number',s->'stage_number','stage_key',s->'stage_key','name',s->'name','before',v_before::text,'after',v_amount::text));
+ END LOOP;
+ IF jsonb_array_length(v_changes)=0 THEN RAISE EXCEPTION 'no_price_changes'; END IF;
+ IF (c->>'total')::numeric+v_delta<=0 OR (c->>'total')::numeric+v_delta>1e12
+ OR round(((c->>'total')::numeric+v_delta)/(c->>'fx_rate')::numeric,9)<=0
+ OR round(((c->>'total')::numeric+v_delta)/(c->>'fx_rate')::numeric,9)>=1e15 THEN RAISE EXCEPTION 'invalid_project_total'; END IF;
+ INSERT INTO public.stage_price_amendments(project_id,proposed_by,note,currency,fx_rate,old_total,new_total,base_hash,changes)
+ VALUES(p_project,auth.uid(),nullif(btrim(p_note),''),c->>'currency',(c->>'fx_rate')::numeric,(c->>'total')::numeric,(c->>'total')::numeric+v_delta,c->>'base_hash',v_changes) RETURNING id INTO v_id;
+ PERFORM public.log_activity(p_project,'stage_prices.proposed','stage_price_amendment',v_id,auth.uid(),jsonb_build_object('currency',c->>'currency','old_total',c->>'total','new_total',(c->>'total')::numeric+v_delta,'changes',v_changes));
+ RETURN v_id;
+END $$;
+
 NOTIFY pgrst, 'reload schema';
 COMMIT;

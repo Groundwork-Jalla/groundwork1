@@ -83,14 +83,19 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen,
     {(project.pricing_revision ?? 0) > 0 && project.budget_original_amount != null && <p className="text-xs text-brand-mid-grey">{t(project.budget_source === 'boq' ? 'project.priceChanges.originalBill' : 'project.priceChanges.originalBudget', { amount: format(project.budget_original_amount, project.budget_currency ?? context?.currency ?? 'USD') })}</p>}
     {error && <p role="alert" className="text-xs text-state-alert">{error} <button type="button" onClick={() => { void load(); }} className="underline">{t('common.retry')}</button></p>}
     {context?.can_propose && !pending && !editing && <button type="button" onClick={() => { setDraft({ scope: project.id, context, amounts: {}, note: '' }); setFailure(null); }} className="rounded-xl bg-brand-green px-4 py-2.5 text-xs font-semibold text-white">{t('project.priceChanges.propose')}</button>}
-    {editing && <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (preview?.rows.length && !stale && editing.note.trim()) setConfirmation({scope:project.id,kind:'submit',hash:editing.context.base_hash,rows:preview.rows.map(row=>({...row})),note:editing.note,description:t('project.priceChanges.confirmSubmitBody',{before:format(editing.context.total,editing.context.currency),after:format(preview.total,editing.context.currency)})+'\n\n'+preview.rows.map(row=>{const stage=editing.context.stages.find(item=>item.id===row.stage_id)!;return stageLabel(stage)+': '+format(stage.amount,editing.context.currency)+' → '+format(row.amount,editing.context.currency);}).join('\n')}); }}>
+    {editing && <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (preview?.rows.length && !stale && editing.note.trim()) setConfirmation({scope:project.id,kind:'submit',hash:editing.context.base_hash,rows:preview.rows.map(row=>({...row})),note:editing.note,description:t('project.priceChanges.confirmSubmitBody',{before:format(editing.context.total,editing.context.currency),after:format(preview.total,editing.context.currency)})+'\n\n'+preview.rows.map(row=>{const stage=editing.context.stages.find(item=>item.id===row.stage_id)!;return stageLabel(stage)+': '+format(stage.amount ?? '0',editing.context.currency)+' → '+format(row.amount,editing.context.currency);}).join('\n')}); }}>
       <fieldset disabled={busy} className="space-y-3 disabled:opacity-40">
+        <p className="rounded-lg bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey dark:bg-[#141414]">
+          {lang === 'fr'
+            ? 'Vous pouvez proposer étape par étape : remplissez uniquement la ou les étapes à modifier et laissez les autres vides.'
+            : 'You can propose one stage at a time — only fill in the stage(s) you want to update and leave all other stages blank.'}
+        </p>
         <div className="grid grid-cols-3 gap-3 text-xs font-semibold"><span>{t('project.priceChanges.stageColumn')}</span><span>{t('project.priceChanges.currentStagePrice')}</span><span>{t('project.priceChanges.proposedStagePrice')}</span></div>
         {editing.context.stages.map(stage => <div key={stage.id} className="grid grid-cols-3 items-center gap-3 border-b border-brand-border-grey pb-3 text-xs dark:border-[#2c2c2c]">
           <label htmlFor={`stage-price-${stage.id}`} className="min-w-36 flex-1">{stageLabel(stage)}{!stage.editable && <span className="mt-1 block text-brand-mid-grey">{t('project.priceChanges.held')}</span>}</label>
-          <span className="font-mono break-all">{format(stage.amount,editing.context.currency)}</span>
+          <span className="font-mono break-all">{format(stage.amount ?? '0', editing.context.currency)}</span>
           {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? ''}
-            placeholder={stage.amount != null ? format(stage.amount, editing.context.currency) : ''}
+            placeholder={format(stage.amount ?? '0', editing.context.currency)}
             onChange={event => {
               const raw = event.target.value;
               const nextAmounts = { ...editing.amounts };
@@ -98,14 +103,24 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen,
               else nextAmounts[stage.id] = /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw;
               setDraft({ ...editing, amounts: nextAmounts });
             }}
-            className="min-w-0 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono placeholder:text-brand-mid-grey/50" /> : <span className="font-mono">{format(stage.amount, editing.context.currency)}</span>}
+            className="min-w-0 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono placeholder:text-brand-mid-grey/50" /> : <span className="font-mono">{format(stage.amount ?? '0', editing.context.currency)}</span>}
         </div>)}
         <p className="text-sm">{t('project.priceChanges.currentTotal', { amount: format(editing.context.total, editing.context.currency) })}</p>
         <p className="text-sm font-semibold">{t('project.priceChanges.proposedTotal', { amount: preview ? format(preview.total, editing.context.currency) : '—' })}</p>
         {!preview && <p role="alert" className="text-xs text-state-alert">{t('project.priceChanges.invalidAmount')}</p>}
         {stale && <p role="alert" className="text-xs text-state-alert">{t('project.priceChanges.stale')}</p>}
         {/* A revised price is the change order (18 Nov): the reason is what makes it one. */}
-        <label className="block text-xs">{t('project.priceChanges.note')}<textarea value={editing.note} required maxLength={2000} placeholder={t('project.priceChanges.notePlaceholder')} onChange={event => setDraft({ ...editing, note: event.target.value })} className="mt-2 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2" /></label>
+        <label className="block text-xs font-medium text-brand-near-black dark:text-white">
+          {t('project.priceChanges.note')} <span className="text-state-alert" aria-hidden>*</span>
+          <textarea value={editing.note} required maxLength={2000} placeholder={t('project.priceChanges.notePlaceholder')} onChange={event => setDraft({ ...editing, note: event.target.value })} className="mt-2 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-normal" />
+        </label>
+        {preview && preview.rows.length > 0 && !editing.note.trim() && (
+          <p className="text-xs font-medium text-state-held" data-price-note-hint>
+            {lang === 'fr'
+              ? 'Ajoutez une courte raison ci-dessus pour activer l’envoi au propriétaire.'
+              : 'Add a short reason above to enable sending to the Homeowner.'}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <button type="submit" disabled={!preview?.rows.length || !!stale || busy || !editing.note.trim()} className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">{busy && <Loader2 className="size-4 animate-spin" aria-hidden />}{t('project.priceChanges.send')}</button>
           <button type="button" onClick={() => setDraft(null)} className="rounded-xl border px-4 py-2.5 text-xs">{t('common.cancel')}</button>

@@ -24,6 +24,20 @@ describe('client-approved stage price requests', () => {
     expect(stagePricePreview(context, { stage: amount })).toBeNull();
   });
   it('allows approved stage reductions to zero and ignores reverted draft values',()=>{expect(stagePricePreview(context,{stage:'0'})?.rows).toEqual([{stage_id:'stage',amount:'0'}]);expect(stagePricePreview(context,{stage:'60000.125'})?.rows).toEqual([]);});
+  it('allows proposing a single stage price even when other editable stages have null amounts', () => {
+    const withNulls: StagePriceContext = {
+      ...context,
+      stages: [
+        { id: 'land', stage_number: 1, stage_key: null, name: 'Land', amount: null, editable: true },
+        { id: 'design', stage_number: 2, stage_key: null, name: 'Design', amount: null, editable: true },
+        { id: 'stage', stage_number: 3, stage_key: null, name: 'Foundation', amount: '60000.125', editable: true },
+      ],
+    };
+    expect(stagePricePreview(withNulls, { design: '200000' })).toEqual({
+      rows: [{ stage_id: 'design', amount: '200000' }],
+      total: '141607337.524000',
+    });
+  });
   it('sends the exact rows and original snapshot for server validation', async () => {
     const rows = [{ stage_id: 'stage', amount: '72000.125' }];
     await proposeStagePrices('project', rows, 'snapshot', ' Materials ');
