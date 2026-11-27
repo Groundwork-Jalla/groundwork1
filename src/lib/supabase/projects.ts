@@ -271,6 +271,33 @@ export async function restoreProject(projectId: string): Promise<void> {
   trackEvent('project_restored', { project_id: projectId });
 }
 
+export async function renameProject(projectId: string, name: string): Promise<string> {
+  const trimmed = name.trim();
+  if (trimmed.length < 2 || trimmed.length > 120) {
+    throw new Error('Project name must be between 2 and 120 characters.');
+  }
+  const { data, error } = await supabase.rpc('rename_project', {
+    p_project_id: projectId,
+    p_name: trimmed,
+  });
+  if (!error) {
+    const saved = (data as { name?: string } | null)?.name ?? trimmed;
+    trackEvent('project_renamed', { project_id: projectId });
+    return saved;
+  }
+  // Fallback for project owners on environments before the rename_project migration runs.
+  if (error.code === '42883' || error.code === 'PGRST202') {
+    const { error: updateErr } = await supabase
+      .from('projects')
+      .update({ name: trimmed, updated_at: new Date().toISOString() })
+      .eq('id', projectId);
+    if (updateErr) throw updateErr;
+    trackEvent('project_renamed', { project_id: projectId });
+    return trimmed;
+  }
+  throw error;
+}
+
 // =========================================================
 // There is no deleteProject, and this note is here so nobody writes one back.
 //

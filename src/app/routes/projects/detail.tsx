@@ -1,4 +1,5 @@
 import { ProjectBackLink } from '@/components/project/ProjectBackLink';
+import { ProjectNameEditor } from '@/components/project/ProjectNameEditor';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
@@ -500,9 +501,13 @@ export default function ProjectDetail() {
               <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
                 {labels.buildingType(project.building_type)} · {labels.country(project.country)}
               </p>
-              <h1 className={`font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight ${clientStages ? 'break-words' : 'truncate'}`}>
-                {project.name}
-              </h1>
+              <ProjectNameEditor
+                projectId={project.id}
+                name={project.name}
+                canEdit={project.status !== 'archived' && (user?.id === project.user_id || teamAccess?.primaryClient === true || teamAccess?.primaryContractor === true)}
+                headingClassName={`font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight ${clientStages ? 'break-words' : 'truncate'}`}
+                onRenamed={loadAll}
+              />
               <div className="mt-1 flex items-center gap-1.5 text-xs text-brand-mid-grey">
                 {project.bedrooms > 0 && <span>{t('project.header.bed', { count: project.bedrooms })}</span>}
                 {project.bedrooms > 0 && project.num_floors > 0 && <span>·</span>}

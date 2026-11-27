@@ -122,4 +122,16 @@ describe('contractor-recorded stage payment edit, partial payments, undo & proje
     expect(projectsList).toContain('data-action="delete-contractor-project"');
     expect(projectsList).toContain('deleteOwnContractorProject(deleteTarget.project.id)');
   });
+
+  it('allows editing the project name inline on both contractor and Homeowner project headers', () => {
+    const sql = migration.replace(/--.*$/gm, '');
+    const clientDetail = readFileSync(join(ROOT, 'src/app/routes/projects/detail.tsx'), 'utf8');
+    const editor = readFileSync(join(ROOT, 'src/components/project/ProjectNameEditor.tsx'), 'utf8');
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.rename_project/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.rename_project\(uuid,\s*text\)\s+TO authenticated/);
+    expect(editor).toContain('data-action="edit-project-name"');
+    expect(editor).toContain('data-action="save-project-name"');
+    expect(detail).toContain('<ProjectNameEditor');
+    expect(clientDetail).toContain('<ProjectNameEditor');
+  });
 });

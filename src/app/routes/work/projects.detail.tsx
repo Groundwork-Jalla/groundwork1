@@ -1,6 +1,7 @@
 import { ProjectCloseoutPanel } from '@/components/project/ProjectCloseoutPanel';
 import { ProjectPaymentHistory } from '@/components/project/ProjectPaymentHistory';
 import { ProjectBackLink } from '@/components/project/ProjectBackLink';
+import { ProjectNameEditor } from '@/components/project/ProjectNameEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
@@ -281,7 +282,13 @@ export default function ContractorProjectDetail() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 max-w-2xl flex-1 basis-full sm:basis-auto">
           {place && <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey">{place}</p>}
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-brand-near-black sm:text-[28px] dark:text-white">{project.name}</h1>
+          <ProjectNameEditor
+            projectId={project.id}
+            name={project.name}
+            canEdit={project.status !== 'archived' && (user?.id === project.user_id || teamAccess?.primaryContractor === true)}
+            headingClassName="mt-1 text-2xl font-extrabold tracking-tight text-brand-near-black sm:text-[28px] dark:text-white"
+            onRenamed={load}
+          />
           {totalStages > 0 && <p className="mt-2 text-[13px] text-brand-mid-grey">
             {current ? t('contractorView.stageOfTotal', { n: current.stage_number, total: totalStages, name: stageLabel(current) })
               : t('contractor.projects.stageOf', { n: completedStages, total: totalStages })}</p>}

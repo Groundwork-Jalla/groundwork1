@@ -733,5 +733,70 @@ BEGIN
  RETURN v_id;
 END $$;
 
+-- ── 6. Rename a project (owner, primary Homeowner, primary contractor, or admin) ─
+CREATE OR REPLACE FUNCTION public.rename_project(
+  p_project_id uuid,
+  p_name       text
+) RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor    uuid := auth.uid();
+  v_project  public.projects%ROWTYPE;
+  v_trimmed  text := btrim(coalesce(p_name, ''));
+BEGIN
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'not_signed_in';
+  END IF;
+
+  IF length(v_trimmed) < 2 OR length(v_trimmed) > 120 THEN
+    RAISE EXCEPTION 'invalid_name: project name must be between 2 and 120 characters';
+  END IF;
+
+  SELECT * INTO v_project FROM public.projects WHERE id = p_project_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'not_found: project does not exist';
+  END IF;
+
+  IF NOT (
+    v_project.user_id = v_actor
+    OR public.is_project_client(p_project_id)
+    OR public.is_primary_project_contractor(p_project_id)
+    OR public.is_admin()
+  ) THEN
+    RAISE EXCEPTION 'not_allowed: only the project owner, Homeowner, or primary contractor may rename this project';
+  END IF;
+
+  IF v_project.status = 'archived' THEN
+    RAISE EXCEPTION 'project_archived: restore the project before renaming it';
+  END IF;
+
+  IF v_project.name IS DISTINCT FROM v_trimmed THEN
+    UPDATE public.projects
+       SET name = v_trimmed,
+           updated_at = clock_timestamp()
+     WHERE id = p_project_id;
+
+    PERFORM public.log_activity(
+      p_project_id,
+      'project.renamed',
+      'project',
+      p_project_id,
+      v_actor,
+      jsonb_build_object('before', v_project.name, 'after', v_trimmed)
+    );
+  END IF;
+
+  RETURN jsonb_build_object('ok', true, 'project_id', p_project_id, 'name', v_trimmed);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.rename_project(uuid, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rename_project(uuid, text)
+  TO authenticated;
+
 NOTIFY pgrst, 'reload schema';
 COMMIT;
