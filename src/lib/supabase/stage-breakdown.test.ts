@@ -30,6 +30,14 @@ describe('a stage price breakdown adds up exactly', () => {
     expect(breakdownDraft('100', []).ready).toBe(false);
   });
 
+  it('allows Stage 1 & Stage 2 starting at 0 to define substage costs whose positive sum sets the stage total', () => {
+    const empty = breakdownDraft('0', [{ substageId: 'a', name: 'Plans', amount: '0' }, { substageId: 'b', name: 'Permit', amount: '0' }]);
+    expect(empty).toMatchObject({ allocated: '0', remaining: '0', ready: false, flexibleTotal: true, lines: null });
+    const priced = breakdownDraft('0', [{ substageId: 'a', name: 'Plans', amount: '50000' }, { substageId: 'b', name: 'Permit', amount: '150000' }]);
+    expect(priced).toMatchObject({ allocated: '200000', remaining: '0', ready: true, flexibleTotal: true });
+    expect(priced.lines).toEqual([{ substage_id: 'a', amount: '50000' }, { substage_id: 'b', amount: '150000' }]);
+  });
+
   it('splits an integer XAF stage amount evenly across 8 substages with zero remainder', () => {
     const rows = Array.from({ length: 8 }, (_, i) => ({ substageId: `s${i + 1}`, name: `Sub ${i + 1}`, amount: '' }));
     const split = splitBreakdownEvenly('30042309', rows);
@@ -75,8 +83,8 @@ describe('strict role separation on inline substage pricing', () => {
 
 describe('where the breakdown appears', () => {
   const tracker = readFileSync(resolve(__dirname, '../../components/project/StageTracker.tsx'), 'utf8');
-  it('on priced stages of a project with a primary contractor, never on a stage built before joining', () => {
-    expect(tracker).toContain('{!stage.pre_existing && hasPrimaryContractor && (stage.payment_milestone_usd ?? 0) > 0 && <StageBreakdownPanel');
+  it('on priced stages (and Stages 1 & 2) of a project with a primary contractor, never on a stage built before joining', () => {
+    expect(tracker).toContain('{!stage.pre_existing && hasPrimaryContractor && ((stage.payment_milestone_usd ?? 0) > 0 || stage.stage_number <= 2) && <StageBreakdownPanel');
   });
   it('the client confirms approval with the same final words as every other approval', () => {
     const panel = readFileSync(resolve(__dirname, '../../components/project/StageBreakdownPanel.tsx'), 'utf8');
@@ -85,7 +93,7 @@ describe('where the breakdown appears', () => {
   it('on the contractor\'s own stage view too, since each part must be priced before it is paid (18 Nov)', () => {
     const work = readFileSync(resolve(__dirname, '../../app/routes/work/projects.detail.tsx'), 'utf8');
     expect(work).toContain("import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';");
-    expect(work).toContain("const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;");
+    expect(work).toContain("const priceable = !stage.pre_existing && stage.status !== 'complete' && (stagePayableUsd(stage, basis) > 0 || stage.stage_number <= 2);");
     // The redesigned Work tab shows one stage at a time, so the panel sits in that
     // stage's detail, open or upcoming; there is no per-row toggle any more.
     expect(work).toMatch(/const breakdown = priceable\s*\?\s*<div[\s\S]{0,200}<StageBreakdownPanel/);

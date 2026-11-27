@@ -498,7 +498,7 @@ function StageDetail({
         </>
       )}
 
-      {!stage.pre_existing && hasPrimaryContractor && (stage.payment_milestone_usd ?? 0) > 0 && <StageBreakdownPanel
+      {!stage.pre_existing && hasPrimaryContractor && ((stage.payment_milestone_usd ?? 0) > 0 || stage.stage_number <= 2) && <StageBreakdownPanel
         stageId={stage.id} stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`}
         projectName={projectName ?? ''} clientPresentation={clientPresentation}
         inlineRows={stage.status !== 'locked'} onInlineState={setBreakdownCtrl} onDiscussPrice={onOpenMessages} onChanged={onPaymentChanged}
@@ -509,6 +509,7 @@ function StageDetail({
         isContractor={!!isContractor} readOnly={!hasPrimaryContractor || (isContractor ? !canConfirmPayments : !canApprove)} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
+        lockedAfterApproval={stage.status === 'complete' || !!(stage.approved_at || stage.approved_by) || substages.some(sub => (sub.evidence_urls?.length ?? 0) > 0 && (sub.status === 'complete' || !!sub.approved_at || !!sub.approved_by))}
         clientPresentation={clientPresentation} parts={parts} hideParts={paidByPart && stage.status !== 'locked'}
       />}
 

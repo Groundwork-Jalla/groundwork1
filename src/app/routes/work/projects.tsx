@@ -1,14 +1,19 @@
 import { SharedProjects } from '@/components/contractor/SharedProjects';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { fetchAssignedProjects, type AssignedProject } from '@/lib/supabase/contractor-work';
 import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
+import { deleteOwnContractorProject } from '@/lib/supabase/contractor-payments';
+import { archiveProject } from '@/lib/supabase/projects';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { StagePipeline, currentStage } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatDate } from '@/lib/format';
-import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -40,11 +45,57 @@ function matches(a: AssignedProject, filter: Filter): boolean {
 
 export default function ContractorProjects() {
   const t = useT();
+  const { lang } = useLanguage();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<AssignedProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   /** The client named on each row, as the screen shows one. */
   const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
+  const [deleteTarget, setDeleteTarget] = useState<AssignedProject | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteNeedsArchive, setDeleteNeedsArchive] = useState(false);
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    setDeleteNeedsArchive(false);
+    try {
+      await deleteOwnContractorProject(deleteTarget.project.id);
+      setProjects(prev => (prev ?? []).filter(a => a.project.id !== deleteTarget.project.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (/project_has_activity/.test(msg)) {
+        setDeleteNeedsArchive(true);
+        setDeleteError(lang === 'fr'
+          ? 'Ce projet a déjà un client actif, des reçus ou des étapes terminées et ne peut pas être supprimé définitivement. Archivez-le à la place.'
+          : 'This project already has a joined client, payment receipts, or completed stages and cannot be permanently deleted. Archive it instead.');
+      } else {
+        setDeleteError(errorMessage(err, t('common.somethingWrong')));
+      }
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function handleArchiveFallback() {
+    if (!deleteTarget || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await archiveProject(deleteTarget.project.id);
+      setProjects(prev => (prev ?? []).filter(a => a.project.id !== deleteTarget.project.id));
+      setDeleteTarget(null);
+      setDeleteNeedsArchive(false);
+    } catch (err) {
+      setDeleteError(errorMessage(err, t('project.danger.errArchive')));
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -157,21 +208,59 @@ export default function ContractorProjects() {
             <ul className="flex flex-col gap-2.5">
               {visible.map(a => (
                 <li key={a.project.id}>
-                  <ProjectRow assigned={a} client={clients.get(a.project.id) ?? null} />
+                  <ProjectRow
+                    assigned={a}
+                    client={clients.get(a.project.id) ?? null}
+                    canDelete={a.project.user_id === user?.id && a.project.workflow_origin === 'contractor'}
+                    onRequestDelete={() => {
+                      setDeleteError(null);
+                      setDeleteNeedsArchive(false);
+                      setDeleteTarget(a);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
           )}
         </>
       )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          open={!!deleteTarget}
+          destructive={!deleteNeedsArchive}
+          title={deleteNeedsArchive
+            ? (lang === 'fr' ? `Archiver « ${deleteTarget.project.name} » ?` : `Archive “${deleteTarget.project.name}”?`)
+            : (lang === 'fr' ? `Supprimer « ${deleteTarget.project.name} » ?` : `Delete “${deleteTarget.project.name}”?`)}
+          description={deleteNeedsArchive
+            ? (lang === 'fr'
+              ? 'Le projet sera retiré de votre liste active tout en conservant son historique et ses documents.'
+              : 'The project will be removed from your active list while keeping its history and documents.')
+            : (lang === 'fr'
+              ? 'Cette action supprime définitivement ce projet, ses étapes et ses documents (uniquement possible avant qu’un client ne rejoigne le projet ou que des reçus soient enregistrés).'
+              : 'This permanently deletes this project, its stages, and its documents (only allowed before a client joins or payment receipts are recorded).')}
+          confirmLabel={deleteNeedsArchive
+            ? (lang === 'fr' ? 'Archiver le projet' : 'Archive project')
+            : (lang === 'fr' ? 'Supprimer définitivement' : 'Delete permanently')}
+          cancelLabel={t('common.cancel')}
+          loading={deleteBusy}
+          error={deleteError}
+          onCancel={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteError(null); setDeleteNeedsArchive(false); } }}
+          onConfirm={() => { void (deleteNeedsArchive ? handleArchiveFallback() : handleConfirmDelete()); }}
+        />
+      )}
     </div>
   );
 }
 
-function ProjectRow({ assigned, client }: {
-  assigned: AssignedProject; client: ViewerSummary | null;
+function ProjectRow({ assigned, client, canDelete, onRequestDelete }: {
+  assigned: AssignedProject;
+  client: ViewerSummary | null;
+  canDelete: boolean;
+  onRequestDelete: () => void;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { stageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project);
   const { project, stages } = assigned;
@@ -208,18 +297,36 @@ function ProjectRow({ assigned, client }: {
             {[project.city, project.country].filter(Boolean).join(' · ')}
           </span>
         </p>
-        <p className={cn('flex shrink-0 items-center gap-1.5 text-xs font-semibold',
-          state.tone === 'complete' && 'text-state-complete',
-          state.tone === 'locked'   && 'text-brand-mid-grey',
-          state.tone === 'active'   && 'text-brand-near-black dark:text-white',
-        )}>
-          <span aria-hidden className={cn('size-1.5 rounded-full',
-            state.tone === 'complete' && 'bg-state-complete',
-            state.tone === 'locked'   && 'bg-brand-border-grey',
-            state.tone === 'active'   && 'bg-brand-green',
-          )} />
-          {state.label}
-        </p>
+        <div className="flex shrink-0 items-center gap-2.5">
+          <p className={cn('flex shrink-0 items-center gap-1.5 text-xs font-semibold',
+            state.tone === 'complete' && 'text-state-complete',
+            state.tone === 'locked'   && 'text-brand-mid-grey',
+            state.tone === 'active'   && 'text-brand-near-black dark:text-white',
+          )}>
+            <span aria-hidden className={cn('size-1.5 rounded-full',
+              state.tone === 'complete' && 'bg-state-complete',
+              state.tone === 'locked'   && 'bg-brand-border-grey',
+              state.tone === 'active'   && 'bg-brand-green',
+            )} />
+            {state.label}
+          </p>
+          {canDelete && (
+            <button
+              type="button"
+              data-action="delete-contractor-project"
+              aria-label={lang === 'fr' ? `Supprimer ${project.name}` : `Delete ${project.name}`}
+              title={lang === 'fr' ? 'Supprimer le projet' : 'Delete project'}
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRequestDelete();
+              }}
+              className="rounded-lg p-1.5 text-brand-mid-grey transition-colors hover:bg-state-alert/10 hover:text-state-alert"
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
 
       <StagePipeline stages={stages} className="mb-3" />

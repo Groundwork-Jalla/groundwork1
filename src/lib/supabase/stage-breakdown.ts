@@ -60,10 +60,14 @@ export function breakdownDraft(stageAmount: string, rows: BreakdownDraftRow[]) {
     if (!row.substageId && !row.name.trim()) valid = false;
     total += units(amount);
   }
-  const remaining = units(stageAmount) - total;
-  const ready = valid && remaining === 0n;
+  const target = units(stageAmount);
+  // Stages that start at 0 (Stage 1 Land, Stage 2 Design) let the contractor define
+  // each substage's cost directly; their positive sum becomes the proposed stage total.
+  const flexibleTotal = target === 0n;
+  const remaining = flexibleTotal ? 0n : target - total;
+  const ready = flexibleTotal ? (valid && total > 0n) : (valid && remaining === 0n);
   return {
-    allocated: decimal(total), remaining: decimal(remaining), ready,
+    allocated: decimal(total), remaining: decimal(remaining), ready, flexibleTotal,
     lines: ready ? rows.map(row => row.substageId
       ? { substage_id: row.substageId, amount: row.amount.trim() }
       : { name: row.name.trim(), amount: row.amount.trim() }) : null,

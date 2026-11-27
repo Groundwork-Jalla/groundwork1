@@ -4,7 +4,7 @@ import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
-import { Camera, Check, FileText, Loader2, Lock, MessageSquare, Plus, Search, Send, Split, Upload, UserRound, X } from 'lucide-react';
+import { Archive, Camera, Check, FileText, Loader2, Lock, MessageSquare, Plus, Search, Send, Split, Trash2, Upload, UserRound, X } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -29,9 +29,10 @@ import { stageBasisFor, stagePayableUsd, sumPayableUsd } from '@/lib/budget/stag
 import { sumBillAmounts, normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import {
-  fetchProjectContractorPaymentState, requestStagePayment,
+  deleteOwnContractorProject, fetchProjectContractorPaymentState, requestStagePayment,
   type ProjectContractorPaymentState,
 } from '@/lib/supabase/contractor-payments';
+import { archiveProject } from '@/lib/supabase/projects';
 import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -336,6 +337,7 @@ export default function ContractorProjectDetail() {
           selectedStageId={selectedStageId} onSelectStage={setSelectedStageId}
           canDecide={canDecide} onReviewReceipt={(stageId, receiptId) => setReviewing({ stageId, receiptId })}
           onMessage={() => setTab('messages')}
+          onOpenMoney={() => setTab('money')}
           inviteHomeowner={teamAccess?.canInviteClient === true && teamAccess.hasClientInvitation !== true}
         />
       )}
@@ -721,8 +723,15 @@ function MoneyTab({ assigned, payments, stagePayments, hasBoq, substages, canDec
 
 function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { access } = useProjectTeamAccess(project.id);
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [manageBusy, setManageBusy] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [needsArchiveFallback, setNeedsArchiveFallback] = useState(false);
+  const [removed, setRemoved] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -731,6 +740,49 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
       .catch(() => { if (alive) setViewers([]); });
     return () => { alive = false; };
   }, [project.id, access]);
+
+  if (removed) return <Navigate to="/work/projects" replace />;
+
+  const canDeleteOwn = isOwner && project.workflow_origin === 'contractor';
+
+  async function handleDeleteProject() {
+    if (manageBusy) return;
+    setManageBusy(true);
+    setManageError(null);
+    setNeedsArchiveFallback(false);
+    try {
+      await deleteOwnContractorProject(project.id);
+      setRemoved(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (/project_has_activity/.test(msg)) {
+        setNeedsArchiveFallback(true);
+        setManageError(lang === 'fr'
+          ? 'Ce projet a déjà un client actif, des reçus ou des étapes terminées et ne peut pas être supprimé définitivement. Vous pouvez l’archiver à la place.'
+          : 'This project already has a joined client, payment receipts, or completed stages and cannot be permanently deleted. You can archive it instead.');
+      } else {
+        setManageError(errorMessage(err, t('common.somethingWrong')));
+      }
+      setConfirmDelete(false);
+    } finally {
+      setManageBusy(false);
+    }
+  }
+
+  async function handleArchiveProject() {
+    if (manageBusy) return;
+    setManageBusy(true);
+    setManageError(null);
+    try {
+      await archiveProject(project.id);
+      setRemoved(true);
+    } catch (err) {
+      setManageError(errorMessage(err, t('project.danger.errArchive')));
+      setConfirmArchive(false);
+    } finally {
+      setManageBusy(false);
+    }
+  }
 
   /**
    * Who can do what. The VERIFIER column is hidden with the rest of verification
@@ -834,6 +886,82 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
 
       <div className="flex min-w-0 flex-col gap-4">
         <ProjectSharing projectId={project.id} projectName={project.name} />
+
+        {canDeleteOwn && (
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]" data-contractor-project-manage>
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {lang === 'fr' ? 'Gestion du projet' : 'Project management'}
+            </h2>
+            <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
+              {lang === 'fr'
+                ? 'Supprimez un projet brouillon ou créé par erreur avant qu’un client n’y participe, ou archivez un projet existant pour le retirer de votre liste active.'
+                : 'Delete a draft or test project created by mistake before a client joins, or archive an active project to remove it from your active list.'}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                disabled={manageBusy}
+                data-action="delete-contractor-project"
+                onClick={() => { setManageError(null); setConfirmDelete(true); }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-state-alert/40 bg-white px-3.5 py-2 text-xs font-semibold text-state-alert transition-colors hover:bg-state-alert/5 disabled:opacity-50 dark:bg-[#141414]"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                {lang === 'fr' ? 'Supprimer le projet' : 'Delete project'}
+              </button>
+              <button
+                type="button"
+                disabled={manageBusy}
+                data-action="archive-contractor-project"
+                onClick={() => { setManageError(null); setConfirmArchive(true); }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey bg-white px-3.5 py-2 text-xs font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-50 dark:border-[#333] dark:bg-[#141414] dark:text-white"
+              >
+                <Archive className="size-3.5" aria-hidden />
+                {lang === 'fr' ? 'Archiver le projet' : 'Archive project'}
+              </button>
+            </div>
+            {manageError && (
+              <div role="alert" className="mt-3 space-y-2 rounded-lg border border-state-alert/30 bg-state-alert/5 p-3 text-xs text-state-alert">
+                <p>{manageError}</p>
+                {needsArchiveFallback && (
+                  <button
+                    type="button"
+                    disabled={manageBusy}
+                    onClick={() => { setConfirmArchive(true); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 font-semibold text-white dark:bg-white dark:text-brand-near-black"
+                  >
+                    <Archive className="size-3.5" aria-hidden />
+                    {lang === 'fr' ? 'Archiver plutôt ce projet' : 'Archive this project instead'}
+                  </button>
+                )}
+              </div>
+            )}
+            <ConfirmModal
+              open={confirmDelete}
+              destructive
+              title={lang === 'fr' ? `Supprimer « ${project.name} » ?` : `Delete “${project.name}”?`}
+              description={lang === 'fr'
+                ? 'Cette action supprime définitivement ce projet, ses étapes et ses documents. Elle n’est possible que si aucun client n’a encore rejoint le projet et aucun reçu n’a été enregistré.'
+                : 'This permanently deletes this project, its stages, and its documents. This is only allowed before a client joins or payment receipts are recorded.'}
+              confirmLabel={lang === 'fr' ? 'Supprimer définitivement' : 'Delete permanently'}
+              cancelLabel={t('common.cancel')}
+              loading={manageBusy}
+              onCancel={() => { if (!manageBusy) setConfirmDelete(false); }}
+              onConfirm={() => { void handleDeleteProject(); }}
+            />
+            <ConfirmModal
+              open={confirmArchive}
+              title={lang === 'fr' ? `Archiver « ${project.name} » ?` : `Archive “${project.name}”?`}
+              description={lang === 'fr'
+                ? 'Le projet sera retiré de votre liste active tout en conservant son historique et ses documents.'
+                : 'The project will be removed from your active list while keeping its history and documents safe.'}
+              confirmLabel={lang === 'fr' ? 'Archiver le projet' : 'Archive project'}
+              cancelLabel={t('common.cancel')}
+              loading={manageBusy}
+              onCancel={() => { if (!manageBusy) setConfirmArchive(false); }}
+              onConfirm={() => { void handleArchiveProject(); }}
+            />
+          </section>
+        )}
       </div>
     </div>
   );
@@ -851,7 +979,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * completes a stage or approves anything: that is not the contractor's to do.
  */
 function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, stagePayments, onSubmitted, hasBoq,
-  selectedStageId, onSelectStage, canDecide, onReviewReceipt, onMessage, inviteHomeowner }: {
+  selectedStageId, onSelectStage, canDecide, onReviewReceipt, onMessage, onOpenMoney, inviteHomeowner }: {
   hasBoq: boolean;
   assigned: AssignedProject;
   substages: ProjectSubstageRow[];
@@ -866,6 +994,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   canDecide: (stage: AssignedProject['stages'][number]) => boolean;
   onReviewReceipt: (stageId: string, receiptId: string) => void;
   onMessage: () => void;
+  onOpenMoney: () => void;
   /** The homeowner has not been invited and this contractor may invite them. */
   inviteHomeowner: boolean;
 }) {
@@ -1058,23 +1187,36 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const due = money.pair(stagePayableUsd(stage, basis), stage.milestone_amount);
   const sent = rework.filter(r => r.stageId === stage.id);
   const { tranche, canWork, blockedText } = workFor(stage, isOpen);
-  const stagePaidUpfront =
+  const stageTotalLocal = stage.milestone_amount != null && Number.isFinite(Number(stage.milestone_amount))
+    ? Number(stage.milestone_amount)
+    : stagePayableUsd(stage, basis) * fxRate;
+  const verifiedEntry = contractorPayState?.verifiedByStage.get(stage.id) ?? null;
+  const effectiveStageTotalLocal = stageTotalLocal > 0
+    ? stageTotalLocal
+    : (verifiedEntry?.stageTotal != null && verifiedEntry.stageTotal > 0 ? verifiedEntry.stageTotal : 0);
+  const contractorPartialAdvance =
     isRowPaidUpfront(stage)
+    && (
+      verifiedEntry?.isPartial === true
+      || (verifiedEntry?.amount != null && effectiveStageTotalLocal > 0 && verifiedEntry.amount < effectiveStageTotalLocal)
+    );
+  const contractorPartialRemaining =
+    contractorPartialAdvance && verifiedEntry?.amount != null && effectiveStageTotalLocal > 0
+      ? Math.max(0, Math.round((effectiveStageTotalLocal - verifiedEntry.amount) * 1e6) / 1e6)
+      : null;
+  const stagePaidUpfront =
+    (isRowPaidUpfront(stage) && !contractorPartialAdvance)
     || (tranche != null && stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).remaining === 0
       && (stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount).received ?? 0) > 0);
   const showGate = !stage.pre_existing && (canActOnProjectStage(stage, stages) || stage.status === 'complete' || isRowPaidUpfront(stage)) && !!tranche;
   const liveStageReceipts = (tranche?.receipts ?? []).filter(r => !r.replacedBy);
   const stageCarriedIn = carriedInByStage.stageId === stage.id ? carriedInByStage.amount : 0;
-  const stageTotalLocal = stage.milestone_amount != null && Number.isFinite(Number(stage.milestone_amount))
-    ? Number(stage.milestone_amount)
-    : stagePayableUsd(stage, basis) * fxRate;
   const balance = tranche ? stageReceiptBalance(tranche, money.code, fxRate, stage.milestone_amount) : null;
   const split = !!stage.paid_by_part && !!parts?.split;
   const partReady = (substageId: string) => partWorkReady(parts, !!stage.paid_by_part && isOpen, substageId);
   const waiting = waitingOn(stage);
   const canRequestSubstagePayment =
-    canConfirmPayments && !stage.pre_existing && stage.status !== 'complete'
-    && stagePayableUsd(stage, basis) > 0 && !stagePaidUpfront;
+    canConfirmPayments && !stage.pre_existing && stage.status !== 'complete' && !stagePaidUpfront;
   // Carried-over overpayment automatically covers early substages in order until exhausted (19 Nov).
   const isCoveredByCarryover = (index: number, part: { paid?: boolean } | undefined) => {
     if (stageCarriedIn <= 0) return false;
@@ -1115,7 +1257,12 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   // Price by part (18 Nov; inline per-substage mode 23 Nov): each part is paid before its work,
   // so the contractor edits prices right on the single substage checklist instead of a duplicated
   // table below. The server decides who may propose; the panel stays quiet when nothing is active.
-  const priceable = !stage.pre_existing && stage.status !== 'complete' && stagePayableUsd(stage, basis) > 0;
+  const priceable = !stage.pre_existing && stage.status !== 'complete' && (stagePayableUsd(stage, basis) > 0 || stage.stage_number <= 2);
+  const stageEvidenceApproved =
+    stage.status === 'complete'
+    || !!(stage.approved_at || stage.approved_by)
+    || items.some(item => (item.evidence_urls?.length ?? 0) > 0 && (item.status === 'complete' || !!item.approved_at || !!item.approved_by));
+  const canSetZeroStagePrice = canConfirmPayments && !stage.pre_existing && stage.status !== 'complete' && !priceable && project.status !== 'archived';
   const breakdown = priceable
     ? <div id="stage-breakdown-section" data-tour={isOpen ? 'price-by-part' : undefined}>
         <StageBreakdownPanel stageId={stage.id} projectName={project.name ?? ''} isContractor hidden={stagePaidUpfront}
@@ -1198,7 +1345,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
     row => (!row.pre_existing && (
       row.status === 'complete'
       || row.status === 'pending_review'
-      || (Number(row.payment_milestone_usd ?? 0) > 0 && row.payment_status === 'paid')
+      || (stagePayableUsd(row, basis) > 0 && row.payment_status === 'paid')
     )) || isRowPaidUpfront(row),
   );
   const canChangeStartingStage = (canConfirmPayments || isOwner)
@@ -1387,9 +1534,9 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 <span aria-hidden className={cn('size-1.5 rounded-full', pill.tone === 'held' ? 'bg-state-held' : pill.tone === 'complete' ? 'bg-state-complete' : 'bg-brand-muted-grey')} />{pill.label}
               </span>
             </div>
-            {(canAddSubstage || activeBreakdown?.canPropose || activeBreakdown?.lockedForContractor || due) && (
+            {(canAddSubstage || canSetZeroStagePrice || activeBreakdown?.canPropose || activeBreakdown?.lockedForContractor || due) && (
               <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
-                {(canAddSubstage || (activeBreakdown?.canPropose && !activeBreakdown.pending && !isEditingPrices) || (activeBreakdown?.lockedForContractor && !isEditingPrices)) && (
+                {(canAddSubstage || canSetZeroStagePrice || (activeBreakdown?.canPropose && !activeBreakdown.pending && !isEditingPrices) || (activeBreakdown?.lockedForContractor && !isEditingPrices)) && (
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     {canAddSubstage && (
                       <button
@@ -1400,6 +1547,17 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                       >
                         <Plus className="size-3.5 shrink-0" aria-hidden />
                         {t('contractorView.addSubstage')}
+                      </button>
+                    )}
+                    {canSetZeroStagePrice && (
+                      <button
+                        type="button"
+                        data-action="set-stage-price"
+                        onClick={onOpenMoney}
+                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-brand-green/50 bg-white px-3.5 py-2 text-xs font-semibold text-brand-green transition-colors hover:bg-brand-green/5 dark:bg-[#141414] dark:text-[#b4d8bf]"
+                      >
+                        <Split className="size-3.5 shrink-0" aria-hidden />
+                        {lang === 'fr' ? 'Définir le prix de l’étape' : 'Set stage price'}
                       </button>
                     )}
                     {activeBreakdown?.canPropose && !activeBreakdown.pending && !isEditingPrices && (
@@ -1428,9 +1586,28 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 )}
                 {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
                   <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
-                  <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{due.local}</p>
+                  <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
+                    {stageTotalLocal <= 0 && verifiedEntry?.stageTotal != null && verifiedEntry.stageTotal > 0
+                      ? `${verifiedEntry.stageTotal.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(verifiedEntry.currency ?? money.code) })} ${verifiedEntry.currency ?? money.code}`
+                      : due.local}
+                  </p>
                   {isRowPaidUpfront(stage)
-                    ? <p className="mt-0.5 text-[11.5px] text-brand-green dark:text-[#b4d8bf]">{t('project.historyView.stageConfirmed', { amount: due.local })}</p>
+                    ? <>
+                        <p className="mt-0.5 text-[11.5px] text-brand-green dark:text-[#b4d8bf]">
+                          {t('project.historyView.stageConfirmed', {
+                            amount: verifiedEntry?.amount != null && verifiedEntry.currency
+                              ? `${verifiedEntry.amount.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(verifiedEntry.currency) })} ${verifiedEntry.currency}`
+                              : due.local,
+                          })}
+                        </p>
+                        {contractorPartialAdvance && contractorPartialRemaining != null && (
+                          <p className="mt-0.5 font-mono text-[11.5px] font-semibold text-state-held" data-stage-partial-remaining>
+                            {lang === 'fr'
+                              ? `Reste : ${contractorPartialRemaining.toLocaleString('fr-FR', { maximumFractionDigits: currencyFractionDigits(verifiedEntry?.currency ?? money.code) })} ${verifiedEntry?.currency ?? money.code}`
+                              : `Remaining: ${contractorPartialRemaining.toLocaleString('en-US', { maximumFractionDigits: currencyFractionDigits(verifiedEntry?.currency ?? money.code) })} ${verifiedEntry?.currency ?? money.code}`}
+                          </p>
+                        )}
+                      </>
                     : balance?.received != null && balance.received > 0 && <p className="mt-0.5 text-[11.5px] text-brand-mid-grey">{t('project.historyView.stageConfirmed', { amount: balance.received.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</p>}
                 </div>}
               </div>
@@ -1515,8 +1692,9 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
           {blockedText && stage.status !== 'complete' && !stage.pre_existing && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{blockedText}</p>}
 
           {/* Chronological first step: ask whether the Homeowner has paid BEFORE evidence
-              upload, only while the stage is unpaid and has no receipts yet (19 Nov). */}
-          {showGate && !stagePaidUpfront && stage.status !== 'complete' && (
+              upload, and keep the recorded-payment bar visible with Edit / Undo controls so
+              a contractor can correct or remove a mistakenly recorded amount (28 Nov). */}
+          {showGate && (!stagePaidUpfront || isRowPaidUpfront(stage)) && stage.status !== 'complete' && (
             <div className="mt-4">
               <ContractorPaymentVerificationBar
                 stageId={stage.id}
@@ -1524,6 +1702,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 readOnly={!canConfirmPayments}
                 settled={tranche?.state === 'funded' || tranche?.state === 'reconciled'}
                 hasReceipts={liveStageReceipts.length > 0}
+                lockedAfterApproval={stageEvidenceApproved}
                 currencyCode={money.code}
                 fxRate={fxRate}
                 scheduledAmount={stage.milestone_amount}
@@ -1827,8 +2006,11 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                 scheduledAmount={stage.milestone_amount}
                 blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments}
                 hideVerificationPrompt
-                contractorPaidUpfront={isRowPaidUpfront(stage)}
-                onChanged={onSubmitted} parts={parts} hideParts={split} onReviewReceipt={receiptId => onReviewReceipt(stage.id, receiptId)} />
+                contractorPaidUpfront={isRowPaidUpfront(stage) && !contractorPartialAdvance}
+                onChanged={onSubmitted}
+                contractorPartialVerification={contractorPartialAdvance && verifiedEntry ? { amount: verifiedEntry.amount, currency: verifiedEntry.currency, stageTotal: verifiedEntry.stageTotal } : null}
+                lockedAfterApproval={stageEvidenceApproved}
+                parts={parts} hideParts={split} onReviewReceipt={receiptId => onReviewReceipt(stage.id, receiptId)} />
             </ProjectMoneyProvider>
             </div>
           )}

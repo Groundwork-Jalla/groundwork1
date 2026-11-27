@@ -21,6 +21,8 @@ export interface ContractorStageVerification {
   fx_rate: number | null;
   amount_usd: number | null;
   note: string | null;
+  is_partial?: boolean;
+  stage_total_amount?: number | null;
 }
 
 export interface ContractorPaymentDispute {
@@ -65,6 +67,7 @@ export interface SubstagePaymentRequest {
 export interface ProjectContractorPaymentState {
   initialPayment: ProjectInitialPayment | null;
   verifiedStageIds: Set<string>;
+  verifiedByStage: Map<string, { amount: number | null; currency: string | null; isPartial: boolean; stageTotal: number | null }>;
   requests: SubstagePaymentRequest[];
 }
 
@@ -79,7 +82,7 @@ export async function fetchProjectContractorPaymentState(
       .maybeSingle(),
     supabase
       .from('contractor_stage_verifications')
-      .select('stage_id')
+      .select('stage_id, amount, currency, is_partial, stage_total_amount')
       .eq('project_id', projectId),
     supabase
       .from('substage_payment_requests')
@@ -89,9 +92,27 @@ export async function fetchProjectContractorPaymentState(
       .order('requested_at', { ascending: false }),
   ]);
 
+  const verRows = (verRes.data ?? []) as {
+    stage_id: string;
+    amount?: number | null;
+    currency?: string | null;
+    is_partial?: boolean | null;
+    stage_total_amount?: number | null;
+  }[];
+  const verifiedByStage = new Map<string, { amount: number | null; currency: string | null; isPartial: boolean; stageTotal: number | null }>();
+  for (const r of verRows) {
+    verifiedByStage.set(r.stage_id, {
+      amount: r.amount != null && Number.isFinite(Number(r.amount)) ? Number(r.amount) : null,
+      currency: typeof r.currency === 'string' ? r.currency : null,
+      isPartial: r.is_partial === true,
+      stageTotal: r.stage_total_amount != null && Number.isFinite(Number(r.stage_total_amount)) ? Number(r.stage_total_amount) : null,
+    });
+  }
+
   return {
     initialPayment: (initRes.data as ProjectInitialPayment | null) ?? null,
-    verifiedStageIds: new Set(((verRes.data ?? []) as { stage_id: string }[]).map(r => r.stage_id)),
+    verifiedStageIds: new Set(verRows.map(r => r.stage_id)),
+    verifiedByStage,
     requests: (reqRes.data ?? []) as SubstagePaymentRequest[],
   };
 }
@@ -142,7 +163,7 @@ export async function fetchStageContractorVerification(stageId: string): Promise
 }> {
   const { data: ver, error: verErr } = await supabase
     .from('contractor_stage_verifications')
-    .select('id, project_id, stage_id, verified_by, verified_at, amount, currency, fx_rate, amount_usd, note')
+    .select('id, project_id, stage_id, verified_by, verified_at, amount, currency, fx_rate, amount_usd, note, is_partial, stage_total_amount')
     .eq('stage_id', stageId)
     .maybeSingle();
 
@@ -169,17 +190,70 @@ export async function recordContractorStageVerification(input: {
   currency?: string | null;
   fxRate?: number | null;
   note?: string | null;
-}): Promise<{ ok: boolean; verification_id: string; stage_id: string }> {
+  isPartial?: boolean;
+  stageTotal?: number | null;
+}): Promise<{ ok: boolean; verification_id: string; stage_id: string; is_partial?: boolean; stage_total_amount?: number | null }> {
   const hasAmount = input.amount != null && Number.isFinite(input.amount) && input.amount > 0;
+  const isPartial = input.isPartial === true;
+  const hasStageTotal = isPartial && input.stageTotal != null && Number.isFinite(input.stageTotal) && input.stageTotal > 0;
   const { data, error } = await supabase.rpc('record_contractor_stage_verification', {
     p_stage: input.stageId,
     p_amount: hasAmount ? input.amount : null,
     p_currency: hasAmount ? input.currency ?? null : null,
     p_fx_rate: hasAmount ? input.fxRate ?? null : null,
     p_note: input.note?.trim() || null,
+    p_is_partial: isPartial,
+    p_stage_total: hasStageTotal ? input.stageTotal : null,
   });
   if (error) throw error;
-  return data as { ok: boolean; verification_id: string; stage_id: string };
+  return data as { ok: boolean; verification_id: string; stage_id: string; is_partial?: boolean; stage_total_amount?: number | null };
+}
+
+export async function deleteOwnContractorProject(
+  projectId: string,
+): Promise<{ ok: boolean; project_id: string; name: string }> {
+  const { data, error } = await supabase.rpc('delete_own_contractor_project', {
+    p_project_id: projectId,
+  });
+  if (error) throw error;
+  const result = (data ?? {}) as {
+    ok?: boolean;
+    project_id?: string;
+    name?: string;
+    files?: { bucket?: string; path?: string }[];
+  };
+  if (Array.isArray(result.files) && result.files.length > 0) {
+    const byBucket = new Map<string, string[]>();
+    for (const f of result.files) {
+      if (f && typeof f.bucket === 'string' && typeof f.path === 'string' && f.path) {
+        const list = byBucket.get(f.bucket) ?? [];
+        list.push(f.path);
+        byBucket.set(f.bucket, list);
+      }
+    }
+    for (const [bucket, paths] of byBucket) {
+      try {
+        await supabase.storage.from(bucket).remove(paths);
+      } catch {
+        // Best-effort storage cleanup; project row is already deleted and tombstoned.
+      }
+    }
+  }
+  return {
+    ok: result.ok !== false,
+    project_id: result.project_id ?? projectId,
+    name: result.name ?? '',
+  };
+}
+
+export async function clearContractorStageVerification(
+  stageId: string,
+): Promise<{ ok: boolean; stage_id: string; cleared: boolean }> {
+  const { data, error } = await supabase.rpc('clear_contractor_stage_verification', {
+    p_stage: stageId,
+  });
+  if (error) throw error;
+  return data as { ok: boolean; stage_id: string; cleared: boolean };
 }
 
 export async function disputeContractorVerification(

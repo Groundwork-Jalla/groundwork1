@@ -467,6 +467,8 @@ export interface ProjectStageRow {
    */
   verification_required?: boolean | null;
   completed_at: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
   planned_start: string | null;
   planned_end: string | null;
   notes: string | null;

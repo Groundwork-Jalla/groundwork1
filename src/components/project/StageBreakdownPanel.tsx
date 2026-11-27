@@ -281,10 +281,17 @@ export function StageBreakdownPanel({
       const missingPrice = editing.rows.some(r => !r.amount.trim());
       const noteReady = editing.note.trim().length > 0;
       const canSubmit = preview.ready && noteReady;
+      const flexible = preview.flexibleTotal;
       return <form className="space-y-3" data-breakdown-form onSubmit={event => { event.preventDefault(); if (canSubmit) setReview({ kind: 'submit', hash: context.base_hash }); }}>
         <fieldset disabled={working} className="space-y-2.5">
           {inlineRows ? (
-            <p className="text-brand-mid-grey">{t('project.breakdown.inlineEditingHint', { total: format(context.stage_amount) })}</p>
+            <p className="text-brand-mid-grey">
+              {flexible
+                ? (lang === 'fr'
+                  ? 'Entrez le coût de chaque sous-étape ci-dessus. Leur somme définira le prix total de cette étape.'
+                  : 'Enter the cost of each substage above. Their total will set the price for this stage.')
+                : t('project.breakdown.inlineEditingHint', { total: format(context.stage_amount) })}
+            </p>
           ) : (
             editing.rows.map((row, index) => <div key={row.substageId ?? `new-${index}`} className="flex flex-wrap items-center gap-2">
               {row.substageId
@@ -304,17 +311,33 @@ export function StageBreakdownPanel({
                 className="inline-flex items-center gap-1 font-semibold text-brand-green hover:underline dark:text-[#b4d8bf]">
                 <Plus className="size-3.5" aria-hidden />{t('project.breakdown.addPart')}
               </button>
-              <button type="button" onClick={splitEvenly} data-action="breakdown-split-evenly"
-                className="inline-flex items-center gap-1 rounded-lg border border-brand-green/40 bg-brand-green/5 px-2.5 py-1 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
-                <Split className="size-3.5" aria-hidden />{t('project.breakdown.splitEvenly')}
-              </button>
+              {!flexible && (
+                <button type="button" onClick={splitEvenly} data-action="breakdown-split-evenly"
+                  className="inline-flex items-center gap-1 rounded-lg border border-brand-green/40 bg-brand-green/5 px-2.5 py-1 font-semibold text-brand-green hover:bg-brand-green/10 dark:text-[#b4d8bf]">
+                  <Split className="size-3.5" aria-hidden />{t('project.breakdown.splitEvenly')}
+                </button>
+              )}
             </div>
-            <p role="status" className={Number(preview.remaining) === 0 && !missingPrice ? 'font-semibold text-brand-green' : 'font-medium text-brand-near-black dark:text-white'}>
-              {t('project.breakdown.allocated', { allocated: format(preview.allocated), total: format(context.stage_amount) })}{' '}
-              {Number(preview.remaining) !== 0 && t(Number(preview.remaining) > 0 ? 'project.breakdown.left' : 'project.breakdown.over', { amount: format(preview.remaining.replace('-', '')) })}
+            <p role="status" className={preview.ready ? 'font-semibold text-brand-green' : 'font-medium text-brand-near-black dark:text-white'}>
+              {flexible
+                ? (lang === 'fr'
+                  ? `Total proposé pour l’étape : ${format(preview.allocated)}`
+                  : `Proposed stage total: ${format(preview.allocated)}`)
+                : <>
+                    {t('project.breakdown.allocated', { allocated: format(preview.allocated), total: format(context.stage_amount) })}{' '}
+                    {Number(preview.remaining) !== 0 && t(Number(preview.remaining) > 0 ? 'project.breakdown.left' : 'project.breakdown.over', { amount: format(preview.remaining.replace('-', '')) })}
+                  </>}
             </p>
           </div>
-          {missingPrice && <p className="text-[11.5px] text-state-held">{t('project.breakdown.pricesRequiredHint', { total: format(context.stage_amount) })}</p>}
+          {missingPrice && (
+            <p className="text-[11.5px] text-state-held">
+              {flexible
+                ? (lang === 'fr'
+                  ? 'Indiquez un montant (0 ou plus) pour chaque sous-étape afin que le total soit supérieur à 0.'
+                  : 'Enter an amount (0 or more) for every substage so the stage total is greater than 0.')
+                : t('project.breakdown.pricesRequiredHint', { total: format(context.stage_amount) })}
+            </p>
+          )}
 
           <label className="block font-medium text-brand-near-black dark:text-white">
             {t('project.breakdown.note')} <span className="text-state-alert" aria-hidden>*</span>
@@ -402,7 +425,13 @@ export function StageBreakdownPanel({
       title={t(review?.kind === 'submit' ? 'project.breakdown.confirmSendTitle' : review?.kind === 'approved' ? 'project.breakdown.confirmApproveTitle'
         : review?.kind === 'declined' ? 'project.breakdown.confirmKeepTitle' : 'project.breakdown.confirmWithdrawTitle')}
       description={t(review?.kind === 'submit' ? 'project.breakdown.confirmSendBody' : review?.kind === 'approved' ? 'project.breakdown.confirmApproveBody'
-        : review?.kind === 'declined' ? 'project.breakdown.confirmKeepBody' : 'project.breakdown.confirmWithdrawBody', { total: format(context.stage_amount) })}
+        : review?.kind === 'declined' ? 'project.breakdown.confirmKeepBody' : 'project.breakdown.confirmWithdrawBody', {
+          total: format(
+            review?.kind === 'submit' && preview?.flexibleTotal
+              ? preview.allocated
+              : review?.proposal?.stage_amount ?? context.stage_amount,
+          ),
+        })}
       confirmLabel={t(review?.kind === 'approved' ? 'project.clientUi.confirmApproval' : 'project.breakdown.confirm')} cancelLabel={t('common.cancel')}
       loading={working} confirmDisabled={review?.kind === 'declined' && !declineReason.trim()} error={error} onConfirm={commit} onCancel={() => { if (!busy.current) { setReview(null); setDeclineReason(''); } }}>
       {review?.kind === 'submit' && preview?.lines && editing && lineList(editing.rows.map(row => ({

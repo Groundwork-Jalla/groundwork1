@@ -36,6 +36,10 @@ interface Props {
   hideVerificationPrompt?: boolean;
   /** Caller already knows the contractor recorded this stage as paid offline. */
   contractorPaidUpfront?: boolean;
+  /** Partial offline advance recorded by the contractor on this stage (28 Nov). */
+  contractorPartialVerification?: { amount: number | null; currency: string | null; stageTotal: number | null } | null;
+  /** True once uploaded evidence on this stage or any substage has been approved by the Homeowner. */
+  lockedAfterApproval?: boolean;
 }
 
 /**
@@ -77,7 +81,7 @@ function ForeignCurrencyExcessAlert({
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
-  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null, onReviewReceipt, hideParts = false, hideVerificationPrompt = false, contractorPaidUpfront = false }: Props) {
+  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null, onReviewReceipt, hideParts = false, hideVerificationPrompt = false, contractorPaidUpfront = false, contractorPartialVerification = null, lockedAfterApproval = false }: Props) {
   const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
@@ -106,6 +110,8 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         && prev.verification?.verified_at === v?.verified_at
         && prev.verification?.amount === v?.amount
         && prev.verification?.currency === v?.currency
+        && prev.verification?.is_partial === v?.is_partial
+        && prev.verification?.stage_total_amount === v?.stage_total_amount
       ) {
         return prev;
       }
@@ -113,7 +119,10 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     });
   };
   const activeContractorVer = contractorVer.scope === scope ? contractorVer.verification : null;
-  const contractorRecordedPaid = contractorPaidUpfront || !!activeContractorVer;
+  const isPartialOffline =
+    activeContractorVer?.is_partial === true
+    || (!!contractorPartialVerification && !activeContractorVer);
+  const contractorRecordedPaid = (contractorPaidUpfront || !!activeContractorVer) && !isPartialOffline;
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
   const form = decisionForm?.scope === scope ? decisionForm : null;
   const busy = working === scope; const error = failure?.scope === scope ? failure.message : null;
@@ -261,17 +270,57 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
           <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono">{confirmedDisplay}</dd></div>
           {clientPresentation && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(0, code)}</dd></div>}
         </dl>
-        <ContractorPaymentVerificationBar
-          stageId={stageId}
-          isContractor={isContractor}
-          readOnly={readOnly}
-          settled={true}
-          currencyCode={code}
-          fxRate={fxRate}
-          scheduledAmount={scheduledAmount}
-          onChanged={onChanged}
-          onVerificationChange={handleContractorVerificationChange}
-        />
+        {(!hideVerificationPrompt || !isContractor) && (
+          <ContractorPaymentVerificationBar
+            stageId={stageId}
+            isContractor={isContractor}
+            readOnly={readOnly}
+            settled={true}
+            lockedAfterApproval={lockedAfterApproval}
+            currencyCode={code}
+            fxRate={fxRate}
+            scheduledAmount={scheduledAmount}
+            onChanged={onChanged}
+            onVerificationChange={handleContractorVerificationChange}
+          />
+        )}
+      </section>
+    );
+  }
+  if (isPartialOffline && isContractor && liveReceipts.length === 0) {
+    const partialAmt = activeContractorVer?.amount ?? contractorPartialVerification?.amount ?? 0;
+    const partialIso = activeContractorVer?.currency ?? contractorPartialVerification?.currency ?? code;
+    const partialTotal = activeContractorVer?.stage_total_amount
+      ?? contractorPartialVerification?.stageTotal
+      ?? (stageDue != null && stageDue > 0 ? stageDue : null);
+    const partialRemaining = partialTotal != null ? Math.max(0, Math.round((partialTotal - partialAmt) * 1e6) / 1e6) : null;
+    return (
+      <section id={`stage-payment-${stageId}`} data-contractor-partial-summary data-clarity-mask="true"
+        className="mt-5 space-y-3 rounded-xl border border-state-held/40 bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+        aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+          <Receipt className="size-4 text-state-held" aria-hidden />
+          {t('project.receiptFlow.title', { n: stageNumber })}
+        </h3>
+        <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+          <div><dt className="text-brand-mid-grey">{t('project.clientUi.stageBudget')}</dt><dd className="mt-1 font-mono font-semibold">{format(partialTotal, partialIso)}</dd></div>
+          <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono font-semibold">{format(partialAmt, partialIso)}</dd></div>
+          <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono font-semibold text-state-held">{format(partialRemaining, partialIso)}</dd></div>
+        </dl>
+        {!hideVerificationPrompt && (
+          <ContractorPaymentVerificationBar
+            stageId={stageId}
+            isContractor={isContractor}
+            readOnly={readOnly}
+            settled={false}
+            lockedAfterApproval={lockedAfterApproval}
+            currencyCode={code}
+            fxRate={fxRate}
+            scheduledAmount={scheduledAmount}
+            onChanged={onChanged}
+            onVerificationChange={handleContractorVerificationChange}
+          />
+        )}
       </section>
     );
   }
@@ -304,6 +353,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         readOnly={readOnly}
         settled={settled}
         hasReceipts={liveReceipts.length > 0}
+        lockedAfterApproval={lockedAfterApproval}
         currencyCode={code}
         fxRate={fxRate}
         scheduledAmount={scheduledAmount}
