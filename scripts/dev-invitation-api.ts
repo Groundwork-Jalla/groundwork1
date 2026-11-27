@@ -16,6 +16,8 @@ export function invitationApiMiddleware(loadModule: ModuleLoader) {
       modulePath = '/api/_handlers/send-share-invite.ts';
     } else if (url.pathname === '/api/events' && url.searchParams.get('action') === 'contractor-invite-client') {
       modulePath = '/api/_handlers/contractor-invite-client.ts';
+    } else if (url.pathname === '/api/events' && url.searchParams.get('action') === 'admin-message-users') {
+      modulePath = '/api/_handlers/admin-message-users.ts';
     } else {
       next();
       return;

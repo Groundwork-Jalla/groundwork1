@@ -31,6 +31,7 @@ import { handler as emailReceipt } from './_handlers/email-receipt.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
+import { handler as adminMessageUsers } from './_handlers/admin-message-users.js';
 import { handler as inviteVerifier } from './_handlers/invite-verifier.js';
 import { handler as contractorInviteClient } from './_handlers/contractor-invite-client.js';
 import { handler as adminDeleteContractor } from './_handlers/admin-delete-contractor.js';
@@ -76,7 +77,7 @@ export const config = { api: { bodyParser: false } };
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
-  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
+  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'admin-message-users' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'person-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
   | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt'
   | 'communication-reply' | 'communication-unsubscribe' | 'communication-status'
@@ -110,6 +111,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'certificate-purge': certPurge,
   'mfa-email': mfaEmail,
   'admin-provision-user': adminProvisionUser,
+  'admin-message-users': adminMessageUsers,
   'invite-verifier': inviteVerifier,
   'contractor-invite-client': contractorInviteClient,
   'admin-delete-contractor': adminDeleteContractor,
