@@ -8,6 +8,7 @@ import {
   type AdminMessageUsersResult,
 } from '@/lib/supabase/admin-message-users';
 import { adminBroadcastHtml } from '@/lib/email/admin-broadcast-html';
+import { isJoinedWithinDays } from '@/lib/admin/user-directory-filter';
 
 interface Props {
   open: boolean;
@@ -69,6 +70,8 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
   const [actionLabel, setActionLabel] = useState('Activate your project');
   const [actionPath, setActionPath] = useState('/projects/new');
   const [showPreview, setShowPreview] = useState(false);
+  const [excludeWithProjects, setExcludeWithProjects] = useState(false);
+  const [excludeRecent7d, setExcludeRecent7d] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AdminMessageUsersResult | null>(null);
@@ -78,15 +81,29 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
     setError(null);
     setResult(null);
     setShowPreview(false);
+    setExcludeWithProjects(false);
+    setExcludeRecent7d(false);
   }, [open]);
 
-  const withProjectsCount = useMemo(
-    () => recipients.filter(u => u.projectCount > 0).length,
-    [recipients],
-  );
-  const withoutProjectsCount = recipients.length - withProjectsCount;
+  const activeRecipients = useMemo(() => {
+    return recipients.filter(u => {
+      if (excludeWithProjects && u.projectCount > 0) return false;
+      if (excludeRecent7d && isJoinedWithinDays(u.createdAt, 7)) return false;
+      return true;
+    });
+  }, [recipients, excludeWithProjects, excludeRecent7d]);
 
-  const sampleRecipient = recipients[0];
+  const withProjectsCount = useMemo(
+    () => activeRecipients.filter(u => u.projectCount > 0).length,
+    [activeRecipients],
+  );
+  const recent7dCount = useMemo(
+    () => activeRecipients.filter(u => isJoinedWithinDays(u.createdAt, 7)).length,
+    [activeRecipients],
+  );
+  const withoutProjectsCount = activeRecipients.length - withProjectsCount;
+
+  const sampleRecipient = activeRecipients[0];
   const previewHtml = useMemo(() => {
     if (!showPreview) return '';
     return adminBroadcastHtml({
@@ -128,7 +145,7 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (busy || recipients.length === 0) return;
+    if (busy || activeRecipients.length === 0) return;
 
     const cleanSubject = subject.trim();
     const cleanMessage = message.trim();
@@ -142,7 +159,7 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
     }
 
     const confirmed = window.confirm(
-      `Send "${cleanSubject}" to ${recipients.length} user${recipients.length === 1 ? '' : 's'} now?`,
+      `Send "${cleanSubject}" to ${activeRecipients.length} user${activeRecipients.length === 1 ? '' : 's'} now?`,
     );
     if (!confirmed) return;
 
@@ -151,7 +168,7 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
     setResult(null);
     try {
       const res = await sendAdminUsersMessage({
-        userIds: recipients.map(u => u.id),
+        userIds: activeRecipients.map(u => u.id),
         subject: cleanSubject,
         message: cleanMessage,
         lang,
@@ -188,8 +205,8 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
               </h2>
               <p className="text-xs text-brand-mid-grey">
                 Sending branded Groundwork email to{' '}
-                <strong className="text-brand-near-black">{recipients.length}</strong>{' '}
-                user{recipients.length === 1 ? '' : 's'}
+                <strong className="text-brand-near-black">{activeRecipients.length}</strong>{' '}
+                user{activeRecipients.length === 1 ? '' : 's'}
                 {withoutProjectsCount > 0 && ` · ${withoutProjectsCount} without projects`}
                 {withProjectsCount > 0 && ` · ${withProjectsCount} with projects`}
               </p>
@@ -208,10 +225,10 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
 
         {/* Body */}
         <form onSubmit={handleSend} className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          {/* Recipient preview strip */}
+          {/* Recipient preview & safety filters */}
           <div className="rounded-xl border border-brand-border-grey bg-brand-off-white/60 px-3.5 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              {recipients.slice(0, 6).map(u => (
+              {activeRecipients.slice(0, 6).map(u => (
                 <span
                   key={u.id}
                   className="inline-flex items-center gap-1 rounded-full border border-brand-border-grey bg-white px-2.5 py-0.5 text-[11px] font-medium text-brand-near-black"
@@ -220,17 +237,65 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
                   <span className="text-[10px] text-brand-mid-grey">({u.projectCount})</span>
                 </span>
               ))}
-              {recipients.length > 6 && (
+              {activeRecipients.length > 6 && (
                 <span className="text-xs font-semibold text-brand-mid-grey">
-                  +{recipients.length - 6} more
+                  +{activeRecipients.length - 6} more
+                </span>
+              )}
+              {activeRecipients.length === 0 && (
+                <span className="text-xs text-brand-mid-grey">
+                  No users remain after your safety filters.
                 </span>
               )}
             </div>
-            {withProjectsCount > 0 && withoutProjectsCount > 0 && (
-              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-800">
-                <AlertTriangle className="size-3.5 shrink-0" />
-                {withProjectsCount} selected user{withProjectsCount === 1 ? ' already has' : 's already have'} a project.
-              </p>
+
+            {(withProjectsCount > 0 || recent7dCount > 0 || excludeWithProjects || excludeRecent7d) && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-brand-border-grey/70 pt-2">
+                {withProjectsCount > 0 && (
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-800">
+                    <AlertTriangle className="size-3.5 shrink-0" />
+                    {withProjectsCount} recipient{withProjectsCount === 1 ? ' already has' : 's already have'} a project.
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {withProjectsCount > 0 && !excludeWithProjects && (
+                    <button
+                      type="button"
+                      onClick={() => setExcludeWithProjects(true)}
+                      className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                    >
+                      Exclude users with projects ({withProjectsCount})
+                    </button>
+                  )}
+                  {excludeWithProjects && (
+                    <button
+                      type="button"
+                      onClick={() => setExcludeWithProjects(false)}
+                      className="rounded-lg border border-brand-border-grey bg-white px-2 py-0.5 text-[11px] font-medium text-brand-mid-grey hover:text-brand-near-black"
+                    >
+                      Users with projects excluded · Undo
+                    </button>
+                  )}
+                  {recent7dCount > 0 && !excludeRecent7d && (
+                    <button
+                      type="button"
+                      onClick={() => setExcludeRecent7d(true)}
+                      className="rounded-lg border border-brand-border-grey bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white"
+                    >
+                      Exclude joined last 7 days ({recent7dCount})
+                    </button>
+                  )}
+                  {excludeRecent7d && (
+                    <button
+                      type="button"
+                      onClick={() => setExcludeRecent7d(false)}
+                      className="rounded-lg border border-brand-border-grey bg-white px-2 py-0.5 text-[11px] font-medium text-brand-mid-grey hover:text-brand-near-black"
+                    >
+                      Last 7 days excluded · Undo
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
@@ -458,13 +523,13 @@ export function AdminMessageUsersModal({ open, recipients, onClose, onSent }: Pr
             </button>
             <button
               type="submit"
-              disabled={busy || recipients.length === 0 || !subject.trim() || !message.trim()}
+              disabled={busy || activeRecipients.length === 0 || !subject.trim() || !message.trim()}
               className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-green/90 disabled:opacity-40"
             >
               {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
               {busy
-                ? `Sending to ${recipients.length}…`
-                : `Send to ${recipients.length} user${recipients.length === 1 ? '' : 's'}`}
+                ? `Sending to ${activeRecipients.length}…`
+                : `Send to ${activeRecipients.length} user${activeRecipients.length === 1 ? '' : 's'}`}
             </button>
           </div>
         </form>

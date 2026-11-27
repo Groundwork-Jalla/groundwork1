@@ -5,6 +5,7 @@ import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin
 import {
   filterAdminUsers,
   summarizeUserProjects,
+  type JoinedFilter,
   type ProjectFilter,
   type RoleFilter,
 } from '@/lib/admin/user-directory-filter';
@@ -32,26 +33,40 @@ export default function AdminUsers() {
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  // `?q=`, `?projects=`, `?role=` keep filters bookmarkable and survive reloads.
-  const [params, setParams]   = useSearchParams();
+  // `?q=` is how global search arrives here — the row it found is the row on screen.
+  const [params, setParams] = useSearchParams();
   const query = params.get('q') ?? '';
-  const rawProjectFilter = params.get('projects') as ProjectFilter | null;
-  const projectFilter: ProjectFilter = rawProjectFilter && VALID_PROJECT_FILTERS.includes(rawProjectFilter)
-    ? rawProjectFilter
-    : 'all';
-  const rawRoleFilter = params.get('role') as RoleFilter | null;
-  const roleFilter: RoleFilter = rawRoleFilter && VALID_ROLE_FILTERS.includes(rawRoleFilter)
-    ? rawRoleFilter
-    : 'all';
-
-  const updateParam = (key: string, next: string) => {
+  const setQuery = (next: string) => {
     const p = new URLSearchParams(params);
-    if (next && next !== 'all') p.set(key, next); else p.delete(key);
+    if (next) p.set('q', next); else p.delete('q');
     setParams(p, { replace: true });
+    setSelectedIds(new Set());
   };
-  const setQuery = (next: string) => updateParam('q', next);
-  const setProjectFilter = (next: ProjectFilter) => updateParam('projects', next);
-  const setRoleFilter = (next: RoleFilter) => updateParam('role', next);
+
+  const [projectFilter, setProjectFilterState] = useState<ProjectFilter>(() => {
+    const raw = params.get('projects') as ProjectFilter | null;
+    return raw && VALID_PROJECT_FILTERS.includes(raw) ? raw : 'all';
+  });
+  const [roleFilter, setRoleFilterState] = useState<RoleFilter>(() => {
+    const raw = params.get('role') as RoleFilter | null;
+    return raw && VALID_ROLE_FILTERS.includes(raw) ? raw : 'all';
+  });
+  const [joinedFilter, setJoinedFilterState] = useState<JoinedFilter>('all');
+
+  // Changing any filter clears manual selections so hidden users from a previous
+  // filter can never be accidentally included in a Message Users send.
+  const setProjectFilter = (next: ProjectFilter) => {
+    setProjectFilterState(next);
+    setSelectedIds(new Set());
+  };
+  const setRoleFilter = (next: RoleFilter) => {
+    setRoleFilterState(next);
+    setSelectedIds(new Set());
+  };
+  const setJoinedFilter = (next: JoinedFilter) => {
+    setJoinedFilterState(next);
+    setSelectedIds(new Set());
+  };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [messageOpen, setMessageOpen] = useState(false);
@@ -107,16 +122,19 @@ export default function AdminUsers() {
 
   const summary = useMemo(() => summarizeUserProjects(users), [users]);
   const filtered = useMemo(
-    () => filterAdminUsers(users, { query, projectFilter, roleFilter }),
-    [users, query, projectFilter, roleFilter],
+    () => filterAdminUsers(users, { query, projectFilter, roleFilter, joinedFilter }),
+    [users, query, projectFilter, roleFilter, joinedFilter],
   );
 
-  const selectedUsers = useMemo(
-    () => users.filter(u => selectedIds.has(u.id)),
-    [users, selectedIds],
+  // Selection is strictly scoped to the currently visible filtered list so users
+  // excluded by an active filter can never sneak into a broadcast.
+  const visibleSelectedUsers = useMemo(
+    () => filtered.filter(u => selectedIds.has(u.id)),
+    [filtered, selectedIds],
   );
-  const allFilteredSelected = filtered.length > 0 && filtered.every(u => selectedIds.has(u.id));
-  const someFilteredSelected = filtered.some(u => selectedIds.has(u.id));
+  const modalRecipients = visibleSelectedUsers.length > 0 ? visibleSelectedUsers : filtered;
+  const allFilteredSelected = filtered.length > 0 && visibleSelectedUsers.length === filtered.length;
+  const someFilteredSelected = visibleSelectedUsers.length > 0;
 
   function toggleOne(id: string) {
     setSelectedIds(prev => {
@@ -139,9 +157,6 @@ export default function AdminUsers() {
   }
 
   function openMessageModal() {
-    if (selectedIds.size === 0 && filtered.length > 0) {
-      setSelectedIds(new Set(filtered.map(u => u.id)));
-    }
     setMessageOpen(true);
   }
 
@@ -168,13 +183,13 @@ export default function AdminUsers() {
           <button
             type="button"
             onClick={openMessageModal}
-            disabled={loading || (selectedIds.size === 0 && filtered.length === 0)}
+            disabled={loading || modalRecipients.length === 0}
             className="inline-flex items-center gap-1.5 rounded-xl border border-brand-green bg-white px-3.5 py-2 text-sm font-semibold text-brand-green transition-colors hover:bg-brand-green hover:text-white disabled:opacity-40"
           >
             <Mail className="size-4" />
-            {selectedIds.size > 0
-              ? `Message Users (${selectedIds.size})`
-              : `Message Users (${filtered.length})`}
+            {visibleSelectedUsers.length > 0
+              ? `Message Selected (${visibleSelectedUsers.length})`
+              : `Message Shown (${filtered.length})`}
           </button>
           <Link
             to="/admin/users/new"
@@ -221,13 +236,24 @@ export default function AdminUsers() {
               <option value="contractor">Contractors</option>
               <option value="admin">Admins</option>
             </select>
+
+            <select
+              aria-label="Filter by join date"
+              value={joinedFilter}
+              onChange={e => setJoinedFilter(e.target.value as JoinedFilter)}
+              className="rounded-xl border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-semibold text-brand-near-black outline-none focus:ring-2 focus:ring-brand-near-black/20"
+            >
+              <option value="all">Any join date</option>
+              <option value="older_than_7d">Joined &gt; 7 days ago</option>
+              <option value="last_7d">Joined last 7 days</option>
+            </select>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-brand-mid-grey">
               Showing <strong className="text-brand-near-black">{filtered.length}</strong>
-              {selectedIds.size > 0 && (
-                <> · <strong className="text-brand-green">{selectedIds.size} selected</strong></>
+              {visibleSelectedUsers.length > 0 && (
+                <> · <strong className="text-brand-green">{visibleSelectedUsers.length} selected</strong></>
               )}
             </span>
             {filtered.length > 0 && (
@@ -239,7 +265,7 @@ export default function AdminUsers() {
                 {allFilteredSelected ? 'Deselect shown' : `Select shown (${filtered.length})`}
               </button>
             )}
-            {selectedIds.size > 0 && (
+            {visibleSelectedUsers.length > 0 && (
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
@@ -251,8 +277,6 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
-
-      <CrmBackfillPanel kind="users" />
 
       {notice && (
         <p role="status" className="mb-4 mt-4 rounded-xl border border-state-complete/30 px-4 py-2.5 text-sm text-state-complete">
@@ -374,6 +398,7 @@ export default function AdminUsers() {
           </table>
         </div>
       )}
+      <CrmBackfillPanel kind="users" />
       <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
       {typeTarget && <UserRoleEditor key={typeTarget.id} user={typeTarget} onClose={() => setTypeTarget(null)} onSaved={roles => {
         setUsers(previous => previous.map(row => row.id === typeTarget.id ? { ...row, roles } : row));
@@ -381,7 +406,7 @@ export default function AdminUsers() {
       }} />}
       <AdminMessageUsersModal
         open={messageOpen}
-        recipients={selectedUsers}
+        recipients={modalRecipients}
         onClose={() => setMessageOpen(false)}
         onSent={res => {
           setNotice(

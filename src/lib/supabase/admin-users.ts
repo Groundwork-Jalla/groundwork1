@@ -72,23 +72,66 @@ export async function setAccountType(userId: string, type: AccountType, expected
   return data.roles;
 }
 
-export async function listAdminUsers(): Promise<AdminUser[]> {
-  const { data, error } = await supabase.rpc('admin_list_users');
-  if (error) throw error;
+export function mergeUserProjectCounts(
+  users: AdminUser[],
+  memberships: {
+    owned: { id: string; user_id: string | null }[];
+    invites: { project_id: string | null; contractor_id: string | null }[];
+    viewers: { project_id: string | null; user_id: string | null }[];
+  },
+): AdminUser[] {
+  const byUser = new Map<string, Set<string>>();
+  const add = (uid: string | null | undefined, pid: string | null | undefined) => {
+    if (!uid || !pid) return;
+    let set = byUser.get(uid);
+    if (!set) {
+      set = new Set<string>();
+      byUser.set(uid, set);
+    }
+    set.add(pid);
+  };
 
-  return ((data ?? []) as Row[]).map(r => ({
+  for (const row of memberships.owned) add(row.user_id, row.id);
+  for (const row of memberships.invites) add(row.contractor_id, row.project_id);
+  for (const row of memberships.viewers) add(row.user_id, row.project_id);
+
+  return users.map(u => {
+    const merged = byUser.get(u.id)?.size ?? 0;
+    return merged > u.projectCount ? { ...u, projectCount: merged } : u;
+  });
+}
+
+export async function listAdminUsers(): Promise<AdminUser[]> {
+  const [rpcRes, ownedRes, invitesRes, viewersRes] = await Promise.all([
+    supabase.rpc('admin_list_users'),
+    // Include owned projects plus accepted contractor invites & project viewers so
+    // contractors or invited Homeowners on a live build are not misclassified as
+    // "No projects". Best-effort: if any auxiliary read fails, RPC count still applies.
+    supabase.from('projects').select('id, user_id'),
+    supabase.from('contractor_invites').select('project_id, contractor_id').eq('status', 'accepted'),
+    supabase.from('project_viewers').select('project_id, user_id').not('user_id', 'is', null),
+  ]);
+  if (rpcRes.error) throw rpcRes.error;
+
+  const base = ((rpcRes.data ?? []) as Row[]).map(r => ({
     id:        s(r.id),
     email:     s(r.email),
     fullName:  s(r.full_name),
     country:   s(r.country),
     roles:     s(r.roles),
     tier:      typeof r.tier === 'string' && r.tier ? r.tier : null,
-    projectCount: typeof r.project_count === 'number' ? r.project_count : 0,
+    projectCount: Number(r.project_count ?? 0) || 0,
     createdAt: s(r.created_at),
     provisionedBy: s(r.provisioned_by) || null,
     mustChangePassword: r.must_change_password === true,
     lastSignInAt: s(r.last_sign_in_at) || null,
   }));
+
+  return mergeUserProjectCounts(base, {
+    owned: ownedRes.error ? [] : ((ownedRes.data ?? []) as { id: string; user_id: string | null }[]),
+    invites: invitesRes.error ? [] : ((invitesRes.data ?? []) as { project_id: string | null; contractor_id: string | null }[]),
+    viewers: viewersRes.error ? [] : ((viewersRes.data ?? []) as { project_id: string | null; user_id: string | null }[]),
+  });
 }
 
 /**

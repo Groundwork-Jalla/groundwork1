@@ -5,6 +5,7 @@ import {
   filterAdminUsers,
   summarizeUserProjects,
 } from './user-directory-filter';
+import { mergeUserProjectCounts, type AdminUser } from '@/lib/supabase/admin-users';
 import {
   adminBroadcastHtml,
   adminBroadcastText,
@@ -15,10 +16,10 @@ import {
 const ROOT = resolve(__dirname, '..', '..', '..');
 
 const SAMPLE_USERS = [
-  { id: '11111111-1111-4111-8111-111111111111', email: 'kenno@example.cm', fullName: 'Kenno Jean', roles: '', country: 'CM', projectCount: 0 },
-  { id: '22222222-2222-4222-8222-222222222222', email: 'amara@example.com', fullName: 'Amara Builder', roles: 'contractor', country: 'CM', projectCount: 0 },
-  { id: '33333333-3333-4333-8333-333333333333', email: 'grace@example.com', fullName: 'Grace Owner', roles: '', country: 'US', projectCount: 2 },
-  { id: '44444444-4444-4444-8444-444444444444', email: 'ruth@tryjalla.com', fullName: 'Ruth Ijoma', roles: 'admin', country: 'NG', projectCount: 1 },
+  { id: '11111111-1111-4111-8111-111111111111', email: 'kenno@example.cm', fullName: 'Kenno Jean', roles: '', country: 'CM', projectCount: 0, createdAt: '2026-11-25T10:00:00Z' },
+  { id: '22222222-2222-4222-8222-222222222222', email: 'amara@example.com', fullName: 'Amara Builder', roles: 'contractor', country: 'CM', projectCount: 0, createdAt: '2026-08-15T10:00:00Z' },
+  { id: '33333333-3333-4333-8333-333333333333', email: 'grace@example.com', fullName: 'Grace Owner', roles: '', country: 'US', projectCount: 2, createdAt: '2026-09-10T10:00:00Z' },
+  { id: '44444444-4444-4444-8444-444444444444', email: 'ruth@tryjalla.com', fullName: 'Ruth Ijoma', roles: 'admin', country: 'NG', projectCount: 1, createdAt: '2026-08-01T10:00:00Z' },
 ];
 
 describe('admin user directory filters', () => {
@@ -60,6 +61,56 @@ describe('admin user directory filters', () => {
       roleFilter: 'contractor',
     });
     expect(searchContractors.map(u => u.email)).toEqual(['amara@example.com']);
+  });
+
+  it('filters by joined date so active 7-day sequence signups can be excluded', () => {
+    const nowMs = Date.parse('2026-11-27T12:00:00Z');
+    const olderNoProjects = filterAdminUsers(SAMPLE_USERS, {
+      query: '',
+      projectFilter: 'no_projects',
+      roleFilter: 'all',
+      joinedFilter: 'older_than_7d',
+      nowMs,
+    });
+    expect(olderNoProjects.map(u => u.email)).toEqual(['amara@example.com']);
+
+    const recentOnly = filterAdminUsers(SAMPLE_USERS, {
+      query: '',
+      projectFilter: 'no_projects',
+      roleFilter: 'all',
+      joinedFilter: 'last_7d',
+      nowMs,
+    });
+    expect(recentOnly.map(u => u.email)).toEqual(['kenno@example.cm']);
+  });
+
+  it('counts accepted contractor invites and project viewers as active projects', () => {
+    const base: AdminUser[] = SAMPLE_USERS.map(u => ({
+      ...u,
+      tier: null,
+      provisionedBy: null,
+      mustChangePassword: false,
+      lastSignInAt: null,
+    }));
+    const merged = mergeUserProjectCounts(base, {
+      owned: [{ id: 'proj-1', user_id: '33333333-3333-4333-8333-333333333333' }],
+      invites: [{ project_id: 'proj-1', contractor_id: '22222222-2222-4222-8222-222222222222' }],
+      viewers: [
+        { project_id: 'proj-1', user_id: '22222222-2222-4222-8222-222222222222' },
+        { project_id: 'proj-2', user_id: '11111111-1111-4111-8111-111111111111' },
+      ],
+    });
+    // Amara has 1 distinct project across invite + viewer; Kenno gained 1 viewer project; Grace keeps RPC count 2
+    expect(merged.find(u => u.email === 'amara@example.com')?.projectCount).toBe(1);
+    expect(merged.find(u => u.email === 'kenno@example.cm')?.projectCount).toBe(1);
+    expect(merged.find(u => u.email === 'grace@example.com')?.projectCount).toBe(2);
+  });
+
+  it('never leaks selections outside the active filter on /admin/users', () => {
+    const src = readFileSync(join(ROOT, 'src/app/routes/admin/users.tsx'), 'utf8');
+    expect(src).toContain('filtered.filter(u => selectedIds.has(u.id))');
+    expect(src).toContain('setProjectFilterState(next);\n    setSelectedIds(new Set());');
+    expect(src).not.toContain('setSelectedIds(new Set(filtered.map(u => u.id)))');
   });
 });
 
