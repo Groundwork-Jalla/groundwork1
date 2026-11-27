@@ -626,6 +626,7 @@ export default function ProjectDetail() {
               <StageTracker
                 key={`stages:${project.id}`}
                 clientPresentation={!isContractor}
+                isEstimate={project.budget_source !== 'boq' && (project.pricing_revision ?? 0) === 0}
                 stages={stages}
                 substages={substages}
                 tier={project.tier}

@@ -358,7 +358,9 @@ function ProjectRow({ assigned, client, canDelete, onRequestDelete }: {
           {due ? (
             <>
               <p className="font-mono text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">
-                {due.local}
+                {project.budget_source !== 'boq' && (project.pricing_revision ?? 0) === 0
+                  ? (lang === 'fr' ? `Estimé · ${due.local}` : `Estimated ${due.local}`)
+                  : due.local}
               </p>
               {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
             </>

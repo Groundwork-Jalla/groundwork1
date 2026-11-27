@@ -77,8 +77,16 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen,
     <button type="button" onClick={onOpen} className="text-xs font-semibold text-brand-green underline">{t('project.priceChanges.review')}</button>
   </section> : null;
   if (!context && !error) return null;
+  const isEstimate = project.budget_source !== 'boq' && (project.pricing_revision ?? 0) === 0;
   return <section className="space-y-4 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-    <h3 className="text-sm font-semibold">{t('project.priceChanges.title')}</h3>
+    <div className="flex flex-wrap items-center gap-2">
+      <h3 className="text-sm font-semibold">{t('project.priceChanges.title')}</h3>
+      {isEstimate && (
+        <span data-estimate-badge className="rounded-full bg-brand-off-white px-2.5 py-0.5 text-[11px] font-semibold text-brand-mid-grey dark:bg-[#2c2c2c] dark:text-white">
+          {lang === 'fr' ? 'Montants estimés · modifiables par étape' : 'Estimated figures · editable per stage'}
+        </span>
+      )}
+    </div>
     <p className="text-xs text-brand-mid-grey">{t(context?.can_propose?'project.priceChanges.hintContractor':context?.can_approve?'project.priceChanges.hintClient':'project.priceChanges.hintObserver')}</p>
     {(project.pricing_revision ?? 0) > 0 && project.budget_original_amount != null && <p className="text-xs text-brand-mid-grey">{t(project.budget_source === 'boq' ? 'project.priceChanges.originalBill' : 'project.priceChanges.originalBudget', { amount: format(project.budget_original_amount, project.budget_currency ?? context?.currency ?? 'USD') })}</p>}
     {error && <p role="alert" className="text-xs text-state-alert">{error} <button type="button" onClick={() => { void load(); }} className="underline">{t('common.retry')}</button></p>}
@@ -93,7 +101,11 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen,
         <div className="grid grid-cols-3 gap-3 text-xs font-semibold"><span>{t('project.priceChanges.stageColumn')}</span><span>{t('project.priceChanges.currentStagePrice')}</span><span>{t('project.priceChanges.proposedStagePrice')}</span></div>
         {editing.context.stages.map(stage => <div key={stage.id} className="grid grid-cols-3 items-center gap-3 border-b border-brand-border-grey pb-3 text-xs dark:border-[#2c2c2c]">
           <label htmlFor={`stage-price-${stage.id}`} className="min-w-36 flex-1">{stageLabel(stage)}{!stage.editable && <span className="mt-1 block text-brand-mid-grey">{t('project.priceChanges.held')}</span>}</label>
-          <span className="font-mono break-all">{format(stage.amount ?? '0', editing.context.currency)}</span>
+          <span className="font-mono break-all">
+            {isEstimate && Number(stage.amount ?? 0) > 0
+              ? (lang === 'fr' ? `Est. ${format(stage.amount ?? '0', editing.context.currency)}` : `Est. ${format(stage.amount ?? '0', editing.context.currency)}`)
+              : format(stage.amount ?? '0', editing.context.currency)}
+          </span>
           {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? ''}
             placeholder={format(stage.amount ?? '0', editing.context.currency)}
             onChange={event => {

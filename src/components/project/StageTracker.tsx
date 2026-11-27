@@ -105,6 +105,7 @@ function ApproveButton({
 
 interface StageDetailProps {
   clientPresentation?: boolean;
+  isEstimate?: boolean;
   projectName: string;
   evidenceFirst?: boolean;
   stage: ProjectStageRow;
@@ -172,6 +173,7 @@ function StageDetail({
   tier,
   userId,
   isContractor,
+  isEstimate = false,
   canConfirmPayments,
   hasPrimaryContractor,
   canApprove,
@@ -280,8 +282,22 @@ function StageDetail({
           {clientPresentation && <div className="mt-3 flex items-center gap-2 text-xs font-medium text-brand-mid-grey"><span className={cn('size-1.5 shrink-0 rounded-full', stage.status === 'complete' || stage.review_payment_pending ? 'bg-brand-green' : 'bg-brand-mid-grey')} aria-hidden />{t(stage.status === 'complete' || stage.review_payment_pending ? 'project.clientUi.workApproved' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.clientUi.workInProgress')}</div>}
         </div>
         <div className={cn('mt-0.5', clientPresentation ? 'min-w-0 rounded-lg bg-brand-off-white px-4 py-3 sm:max-w-[45%]' : 'flex shrink-0 items-center gap-2')}>
-          {clientPresentation && <p className="mb-1 text-xs text-brand-mid-grey">{t('project.clientUi.stageBudget')}</p>}
+          {clientPresentation && (
+            <p className="mb-1 text-xs text-brand-mid-grey">
+              {t('project.clientUi.stageBudget')}
+              {isEstimate && Number(stage.milestone_amount ?? stage.payment_milestone_usd ?? 0) > 0 && (
+                <span className="ml-1.5 rounded-full bg-brand-border-grey/60 px-1.5 py-0.5 text-[10px] font-semibold text-brand-near-black">
+                  {lang === 'fr' ? 'Estimé' : 'Estimate'}
+                </span>
+              )}
+            </p>
+          )}
           <span className={clientPresentation ? 'break-words font-mono text-base font-semibold text-brand-near-black' : 'text-xs text-brand-mid-grey tabular-nums whitespace-nowrap'}>
+            {isEstimate && Number(stage.milestone_amount ?? stage.payment_milestone_usd ?? 0) > 0 && (
+              <span className="font-sans font-medium text-brand-mid-grey">
+                {lang === 'fr' ? 'Estimé · ' : 'Estimated '}
+              </span>
+            )}
             <MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} />{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
@@ -573,6 +589,7 @@ export interface StageTrackerProps {
     onUploadComplete: (urls: string[]) => void;
   }) => React.ReactNode;
   workflowOrigin?: 'client' | 'contractor';
+  isEstimate?: boolean;
   projectPaused?: boolean;
   projectArchived?: boolean;
 }
@@ -599,6 +616,7 @@ function shortLabel(label: string): string {
 
 export function StageTracker({
   clientPresentation = false,
+  isEstimate = false,
   hasPrimaryContractor = false,
   stages, workflowOrigin = 'client', projectPaused = false, projectArchived = false, canUploadEvidence = false,
   substages,
@@ -840,6 +858,7 @@ export function StageTracker({
   const detail = selectedStage ? (
     <StageDetail
                 clientPresentation={clientPresentation}
+                isEstimate={isEstimate}
                 projectName={projectName}
                 evidenceFirst={stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin)}
                 key={selectedStage.id}

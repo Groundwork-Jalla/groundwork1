@@ -606,9 +606,12 @@ function MoneyTab({ assigned, payments, stagePayments, hasBoq, substages, canDec
   onOpenStage: (stageId: string) => void;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { stageLabel, substageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project);
   const { stages } = assigned;
+  const isEstimate = !hasBoq && (assigned.project.pricing_revision ?? 0) === 0;
+  const estPrefix = (val: string | undefined) => !val ? '\u2014' : isEstimate ? (lang === 'fr' ? `Estimé · ${val}` : `Estimated ${val}`) : val;
 
   /**
    * Three facts, kept apart (30 Oct 2026; laid out to the 18 Nov redesign).
@@ -653,9 +656,9 @@ function MoneyTab({ assigned, payments, stagePayments, hasBoq, substages, canDec
   const firstPart = first?.receipt.substageId ? substages.find(row => row.id === first.receipt.substageId) : undefined;
 
   const figures = [
-    { key: 'contract', label: t('contractorMoney.contractValue'), value: contract?.local ?? '\u2014', sub: t('contractorView.contractSub', { n: stages.length }) },
+    { key: 'contract', label: t('contractorMoney.contractValue'), value: estPrefix(contract?.local), sub: t('contractorView.contractSub', { n: stages.length }) },
     { key: 'confirmed', label: t('project.historyView.confirmed'), value: confirmed ?? '\u2014', sub: t('contractorView.confirmedSub'), dot: true },
-    { key: 'toCome', label: t('contractorMoney.stillToCome'), value: toCome?.local ?? '\u2014', sub: t('contractorMoney.stagesToCome', { n: outstanding.length }) },
+    { key: 'toCome', label: t('contractorMoney.stillToCome'), value: estPrefix(toCome?.local), sub: t('contractorMoney.stagesToCome', { n: outstanding.length }) },
   ];
   return (
     <div className="flex flex-col gap-4">
@@ -1007,6 +1010,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const activeStage = current && (current.status === 'active' || current.status === 'pending_review') ? current : undefined;
   const activeParts = useSubstagePayments(activeStage?.id, !!activeStage?.paid_by_part, activeStage ? stagePayments.get(activeStage.id) : undefined);
   const basis = stageBasisFor(project, stages, hasBoq);
+  const isEstimate = !hasBoq && (project.pricing_revision ?? 0) === 0;
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
   /** Per-substage "Request payment" inline dropdown state (19 Nov). */
@@ -1500,7 +1504,11 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                         <span className={cn('block text-xs', held ? 'font-semibold text-state-held' : 'text-brand-mid-grey')}>{statusLine(row)}</span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
-                        <span className="font-mono text-[11.5px] tabular-nums text-brand-mid-grey">{rowDue?.local ?? '—'}</span>
+                        <span className="font-mono text-[11.5px] tabular-nums text-brand-mid-grey">
+                          {rowDue?.local
+                            ? (isEstimate && stagePayableUsd(row, basis) > 0 ? `Est. ${rowDue.local}` : rowDue.local)
+                            : '—'}
+                        </span>
                         {held && <span className="rounded-full bg-state-held/15 px-2 py-0.5 text-[10px] font-bold text-state-held">{t('contractorView.receiptToConfirm')}</span>}
                       </span>
                     </button>
@@ -1585,11 +1593,20 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                   </div>
                 )}
                 {due && <div className="w-full rounded-xl bg-brand-off-white px-4 py-3 text-right sm:w-auto dark:bg-[#141414]">
-                  <p className="text-[11.5px] text-brand-mid-grey">{t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}</p>
+                  <p className="text-[11.5px] text-brand-mid-grey">
+                    {t(stage.paid_by_part ? 'contractorView.stagePriceByPart' : 'contractorView.stagePrice')}
+                    {isEstimate && stageTotalLocal > 0 && (
+                      <span className="ml-1.5 rounded-full bg-brand-border-grey/60 px-1.5 py-0.5 text-[10px] font-semibold text-brand-near-black dark:bg-[#2c2c2c] dark:text-white">
+                        {lang === 'fr' ? 'Estimé' : 'Estimate'}
+                      </span>
+                    )}
+                  </p>
                   <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
                     {stageTotalLocal <= 0 && verifiedEntry?.stageTotal != null && verifiedEntry.stageTotal > 0
                       ? `${verifiedEntry.stageTotal.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: currencyFractionDigits(verifiedEntry.currency ?? money.code) })} ${verifiedEntry.currency ?? money.code}`
-                      : due.local}
+                      : isEstimate && stageTotalLocal > 0
+                        ? (lang === 'fr' ? `Estimé · ${due.local}` : `Estimated ${due.local}`)
+                        : due.local}
                   </p>
                   {isRowPaidUpfront(stage)
                     ? <>
