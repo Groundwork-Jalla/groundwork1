@@ -79,6 +79,22 @@ describe('project role capabilities stay with the current session and project', 
     render(); await flush(); h.fetch.mockRejectedValue(new Error('not_permitted'));
     await render().refresh(); expect(render()).toMatchObject({ access: null, error: true });
   });
+  it('retries once automatically on a transient network error during initial load', async () => {
+    h.fetch.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({ canInvite: true });
+    render(); await flush();
+    expect(render()).toMatchObject({ access: { canInvite: true }, error: false });
+    expect(h.fetch).toHaveBeenCalledTimes(2);
+  });
+  it('keeps an already-open screen on a transient background poll network drop, while still failing closed on permission denial', async () => {
+    const page = { visibilityState: 'visible' }; vi.stubGlobal('document', page);
+    render(); await flush(); expect(render().access?.canInvite).toBe(true);
+    h.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    await vi.advanceTimersByTimeAsync(15000); await flush();
+    expect(render()).toMatchObject({ access: { canInvite: true }, error: false });
+    h.fetch.mockRejectedValue(new Error('not_permitted'));
+    await vi.advanceTimersByTimeAsync(15000); await flush();
+    expect(render()).toMatchObject({ access: null, error: true });
+  });
   it('never shows the previous account permissions while a new account loads', async () => {
     render(); await flush(); expect(render().access?.canInvite).toBe(true);
     h.actor = 'different-user'; h.fetch.mockReturnValue(new Promise(() => {}));
